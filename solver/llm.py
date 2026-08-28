@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.request
 
@@ -68,16 +69,36 @@ def generate(endpoint: str, model: str, prompt: str, timeout: int = 900,
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read())
 
-    try:
-        data = post(body)
-    except urllib.error.HTTPError as exc:
-        # Non-reasoning models reject `think` with a 400. Drop it and retry
-        # rather than scoring the model zero for a flag it never asked for.
-        if exc.code == 400 and "think" in body:
-            body.pop("think")
-            data = post(body)
-        else:
+    def attempt(payload: dict) -> dict:
+        """One call, with `think` dropped if the model rejects it."""
+        try:
+            return post(payload)
+        except urllib.error.HTTPError as exc:
+            # Non-reasoning models reject `think` with a 400. Drop it and retry
+            # rather than scoring the model zero for a flag it never asked for.
+            if exc.code == 400 and "think" in payload:
+                payload.pop("think")
+                return post(payload)
             raise
+
+    # Ollama intermittently returns 5xx or stalls -- a trivial 5-token prompt
+    # was once measured at 76s, and a single transient 500 previously killed a
+    # whole experiment. A server hiccup must not be recorded as a model
+    # failure, so retry transient errors with backoff. 4xx is not retried: that
+    # is a bad request and repeating it changes nothing.
+    delay = 2.0
+    for remaining in range(3, 0, -1):
+        try:
+            data = attempt(dict(body))
+            break
+        except urllib.error.HTTPError as exc:
+            if exc.code < 500 or remaining == 1:
+                raise
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            if remaining == 1:
+                raise
+        time.sleep(delay)
+        delay *= 2
 
     text = data.get("response", "") or ""
     if not text.strip():

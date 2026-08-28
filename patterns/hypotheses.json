@@ -577,5 +577,37 @@
       "huge",
       "model choice"
     ]
+  },
+  {
+    "id": "region-split-reading-removes-refusals",
+    "claim": "Splitting the READING of a long function across fresh instances, each seeing a bounded region, eliminates the refusals that appear only on long functions.",
+    "source": "user's proposal: shifts and breaks, do not topple one instance",
+    "status": "INCONCLUSIVE",
+    "evidence": "First test on drawMenuAsciiFontTile (182 asm lines, previously refused by gpt-oss on EVERY attempt). Split into 4 regions of ~45 lines, one fresh instance each: ZERO refusals, and coherent summaries ('bounds-check & palette initialisation', 'struct-allocation helper'). That half of the prediction held cleanly and supports overload as the cause of refusals, over the two explanations already refuted (copyright framing; capability capitulation). BUT the COMPOSITION step still refused 1 of 2 times, because my implementation handed the composer the full 27KB of assembly alongside the summaries -- it still carried the whole load. Implementation flaw, not a flaw in the idea. Neither compose attempt compiled, so the matching-row half of the prediction is unmeasured. n=1 function, 2 compose draws.",
+    "tested_on": "1 function, 4 region reads + 2 compose draws",
+    "date": "2026-08-28",
+    "keywords": [
+      "regions",
+      "shifts",
+      "overload",
+      "refusal",
+      "decomposition"
+    ]
+  },
+  {
+    "id": "exactness-needs-the-detail-that-overloads",
+    "claim": "A composer can write byte-exact C from region SUMMARIES alone, without the full assembly.",
+    "source": "the obvious way to unload the composition step",
+    "status": "UNTESTED",
+    "evidence": "The tension this must resolve: byte-exact reconstruction needs exact operand, offset and ordering detail, and that detail is precisely what overloads a single instance. Summaries are lossy by construction. If a summary-only composer cannot reach the scores a full-assembly composer reaches, the load cannot simply be removed and composition must instead be made SEQUENTIAL -- emitting C region by region, each step seeing one region's assembly plus the C written so far.",
+    "tested_on": "",
+    "date": "",
+    "keywords": [
+      "compose",
+      "summary",
+      "detail",
+      "sequential",
+      "overload"
+    ]
   }
 ]
