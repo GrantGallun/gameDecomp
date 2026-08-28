@@ -4,3 +4,15 @@
 {"function": "tryQueueRacePlayerHitCueTerrainCrash", "tier": "tiny", "leaf": true, "exact": true, "best_score": 100.0, "draws": 3, "stages": 1, "tokens": 3806, "wall_s": 25.3, "route": "matched"}
 {"function": "lockRelocatableHeapBlock", "tier": "tiny", "leaf": true, "exact": true, "best_score": 100.0, "draws": 1, "stages": 1, "tokens": 915, "wall_s": 5.5, "route": "matched"}
 {"function": "unlockRelocatableHeapBlock", "tier": "tiny", "leaf": true, "exact": true, "best_score": 100.0, "draws": 2, "stages": 1, "tokens": 1948, "wall_s": 11.3, "route": "matched"}
+{"function": "initEndingCreditsCharacterLoopingSparkle", "tier": "tiny", "leaf": false, "exact": false, "best_score": 99.999, "draws": 6, "stages": 3, "tokens": 3055, "wall_s": 31.5, "route": "retype"}
+{"function": "renderMainMenuBoardModels", "tier": "tiny", "leaf": false, "exact": true, "best_score": 100.0, "draws": 5, "stages": 3, "tokens": 2938, "wall_s": 29.0, "route": "reshape"}
+{"function": "openSinglePlayerCourseSelectFlow", "tier": "tiny", "leaf": false, "exact": true, "best_score": 100.0, "draws": 2, "stages": 1, "tokens": 1069, "wall_s": 6.4, "route": "matched"}
+{"function": "enqueueDrawRaceIntroAnimatedBillboards", "tier": "tiny", "leaf": false, "exact": true, "best_score": 100.0, "draws": 1, "stages": 1, "tokens": 644, "wall_s": 3.9, "route": "matched"}
+{"function": "initControllerPakContinuePrompt", "tier": "tiny", "leaf": false, "exact": true, "best_score": 100.0, "draws": 5, "stages": 3, "tokens": 5113, "wall_s": 41.7, "route": "retype"}
+{"function": "allocMenuRenderScratch", "tier": "small", "leaf": true, "exact": false, "best_score": 83.0, "draws": 6, "stages": 3, "tokens": 5094, "wall_s": 41.1, "route": "reshape"}
+{"function": "resetRenderCallbackQueues", "tier": "small", "leaf": true, "exact": false, "best_score": 78.462, "draws": 6, "stages": 3, "tokens": 11140, "wall_s": 81.5, "route": "reshape"}
+{"function": "releaseGameTaskById", "tier": "small", "leaf": true, "exact": false, "best_score": 84.611, "draws": 6, "stages": 3, "tokens": 9018, "wall_s": 67.3, "route": "reshape"}
+{"function": "startSnowboardTrailEffect", "tier": "small", "leaf": true, "exact": false, "best_score": 89.344, "draws": 6, "stages": 3, "tokens": 11544, "wall_s": 77.6, "route": "reshape"}
+{"function": "tryQueueRacePlayerHitCueItemSteal", "tier": "small", "leaf": true, "exact": false, "best_score": 99.821, "draws": 6, "stages": 3, "tokens": 5623, "wall_s": 42.6, "route": "retype"}
+{"function": "updateTimeTrialRecordDeltaPopupSlideOut", "tier": "small", "leaf": false, "exact": false, "best_score": 99.999, "draws": 6, "stages": 3, "tokens": 6344, "wall_s": 46.3, "route": "reshape"}
+{"function": "updateEndingLindaTumbleToPhase3C", "tier": "small", "leaf": false, "exact": false, "best_score": 99.787, "draws": 6, "stages": 3, "tokens": 12758, "wall_s": 90.3, "route": "reshape"}

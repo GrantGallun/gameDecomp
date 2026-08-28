@@ -78,11 +78,82 @@ def screen(repo: Path, funcs: list[str]) -> tuple[list[str], list[tuple[str, str
     return feasible, infeasible
 
 
+FUNC_DEF_RE = re.compile(
+    r"^[A-Za-z_][\w \*]*?\b(\w+)\s*\([^;]*?\)\s*\{", re.MULTILINE)
+
+
+def coverage(repo: Path) -> dict:
+    """How much of the game the harness can even express, as its own number.
+
+    Excluding do-while functions from the eval set was right for MEASURING THE
+    MODEL and wrong for DECOMPILING THE GAME -- two different goals that got
+    conflated. Quietly dropping them shrinks the denominator and flatters the
+    match rate; a tool meant to decompile the whole game has to report the part
+    it structurally cannot attempt.
+
+    One pass over the sources rather than a git grep per function, which would
+    take ten minutes to answer the same question.
+    """
+    total = blocked = 0
+    by_reason: dict[str, int] = {}
+    examples: dict[str, list] = {}
+
+    for path in sorted((repo / "src").rglob("*.c")):
+        try:
+            text = path.read_text(errors="replace")
+        except OSError:
+            continue
+        stripped = COMMENTS_AND_LITERALS.sub(" ", text)
+
+        # Walk function bodies by brace depth so a construct is attributed to
+        # the function that contains it.
+        for m in FUNC_DEF_RE.finditer(stripped):
+            name = m.group(1)
+            depth, end = 0, len(stripped)
+            for i in range(m.end() - 1, len(stripped)):
+                if stripped[i] == "{":
+                    depth += 1
+                elif stripped[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        end = i
+                        break
+            body = stripped[m.end():end]
+            total += 1
+            for reason, pattern in FORBIDDEN.items():
+                if pattern.search(body):
+                    blocked += 1
+                    by_reason[reason] = by_reason.get(reason, 0) + 1
+                    examples.setdefault(reason, []).append(name)
+                    break
+
+    return {"total": total, "blocked": blocked, "by_reason": by_reason,
+            "examples": {k: v[:4] for k, v in examples.items()}}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--repo", required=True, type=Path)
-    ap.add_argument("--functions", required=True)
+    ap.add_argument("--functions")
+    ap.add_argument("--coverage", action="store_true",
+                    help="report what fraction of the game the harness can express")
     args = ap.parse_args()
+
+    if args.coverage:
+        c = coverage(args.repo.expanduser())
+        pct = 100.0 * c["blocked"] / c["total"] if c["total"] else 0.0
+        print("HARNESS COVERAGE")
+        print(f"  functions in src/        : {c['total']}")
+        print(f"  the harness cannot accept: {c['blocked']}  ({pct:.1f}%)")
+        for reason, n in sorted(c["by_reason"].items(), key=lambda kv: -kv[1]):
+            print(f"    {reason:12} {n:5}   e.g. {', '.join(c['examples'][reason][:3])}")
+        print(f"\n  MAXIMUM ACHIEVABLE: {100 - pct:.1f}% of the game.")
+        print("  A match rate quoted over the feasible subset is not a match "
+              "rate over the game.")
+        return
+
+    if not args.functions:
+        ap.error("--functions is required unless --coverage is given")
 
     funcs = [f.strip() for f in args.functions.split(",") if f.strip()]
     feasible, infeasible = screen(args.repo.expanduser(), funcs)
