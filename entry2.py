@@ -29,7 +29,7 @@ tiers = {e["function"]: e["tier"]
          for e in json.loads(Path("eval/sets/hard_v1.json").read_text())["dev"]}
 
 n = refused_final = compiled = exact = 0
-slice_total = slice_refused = slice_empty = 0
+slice_total = slice_refused = slice_empty = slice_trunc = 0
 scores, rows = [], []
 t0 = time.time()
 
@@ -60,6 +60,7 @@ for func in sys.argv[1:]:
         slice_total += st["slices"]
         slice_refused += st["refused"]
         slice_empty += st["empty"]
+        slice_trunc += st["truncated"]
 
         if any(w in code.lower()[:300] for w in REF):
             refused_final += 1
@@ -85,8 +86,10 @@ mean = sum(scores) / len(scores) if scores else 0.0
 med = sorted(scores)[len(scores) // 2] if scores else 0.0
 print(f"\n\n===== ENTRY 2 ({time.time()-t0:.0f}s) =====")
 print(f"draws                {n}")
-print(f"SLICE refusals       {slice_refused}/{slice_total} slices"
-      f"   (empty stmts: {slice_empty})")
+print(f"SLICE refusals       {slice_refused}/{slice_total} slices")
+print(f"SLICE empty stmts    {slice_empty}/{slice_total}   (was 31/54)")
+print(f"SLICE truncated      {slice_trunc}/{slice_total}"
+      f"   <- infrastructure failure, not model failure")
 print(f"FINAL refusals       {refused_final}/{n}")
 print(f"compiled             {compiled}/{n}")
 print(f"exact                {exact}")

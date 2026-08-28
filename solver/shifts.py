@@ -443,7 +443,7 @@ def sequential_compose(endpoint: str, model: str, asm: str,
     lex = lexicon(asm)
     decls: list[str] = []
     body: list[str] = []
-    stats = {"slices": len(regions), "refused": 0, "empty": 0}
+    stats = {"slices": len(regions), "refused": 0, "empty": 0, "truncated": 0}
     refusal_words = ("i'm sorry", "i’m sorry", "cannot provide",
                      "can't provide", "can’t provide", "can't produce")
 
@@ -458,9 +458,17 @@ def sequential_compose(endpoint: str, model: str, asm: str,
             lex=lex, prior=prior, index=r.index, total=len(regions),
             start=r.start, end=r.end, asm=strip_asm(r.text), hints=hints)
 
-        text, _ = llm.generate(endpoint, model, prompt, timeout=timeout,
-                               num_thread=num_thread, think=think,
-                               num_predict=1200, temperature=temperature)
+        # Budget must clear the reasoning trace AND the answer -- they share it.
+        # At 1200 the trace consumed the whole budget on 31 of 54 slices:
+        # done_reason 'length', eval_count pinned at the cap, and the fenced
+        # answer never written. Those slices were scored as empty, which is an
+        # infrastructure failure recorded as a model failure -- the exact error
+        # this project has already made once and must not repeat.
+        text, meta = llm.generate(endpoint, model, prompt, timeout=timeout,
+                                  num_thread=num_thread, think=think,
+                                  num_predict=6000, temperature=temperature)
+        if meta.get("done_reason") == "length":
+            stats["truncated"] += 1
         if any(w in text.lower()[:300] for w in refusal_words):
             stats["refused"] += 1
             if verbose:
