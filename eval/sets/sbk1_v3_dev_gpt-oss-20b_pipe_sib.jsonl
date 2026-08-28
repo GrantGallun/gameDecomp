@@ -67,3 +67,8 @@
 {"function": "fadeOutEndingCreditsFlow", "tier": "medium", "leaf": false, "exact": true, "best_score": 100.0, "draws": 6, "stages": 3, "tokens": 6986, "wall_s": 55.4, "route": "retype"}
 {"function": "updateRacePlayerMode16AerialTrick", "tier": "medium", "leaf": false, "exact": false, "best_score": 89.644, "draws": 6, "stages": 2, "tokens": 12915, "wall_s": 90.7, "route": "reshape"}
 {"function": "updateRaceSetupFourPlayerOption", "tier": "medium", "leaf": false, "exact": false, "best_score": 0.0, "draws": 0, "tokens": 0, "wall_s": 0.0, "error": "timed out"}
+{"function": "updateRacePlayerMode40Stun", "tier": "medium", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 16977, "wall_s": 126.3, "route": "reshape"}
+{"function": "func_8005804C", "tier": "medium", "leaf": false, "exact": false, "best_score": 49.536, "draws": 6, "stages": 3, "tokens": 13565, "wall_s": 93.2, "route": "reshape"}
+{"function": "checkMainMenuSecretCode", "tier": "large", "leaf": true, "exact": false, "best_score": 95.561, "draws": 6, "stages": 3, "tokens": 15826, "wall_s": 112.8, "route": "reshape"}
+{"function": "pushRaceCourseSurfaceBoundaryWithVelocity", "tier": "large", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 4608, "wall_s": 41.1, "route": "reshape"}
+{"function": "transformVec3iByFixedMatrix", "tier": "large", "leaf": false, "exact": false, "best_score": 0.0, "draws": 0, "tokens": 0, "wall_s": 0.0, "error": "database is locked"}
