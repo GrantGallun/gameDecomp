@@ -72,3 +72,15 @@
 {"function": "checkMainMenuSecretCode", "tier": "large", "leaf": true, "exact": false, "best_score": 95.561, "draws": 6, "stages": 3, "tokens": 15826, "wall_s": 112.8, "route": "reshape"}
 {"function": "pushRaceCourseSurfaceBoundaryWithVelocity", "tier": "large", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 4608, "wall_s": 41.1, "route": "reshape"}
 {"function": "transformVec3iByFixedMatrix", "tier": "large", "leaf": false, "exact": false, "best_score": 0.0, "draws": 0, "tokens": 0, "wall_s": 0.0, "error": "database is locked"}
+{"function": "zoomTrainingCourseRaceViewport", "tier": "large", "leaf": false, "exact": false, "best_score": 70.388, "draws": 6, "stages": 2, "tokens": 7475, "wall_s": 58.8, "route": "reshape"}
+{"function": "updateRaceSplitscreenSelectPlayerCountIcons", "tier": "large", "leaf": false, "exact": false, "best_score": 96.323, "draws": 6, "stages": 2, "tokens": 6260, "wall_s": 50.7, "route": "reshape"}
+{"function": "func_800615BC", "tier": "large", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 18201, "wall_s": 123.0, "route": "reshape"}
+{"function": "drawScaledAssetTableSprite", "tier": "huge", "leaf": true, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 2390, "wall_s": 26.6, "route": "reshape"}
+{"function": "drawMenuSpriteWithAlphaClipped", "tier": "huge", "leaf": true, "exact": false, "best_score": 0.624, "draws": 6, "stages": 2, "tokens": 749, "wall_s": 27.8, "route": "reshape"}
+{"function": "drawMenuSpriteClipped", "tier": "huge", "leaf": true, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 6350, "wall_s": 57.6, "route": "reshape"}
+{"function": "getRacePlayerRankingProgress", "tier": "huge", "leaf": true, "exact": false, "best_score": 94.953, "draws": 6, "stages": 3, "tokens": 12037, "wall_s": 96.8, "route": "reshape"}
+{"function": "drawPulsingAssetTableSprite", "tier": "huge", "leaf": true, "exact": false, "best_score": 0.874, "draws": 6, "stages": 3, "tokens": 8325, "wall_s": 62.5, "route": "reshape"}
+{"function": "updateRaceHud", "tier": "huge", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 9486, "wall_s": 84.0, "route": "reshape"}
+{"function": "resolveRaceCourseSurfaceCollisionWithVelocity", "tier": "huge", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 36000, "wall_s": 247.2, "route": "reshape"}
+{"function": "updateCourseSelectExtraCourseIconList", "tier": "huge", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 6871, "wall_s": 58.8, "route": "reshape"}
+{"function": "updateRacePlayerAirborneCruise", "tier": "huge", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 36000, "wall_s": 243.9, "route": "reshape"}
