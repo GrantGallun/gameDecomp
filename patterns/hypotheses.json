@@ -751,5 +751,39 @@
       "medium",
       "frontier"
     ]
+  },
+  {
+    "id": "inference-tier-is-empty-kb-thesis-unexercised",
+    "claim": "The KB remembers nothing. 72,845 evidence rows and ZERO inference rows: no types, no names, no accumulated knowledge.",
+    "source": "reading an actual failing candidate, as the user suggested",
+    "status": "CONFIRMED",
+    "evidence": "The project's thesis is 'the model proposes, the database remembers why'. The database has never remembered anything. kb_context.for_function() hands the model raw observations: 'global:0x80124830+0x0  4 byte int, signed' -- an ADDRESS and a WIDTH, no symbol name and no type. The thing at 0x80124830 is a Gfx pointer; the KB calls it a signed 4-byte int. This explains every measurement we have. Small functions are pure arithmetic and need no types, so they match 100%. Medium functions touch real SDK/game types, so the model must invent one every time -- and inventing 'u32 *p; p = (u32*)((u8*)p + 8)' instead of 'Gfx *g; g++' produces a different instruction shape, which is exactly the 29/30 structure-mismatch with instruction- count deltas we measured. Solved-huge are long call sequences where callee names come free from the symbol table. It also explains why six prompt-enrichment experiments and all of today's length work produced nothing: they rearranged the same type-free information, and removing 100% of refusals gained 0 matches because willingness was never the constraint.",
+    "tested_on": "direct DB inspection + reading a failing candidate (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "kb",
+      "inference",
+      "types",
+      "empty",
+      "thesis",
+      "structure-mismatch"
+    ]
+  },
+  {
+    "id": "prompt-misstates-available-types",
+    "claim": "The composer prompt tells the model common.h defines only u8..f64, which is FALSE. common.h includes <PR/mbi.h>, so the whole N64 SDK vocabulary (Gfx, Vtx, Mtx, GBI macros) is already available.",
+    "source": "reading the failing drawMenuSolidRect candidate",
+    "status": "CONFIRMED",
+    "evidence": "VERIFIED BY COMPILING: a candidate using 'Gfx *g', 'g + 1', 'g->words.w0' and 'g->words.w1' compiles cleanly against the real build. The type has been available to every candidate all along. Meanwhile the model, told it had only scalars, invented 'u32 *' with byte arithmetic AND made a plain C error while doing so: it wrote '*p = 0; p[0] = 0xE7000000;' believing those were two different words. They are the same location. It repeated that aliasing mistake three times, and its comments show the reasoning -- 'expressed as two separate statements so that the compiler emits two stores'. It is puppeteering C to force an instruction pattern instead of reconstructing source, which is what a model does when it lacks the vocabulary to say the real thing. CONTAMINATION LINE, and it matters: include/PR/*.h is the Nintendo 64 SDK (libultra). It is public, ships with the SDK, and every human decompiler has it on day one -- it is NOT the target's ground truth. include/game/*.h is reconstructed by the decomp team FROM the answer and must keep being treated as ground truth. Supplying SDK types is legitimate; supplying game headers is not.",
+    "tested_on": "compile probe against the real build (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "types",
+      "gbi",
+      "sdk",
+      "prompt",
+      "gfx",
+      "vocabulary"
+    ]
   }
 ]
