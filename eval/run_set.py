@@ -22,6 +22,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+from eval import experiment
 from solver import llm, pipeline, refine
 
 
@@ -113,6 +114,19 @@ def main() -> None:
     conn = sqlite3.connect(args.db.expanduser())
     refine.ensure_schema(conn)
     endpoint = llm.host()
+
+    # Refuse to blend implementations. Over one evening the sampling budget,
+    # the prompt hints, the routing and num_ctx all changed; resuming an older
+    # results file with newer code yields a number describing no system that
+    # ever existed.
+    fp = experiment.build(args.set, args.split, args.model, args.samples,
+                          args.temp, args.think, args.pipeline, args.siblings,
+                          args.permute_seconds)
+    may_resume, msg = experiment.check_or_claim(out, fp)
+    print(msg, flush=True)
+    if not may_resume:
+        raise SystemExit(2)
+    experiment.record(conn, fp, out)
 
     done = load_done(out)
     todo = [e for e in entries if e["function"] not in done]

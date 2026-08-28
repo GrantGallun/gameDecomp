@@ -63,3 +63,4 @@
 {"function": "calculateRaceTimerDelta", "tier": "medium", "leaf": true, "exact": false, "best_score": 56.221, "draws": 3, "tokens": 12368, "wall_s": 114.5, "route": "reshape"}
 {"function": "initRaceMotionModelParts", "tier": "medium", "leaf": true, "exact": false, "best_score": 9.695, "draws": 3, "tokens": 19415, "wall_s": 165.8, "route": "reshape"}
 {"function": "compressRaceRecordReplayData", "tier": "medium", "leaf": true, "exact": false, "best_score": 31.812, "draws": 3, "tokens": 15451, "wall_s": 139.9, "route": "reshape"}
+{"function": "initMainMenuSceneModelParts", "tier": "medium", "leaf": true, "exact": false, "best_score": 0.0, "draws": 2, "tokens": 28332, "wall_s": 494.3, "route": "reshape"}
