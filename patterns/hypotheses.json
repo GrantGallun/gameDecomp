@@ -527,5 +527,38 @@
       "structural",
       "routing"
     ]
+  },
+  {
+    "id": "model-refuses-on-large-functions",
+    "claim": "A substantial share of large/huge-function generations are refusals recorded as failures, so those tiers' numbers are contaminated.",
+    "source": "inspecting why huge-tier candidates were 5-instruction stubs",
+    "status": "CONFIRMED",
+    "evidence": "96 of 694 candidate files (13.8%) contain refusal text. By tier: tiny 0/98 candidates, small 0/135, medium 11/123 (9%), large 47/96 (49%), huge 30/60 (50%). 87% of large functions and 80% of huge ones had at least one refused generation. The refusal rate tracks the performance collapse exactly. Best-of-3 with a 50% refusal rate is effectively best-of-1.5, so the large (0/15) and huge (0/10) results measure a model that declined half the attempts. Refusals also emit ~5-instruction stubs, which diagnose as structure-mismatch -- partially contaminating that finding for large/huge, though medium (9% refusals) stands.",
+    "tested_on": "694 candidate files across the v3 run",
+    "date": "2026-08-28",
+    "keywords": [
+      "refusal",
+      "large",
+      "huge",
+      "contamination",
+      "stub",
+      "bail"
+    ]
+  },
+  {
+    "id": "refusals-are-a-copyright-framing-problem",
+    "claim": "The refusals are triggered by 'You are decompiling a Nintendo 64 game' and will stop if the task is reframed as compiler-output reconstruction.",
+    "source": "the obvious reading of the refusal text",
+    "status": "REFUTED",
+    "evidence": "Reframed the prompt to drop all game/decompilation framing and retested on two previously-refusing functions. The model still refused, adapting its wording to the new framing ('I can't provide the solution to this challenge', 'I can't produce the requested source'), and one variant wrote prose claiming the function was 'not recoverable from the given assembly dump'. Prediction was stated before the test and FAILED. This is capability capitulation wearing refusal language, not a safety refusal. Consequence: a prompt fix cannot recover the large/huge tiers; it needs a model that does not bail, or a task decomposed small enough that it does not want to.",
+    "tested_on": "2 previously-refusing functions, reframed prompt, n=2 each",
+    "date": "2026-08-28",
+    "keywords": [
+      "refusal",
+      "framing",
+      "copyright",
+      "prompt",
+      "reframe"
+    ]
   }
 ]

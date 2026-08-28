@@ -65,8 +65,32 @@ def catalog_hints(diff: str) -> str:
         return ""
     return ("\nKnown IDO idioms visible in this diff:\n" + "\n".join(hints) + "\n")
 
+# FRAMING -- and a hypothesis that was TESTED AND FAILED.
+#
+# gpt-oss:20b emits refusal text ("I'm sorry, but I can't provide the source
+# you're looking for") on 49% of large-function and 50% of huge-function
+# generations, and NEVER on tiny or small ones. Those are recorded as ~0%
+# failures, so the large and huge tier numbers measure a model that declined
+# half the attempts rather than one that tried and failed.
+#
+# The obvious hypothesis was that "You are decompiling a Nintendo 64 game"
+# tripped a copyright refusal. The wording below removed that framing and was
+# tested on two previously-refusing functions. IT DID NOT HELP: the model still
+# refused, merely adapting its wording to the new framing ("I can't provide the
+# solution to this challenge"), and one variant wrote prose explaining the
+# function was "not recoverable".
+#
+# So this is capability capitulation wearing refusal language, not a safety
+# refusal. The reframing is kept because it describes the task more accurately,
+# but it fixes nothing. The contamination is real and the remedy is elsewhere:
+# a model that does not bail, or a task decomposed small enough that it does
+# not want to.
 FIRST_PROMPT = """\
-You are decompiling a Nintendo 64 game compiled with IDO 5.3 at -O2 for MIPS.
+You are reconstructing the original C source of one function from its compiled
+output. The compiler is IDO 5.3 targeting MIPS at -O2.
+
+This is a compiler-behaviour exercise: the source is judged solely by whether
+recompiling it reproduces the target object byte for byte.
 
 Write C that compiles to assembly matching the TARGET exactly.
 
