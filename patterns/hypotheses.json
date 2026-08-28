@@ -338,7 +338,7 @@
     "claim": "A permuter output directory named `output-100...` proves a byte-exact match.",
     "source": "own implementation, caught by external review",
     "status": "REFUTED",
-    "evidence": "solver/pipeline.py::run_permuter parses a score from a DIRECTORY NAME and sets exact=True at >=100 without the oracle ever confirming it. This violates the project's foundational invariant -- byte-exact object comparison is the only source of truth. A false EXACT is worse than a missed match: it poisons every downstream number and the ratchet would lock it in. Every permuter result must be re-scored through workspace.score() and judged on 'Verified exact match'.",
+    "evidence": "solver/pipeline.py::run_permuter parses a score from a DIRECTORY NAME and sets exact=True at >=100 without the oracle ever confirming it. This violates the project's foundational invariant -- byte-exact object comparison is the only source of truth. A false EXACT is worse than a missed match: it poisons every downstream number and the ratchet would lock it in. Every permuter result must be re-scored through workspace.score() and judged on 'Verified exact match'. SEVERITY WAS UNDERSTATED. Measured directly: permuter output directories are named by dist.py COST (lower is better), not by a percentage. output-3750 scores 17.98% through the oracle; output-3700 scores 21.83%; output-35 scores 99.36%. The old code read the directory number as a percentage and set exact=True at >=100, so nearly EVERY permuter output would have been declared a byte-exact match -- a 17.98% candidate included. It never fired only because no function in any completed run took the permute route. That is luck, not safety.",
     "tested_on": "code inspection, verified",
     "date": "2026-08-27",
     "keywords": [
@@ -509,6 +509,23 @@
       "hints",
       "permuter",
       "null result"
+    ]
+  },
+  {
+    "id": "high-score-means-register-allocation",
+    "claim": "A candidate scoring >=95% has a register-allocation residual, so the permuter can close it.",
+    "source": "the original score-band triage design",
+    "status": "REFUTED",
+    "evidence": "All three >=95% functions in the hard subset were routed to `reshape`, not `permute` -- and that is informative, because with an empty verdict the >=95% band falls back to permute. Getting reshape proves the workbench returned a STRUCTURAL verdict despite the high score. Tested directly on isRacePlayerRespawnSurfaceValid (95.77%): 400s of permuting produced 19 candidates, best oracle-verified 99.36%, no match. Prediction stated before the run and held. A high score does not imply the residual is allocation, which is exactly why routing on score alone was wrong.",
+    "tested_on": "3 near-misses routed; 1 permuted for 400s, 19 candidates verified",
+    "date": "2026-08-28",
+    "keywords": [
+      "permuter",
+      "95",
+      "score",
+      "allocation",
+      "structural",
+      "routing"
     ]
   }
 ]
