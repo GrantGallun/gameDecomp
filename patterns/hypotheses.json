@@ -288,9 +288,9 @@
     "id": "workbench-verdict-routing",
     "claim": "Classifying the mismatch with n64-decomp-workbench and feeding that verdict's playbook levers beats routing on score alone.",
     "source": "n64-decomp-workbench; named in the SBK author's own writeup",
-    "status": "CONFIRMED",
-    "evidence": "Shipped ALONE (single variable) on the 41-function dev set. Exact 10 -> 12, with 3 newly matched against 1 regressed, and the FIRST exact match in the medium tier (isRacePlayerRespawnSurfaceValid). CAVEAT, recorded rather than buried: mean best score FELL 69.26 -> 64.07, driven by small (86.7 -> 77.2) and large (33.3 -> 21.6). Exact rose while mean fell. Exact is the goal metric -- 96% is a failure in matching decomp -- so this is kept, but the mean drop is a real regression for the non-matching majority and is not explained.",
-    "tested_on": "41-function stratified dev set, n=3, single change",
+    "status": "INCONCLUSIVE",
+    "evidence": "DOWNGRADED from CONFIRMED on external review, and the downgrade is correct. The claim rested on exact 10 -> 12 while mean score FELL 69.26 -> 64.07; a 95% interval on that mean delta is roughly -10.42 to +0.04, i.e. inconclusive. It was also invalidated by a LATER finding in this same bank -- tier-means-underpowered-at-n10 showed an UNCHANGED tier moving +9.8 points, so a 2-function exact delta is inside noise. The mechanism remains sound (score cannot distinguish a relocation error from a register-allocation one) and the routing is KEPT, but it is not measured. Needs repeated paired runs with fixed seeds.",
+    "tested_on": "41-fn dev set, n=3 -- underpowered for this effect size",
     "date": "2026-08-27",
     "keywords": [
       "verdict",
@@ -305,7 +305,7 @@
     "claim": "The playbook levers appended by the verdict router (up to ~2200 chars) crowd large-function prompts and depress their scores.",
     "source": "hypothesis from the iter-4 mean regression",
     "status": "INCONCLUSIVE",
-    "evidence": "Tested by gating the playbook prose above 6000 chars of target asm (large block 2627 -> 446 chars). Large-tier mean recovered 21.6 -> 34.9, matching the prediction. BUT the small tier, whose prompts were byte-identical between the two runs (asm 1.5-3.1k, well under the gate), moved +9.8 on its own. An unchanged tier moving almost as much as the changed one means the recovery cannot be attributed to the gate. Exact went 12 -> 11. Kept -- it strictly reduces prompt size on large targets and cannot plausibly hurt -- but NOT confirmed.",
+    "evidence": "Tested by gating the playbook prose above 6000 chars of target asm (large block 2627 -> 446 chars). Large-tier mean recovered 21.6 -> 34.9, matching the prediction. BUT the small tier, whose prompts were byte-identical between the two runs (asm 1.5-3.1k, well under the gate), moved +9.8 on its own. An unchanged tier moving almost as much as the changed one means the recovery cannot be attributed to the gate. Exact went 12 -> 11. Kept -- it strictly reduces prompt size on large targets and cannot plausibly hurt -- but NOT confirmed. Note: this entry was already INCONCLUSIVE for the right reason -- the unchanged small tier moved almost as much as the gated large tier.",
     "tested_on": "41-function dev set, n=3, single change",
     "date": "2026-08-27",
     "keywords": [
@@ -331,6 +331,53 @@
       "sample size",
       "noise",
       "n=10"
+    ]
+  },
+  {
+    "id": "permuter-dirname-is-proof",
+    "claim": "A permuter output directory named `output-100...` proves a byte-exact match.",
+    "source": "own implementation, caught by external review",
+    "status": "REFUTED",
+    "evidence": "solver/pipeline.py::run_permuter parses a score from a DIRECTORY NAME and sets exact=True at >=100 without the oracle ever confirming it. This violates the project's foundational invariant -- byte-exact object comparison is the only source of truth. A false EXACT is worse than a missed match: it poisons every downstream number and the ratchet would lock it in. Every permuter result must be re-scored through workspace.score() and judged on 'Verified exact match'.",
+    "tested_on": "code inspection, verified",
+    "date": "2026-08-27",
+    "keywords": [
+      "permuter",
+      "false positive",
+      "exact",
+      "oracle",
+      "verification"
+    ]
+  },
+  {
+    "id": "caveat-in-docstring-is-mitigation",
+    "claim": "Documenting a methodological risk in a module docstring is sufficient mitigation for it.",
+    "source": "own practice, caught by external review",
+    "status": "REFUTED",
+    "evidence": "solver/siblings.py documents that a close twin carries real signal and that sibling runs must be reported separately -- and then every pipeline measurement ran with siblings enabled anyway, drawn from a 100%-complete repository the solver would not have mid-project. Writing the caveat did not change a single number. Mitigation means changing the experiment (git-history replay), not annotating it.",
+    "tested_on": "iterations 3-6, all run with --siblings",
+    "date": "2026-08-27",
+    "keywords": [
+      "siblings",
+      "caveat",
+      "contamination",
+      "realism",
+      "docstring"
+    ]
+  },
+  {
+    "id": "bank-reconciliation-needed",
+    "claim": "Recording a new finding is enough; earlier conclusions it undermines will be noticed.",
+    "source": "external review",
+    "status": "REFUTED",
+    "evidence": "tier-means-underpowered-at-n10 (REFUTED) directly invalidates the CONFIRMED status of workbench-verdict-routing, and the two sat in the same bank unreconciled for two iterations. A finding that undermines prior conclusions must trigger a sweep of the entries it affects; nothing did that automatically.",
+    "tested_on": "the bank's own contents",
+    "date": "2026-08-27",
+    "keywords": [
+      "reconciliation",
+      "bank",
+      "process",
+      "invalidation"
     ]
   }
 ]

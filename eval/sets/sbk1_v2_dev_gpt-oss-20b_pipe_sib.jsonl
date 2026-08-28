@@ -16,3 +16,4 @@
 {"function": "tryQueueRacePlayerHitCueItemSteal", "tier": "small", "leaf": true, "exact": true, "best_score": 100.0, "draws": 1, "tokens": 2599, "wall_s": 16.0, "route": "matched"}
 {"function": "updateTimeTrialRecordDeltaPopupSlideOut", "tier": "small", "leaf": false, "exact": false, "best_score": 99.999, "draws": 3, "tokens": 7189, "wall_s": 59.8, "route": "retype"}
 {"function": "updateEndingLindaTumbleToPhase3C", "tier": "small", "leaf": false, "exact": true, "best_score": 100.0, "draws": 2, "tokens": 6682, "wall_s": 140.4, "route": "permute"}
+{"function": "initTimeTrialRecordDeltaPopup", "tier": "small", "leaf": false, "exact": false, "best_score": 0.0, "draws": 2, "tokens": 9246, "wall_s": 82.6, "route": "reshape"}
