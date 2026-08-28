@@ -123,3 +123,85 @@ worth resolving in a later iteration.
 | ≥95% | register allocation | decomp-permuter |
 | 80–95% | wrong struct size / field types | stride decode + KB facts + sibling |
 | <80% | wrong shape | mirror a matched sibling |
+
+## Long-context literature (searched 2026-08-28)
+
+Both of the ideas we just tested -- split the reading into shifts, attach a
+lexicon so the model looks a fact up instead of rescanning -- appear in
+published work, arrived at independently. That is corroboration, and it also
+hands us the parts we had not built.
+
+### The refusals are almost certainly abstention, not safety
+
+Chroma's *Context Rot* report (18 frontier models, incl. GPT-4.1, Claude 4,
+Gemini 2.5, Qwen3) finds degradation at **every** input-length increment
+tested, and reports that some models **abstain when uncertain** while others
+hallucinate confidently. Our gpt-oss refuses ~50% on large/huge and 0% on
+tiny/small; region reads at ~45 lines refuse 0 of 18. That is the abstention
+profile, not a safety profile -- which is what killed the copyright-framing
+hypothesis empirically and now has a mechanism behind it.
+
+Two further findings bear directly on assembly:
+
+- **Distractor interference.** Semantically similar but irrelevant content
+  degrades performance *beyond* what length alone explains, and the effect
+  amplifies with length. 300 near-identical MIPS instructions are close to a
+  worst case for this: every line looks like every other line.
+- **Coherent haystacks score worse than shuffled ones**, across all 18 models.
+  Structure creates plausible-looking distractors.
+
+This is the first mechanistic account we have for why the wall is where it is,
+and it predicts assembly should be unusually bad for long context.
+
+### WaDec (ICSE'25, WebAssembly) -- the recombination we lacked
+
+Reports 52.11% recompilability. Its slicing algorithm has four parts, and we
+currently implement one:
+
+1. **Slice at loop boundaries** -- each snippet holds at most one loop plus
+   arbitrary conditionals. We cut at any branch or label, which is cruder.
+2. **Nested loops are replaced by markers** and decompiled separately; the
+   markers are the reassembly points. Hierarchical, and it means no slice ever
+   holds a nested body.
+3. **Temporal context** -- each slice is told the variables already defined by
+   previously decompiled slices. This is sequential composition: slices emit
+   CODE, not prose, and later slices build on earlier ones. Our composer
+   instead reads prose summaries and writes the whole function in one shot.
+4. **Spatial context** -- declarations of called functions, because argument and
+   return counts affect stack balance. Our lexicon lists call sites but not
+   signatures.
+
+Plus an Offset2string map from offsets to string constants -- a lexicon, for
+the same reason we built one.
+
+Caveat, stated because it matters: the paper has **no ablation isolating the
+slicing**, so its contribution to that 52% is not separately measured. Take the
+design, not the attribution.
+
+### AutoDecompiler -- multi-turn beats single-turn
+
+Uses stage-aware feedback from compiler errors, execution failures and failed
+tests, and consistently beats single-turn at equal model size. Our feedback
+signal is strictly stronger (byte-exact object diff, not re-execution). The
+obstacle is ours alone: measured prefix-exact depth is 0, so there is no
+verified prefix for a turn to preserve.
+
+### Prompt compression -- the wrong kind is available off the shelf
+
+LLMLingua reports up to 20x compression with minor loss, but it is **token-level
+and lossy by design**: it drops tokens a small model judges redundant. For
+byte-exact matching that is disqualifying -- a dropped immediate is a wrong
+constant. Our strip_asm is the other kind: lossless *structural* removal of
+fields (file offset, vram address, encoding) that provably cannot constrain the
+C source. Keep that distinction. Do not reach for LLMLingua here.
+
+### What this implies, in priority order
+
+1. **Sequential composition** (WaDec 3) -- slices emit C and carry forward the
+   declarations. This is the biggest gap between our design and theirs.
+2. **Loop-aware slicing with markers** (WaDec 1-2), replacing branch-boundary
+   cuts.
+3. **Callee signatures in the lexicon** (WaDec 4) -- cheap, mechanical.
+4. **Position** -- lost-in-the-middle predicts the lexicon should sit adjacent
+   to the instruction at the END of the prompt, not buried ahead of the
+   assembly where it is now. Nearly free to test.
