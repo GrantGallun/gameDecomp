@@ -485,14 +485,25 @@ def hints_for_asm(asm: str) -> str:
         except Exception:
             continue
 
+    # Computed facts read straight off the target: array stride, narrow
+    # parameter widths, stack frame size. These are arithmetic, not pattern
+    # matching, so they are always included when present.
+    #
+    # These were absent for several iterations because the edit that was meant
+    # to wire them in never matched, and the patch script printed "patched"
+    # unconditionally. Three hypotheses were marked CONFIRMED on evidence that
+    # could not have come from them. tests/test_units.py now asserts the
+    # composition so it cannot silently detach again.
+    computed = stride_hint(asm) + narrow_param_hint(asm) + frame_hint(asm)
+
     if not fired:
-        return ""
+        return computed
 
     lines = ["\nIDIOMS DETECTED IN THIS TARGET (each confirmed on a real match):"]
     for p in fired:
         lines.append(f"- {p.name}: {p.means}")
         lines.append(f"  -> {p.prescription}")
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines) + "\n" + computed
 
 
 # ---------------------------------------------------------------- reporting

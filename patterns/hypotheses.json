@@ -49,8 +49,8 @@
     "id": "array-stride-decoding",
     "claim": "Struct size can be read arithmetically out of the target's index arithmetic and handed to the model as fact.",
     "source": "diagnosis of unlockRelocatableHeapBlock",
-    "status": "CONFIRMED",
-    "evidence": "`sll 2; addu; sll 2` is unambiguously x20. That function went from stuck-at-99.167% (permuter could not help) to EXACT on the first draw once the stride was stated.",
+    "status": "UNTESTED",
+    "evidence": "`sll 2; addu; sll 2` is unambiguously x20. That function went from stuck-at-99.167% (permuter could not help) to EXACT on the first draw once the stride was stated. *** RETRACTED: THIS HINT NEVER REACHED A PROMPT. *** The line composing stride/narrow-param/frame hints into hints_for_asm never applied -- the string replace did not match and the patch script printed 'patched' unconditionally. grep found zero references to the hint functions. So the evidence cited for this entry cannot have come from this hint; whatever moved those numbers, it was something else (sampling variance, KB context, or the pipeline). Downgraded to UNTESTED. Now wired in and asserted by tests/test_units.py::test_hints_mention_frame_and_stride.",
     "tested_on": "unlockRelocatableHeapBlock, lockRelocatableHeapBlock",
     "date": "2026-08-27",
     "keywords": [
@@ -65,8 +65,8 @@
     "id": "narrow-param-homing",
     "claim": "A dead `sw $aN, K($sp)` plus `andi 0xffff` at entry proves parameter N is 16-bit.",
     "source": "DECOMPILATION_LEARNINGS.md, parameter homing section",
-    "status": "CONFIRMED",
-    "evidence": "setRaceCameraMode(u16,u16) shows the pattern twice; the s32 control getRaceItemEffectType shows neither instruction. Detector verified on both, plus a deliberate conservative miss on spawnPatrolCourseObject. Shipped in the same bundled run; not isolated.",
+    "status": "UNTESTED",
+    "evidence": "setRaceCameraMode(u16,u16) shows the pattern twice; the s32 control getRaceItemEffectType shows neither instruction. Detector verified on both, plus a deliberate conservative miss on spawnPatrolCourseObject. Shipped in the same bundled run; not isolated. *** RETRACTED: THIS HINT NEVER REACHED A PROMPT. *** The line composing stride/narrow-param/frame hints into hints_for_asm never applied -- the string replace did not match and the patch script printed 'patched' unconditionally. grep found zero references to the hint functions. So the evidence cited for this entry cannot have come from this hint; whatever moved those numbers, it was something else (sampling variance, KB context, or the pipeline). Downgraded to UNTESTED. Now wired in and asserted by tests/test_units.py::test_hints_mention_frame_and_stride.",
     "tested_on": "3 functions, positive and negative controls",
     "date": "2026-08-27",
     "keywords": [
@@ -194,7 +194,7 @@
     "claim": "Stating the target stack frame size as a fact, plus the levers that move it, prevents the whole-function offset noise a wrong frame causes.",
     "source": "OoT -O2 IDO 5.3 guide + decomp-permuter README",
     "status": "INCONCLUSIVE",
-    "evidence": "Implemented; extraction verified (spawnPatrolCourseObject=24, frameless leaves=None). Prevalence checked first: 1,874 functions allocate a frame vs 15 byte-casts. Permuter README confirms --stack-diffs is weak, so a frame mismatch cannot be permuted away and must be fixed in source. Shipped in a run bundling three changes (context fix, narrow-param hint, frame hint): 7/41 -> 10/41 exact, mean 55.33 -> 69.26. Cannot be attributed alone; the large-tier recovery is mechanistically the context fix.",
+    "evidence": "Implemented; extraction verified (spawnPatrolCourseObject=24, frameless leaves=None). Prevalence checked first: 1,874 functions allocate a frame vs 15 byte-casts. Permuter README confirms --stack-diffs is weak, so a frame mismatch cannot be permuted away and must be fixed in source. Shipped in a run bundling three changes (context fix, narrow-param hint, frame hint): 7/41 -> 10/41 exact, mean 55.33 -> 69.26. Cannot be attributed alone; the large-tier recovery is mechanistically the context fix. *** RETRACTED: THIS HINT NEVER REACHED A PROMPT. *** The line composing stride/narrow-param/frame hints into hints_for_asm never applied -- the string replace did not match and the patch script printed 'patched' unconditionally. grep found zero references to the hint functions. So the evidence cited for this entry cannot have come from this hint; whatever moved those numbers, it was something else (sampling variance, KB context, or the pipeline). Downgraded to UNTESTED. Now wired in and asserted by tests/test_units.py::test_hints_mention_frame_and_stride.",
     "tested_on": "41-function dev set, bundled with 2 other changes",
     "date": "2026-08-27",
     "keywords": [
@@ -378,6 +378,22 @@
       "bank",
       "process",
       "invalidation"
+    ]
+  },
+  {
+    "id": "patch-script-printed-success-means-applied",
+    "claim": "A patch script that prints 'patched' has applied its edit.",
+    "source": "own practice, caught by a unit test",
+    "status": "REFUTED",
+    "evidence": "Three separate hint functions were written, unit-tested in isolation, and never wired in, because the composing edit's string replace silently did not match while the script printed 'patched' unconditionally. Two hypotheses were promoted to CONFIRMED on evidence that could not have come from them. A print statement is not a verification. Assert the OBSERVABLE EFFECT -- here, that hints_for_asm returns non-empty output for an asm containing the pattern -- not that the script ran.",
+    "tested_on": "patterns/catalog.py hints_for_asm, found by pytest",
+    "date": "2026-08-27",
+    "keywords": [
+      "patch",
+      "edit",
+      "silent failure",
+      "verification",
+      "wiring"
     ]
   }
 ]
