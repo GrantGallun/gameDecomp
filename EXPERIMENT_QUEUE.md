@@ -19,7 +19,14 @@ Standing rules for every entry:
 
 ---
 
-## 0. Settle today's inconclusive result before building on it
+## ~~0. Settle today's inconclusive result before building on it~~ DONE — KILLED
+
+> Ran at n=18/arm. Refusals: A raw 4/18, C lexicon+stripped 5/18 — gap
+> **-1**, so the pre-registered kill condition fired. Compression is
+> dead as a refusal fix. `strip_asm`/`lexicon()` stay in the tree
+> (correct, lossless, validated) but do NOT become the default path.
+> The n=6 result was noise, which is why this entry existed.
+
 
 `compressing-composer-input-reduces-refusals` is INCONCLUSIVE: the direction was
 right but the 20.0 rests on **one draw** at n=6.
