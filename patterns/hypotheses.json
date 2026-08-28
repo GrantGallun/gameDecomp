@@ -582,9 +582,9 @@
     "id": "region-split-reading-removes-refusals",
     "claim": "Splitting the READING of a long function across fresh instances, each seeing a bounded region, eliminates the refusals that appear only on long functions.",
     "source": "user's proposal: shifts and breaks, do not topple one instance",
-    "status": "INCONCLUSIVE",
-    "evidence": "First test on drawMenuAsciiFontTile (182 asm lines, previously refused by gpt-oss on EVERY attempt). Split into 4 regions of ~45 lines, one fresh instance each: ZERO refusals, and coherent summaries ('bounds-check & palette initialisation', 'struct-allocation helper'). That half of the prediction held cleanly and supports overload as the cause of refusals, over the two explanations already refuted (copyright framing; capability capitulation). BUT the COMPOSITION step still refused 1 of 2 times, because my implementation handed the composer the full 27KB of assembly alongside the summaries -- it still carried the whole load. Implementation flaw, not a flaw in the idea. Neither compose attempt compiled, so the matching-row half of the prediction is unmeasured. n=1 function, 2 compose draws.",
-    "tested_on": "1 function, 4 region reads + 2 compose draws",
+    "status": "CONFIRMED",
+    "evidence": "REPLICATED on 3 functions: drawMenuAsciiFontTile (182 lines, 4 regions), getRacePlayerRankingProgress (345, 8), checkMainMenuSecretCode (265, 6). 18 of 18 region reads succeeded, ZERO refusals -- against a baseline where these same functions refuse ~50% of the time when read whole (and where the composer, given the whole thing, refused 5 of 6 draws in the same run). Same model, same day, same flags: the only variable is how much it is asked to hold. This is now the only surviving explanation for the refusals -- copyright framing and capability capitulation are both REFUTED. SCOPE: this confirms bounded-region READING does not refuse. It does NOT claim regions produce matches; see the composer results, which are separate and much weaker.",
+    "tested_on": "3 functions, 18 region reads (2026-08-28)",
     "date": "2026-08-28",
     "keywords": [
       "regions",
@@ -598,9 +598,9 @@
     "id": "exactness-needs-the-detail-that-overloads",
     "claim": "A composer can write byte-exact C from region SUMMARIES alone, without the full assembly.",
     "source": "the obvious way to unload the composition step",
-    "status": "UNTESTED",
-    "evidence": "The tension this must resolve: byte-exact reconstruction needs exact operand, offset and ordering detail, and that detail is precisely what overloads a single instance. Summaries are lossy by construction. If a summary-only composer cannot reach the scores a full-assembly composer reaches, the load cannot simply be removed and composition must instead be made SEQUENTIAL -- emitting C region by region, each step seeing one region's assembly plus the C written so far.",
-    "tested_on": "",
+    "status": "REFUTED",
+    "evidence": "Tested directly as arm B (summaries + lexicon, NO assembly) against arm C (summaries + lexicon + stripped assembly), same shared summaries, 6 draws each. B and C compiled equally often (2 of 6), but scored 0.8 vs 20.0 summed-best. Removing the assembly did not stop the composer refusing (3 of 6 either way) and cost nearly all of the score. So the detail cannot simply be dropped: a summary-only composer produces code that compiles and is wrong. The lexicon is a SUPPLEMENT to the assembly, not a replacement for it. Composition must stay grounded in the instructions.",
+    "tested_on": "3 functions, 6 draws per arm (2026-08-28)",
     "date": "",
     "keywords": [
       "compose",
@@ -608,6 +608,23 @@
       "detail",
       "sequential",
       "overload"
+    ]
+  },
+  {
+    "id": "compressing-composer-input-reduces-refusals",
+    "claim": "Stripping the /* offset vram encoding */ comments and attaching a lexicon of exact facts cuts the composer's input to ~34% and lets it attempt functions it otherwise refuses.",
+    "source": "user's proposal: compress, plus a lexicon to check against, so it is lookup and not entire retrieval",
+    "status": "INCONCLUSIVE",
+    "evidence": "3 functions, 6 draws per arm. Refusals: raw 5/6, lexicon-only 3/6, lexicon+stripped 3/6. Compiling candidates: raw 0, other two arms 2 each. Summed best score: raw 0.0, lexicon-only 0.8, lexicon+stripped 20.0 -- including 18.5% on checkMainMenuSecretCode, which had never scored anything. DIRECTION IS RIGHT AND THE MECHANISM IS SOUND (the stripped comments are provably information-free; the lexicon is validated at 82/82 globals real). But this is BELOW the significance floor: n=6 draws per arm, the refusal gap is 2 draws, and the 20.0 rests on a SINGLE draw. Not confirmed. Counter-evidence worth keeping: getRacePlayerRankingProgress (345 lines) refused in ALL 18 draws across all three arms. Compression did not rescue the largest function at all, so whatever the ceiling is there, input size is not the whole story. Kept regardless of significance because it strictly reduces prompt size with zero information loss and cannot plausibly hurt.",
+    "tested_on": "3 functions, 18 draws (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "lexicon",
+      "compression",
+      "strip",
+      "composer",
+      "refusal",
+      "lookup"
     ]
   }
 ]
