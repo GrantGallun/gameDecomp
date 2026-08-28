@@ -371,9 +371,11 @@ def compressed_prompt(asm: str, summaries: list[str], kb: str = "",
 # earlier slices already declared, rather than one composer reading prose
 # summaries and writing the whole function in a single pass.
 #
-# The load never grows with the function: a slice sees its own ~45 lines of
-# assembly plus the accumulated C, and the accumulated C is far smaller than
-# the assembly it came from.
+# Correction: an earlier version of this comment claimed "the load never grows
+# with the function". That is FALSE, and an external review was right to catch
+# it. A slice sees its own ~45 lines plus ALL the accumulated C, so its context
+# still grows with function length -- more slowly than the assembly would, but
+# it grows, and the final assembly step reads the whole accumulated body.
 #
 # Stated risk, which is the point of the experiment: register allocation is
 # global and the measured prefix-exact depth is 0, so C emitted a slice at a

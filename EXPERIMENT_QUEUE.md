@@ -72,7 +72,15 @@ Runs before #2 because better slices make sequential composition a fair test.
 
 ---
 
-## 2. `sequential-slice-composition` - the architectural question
+## ~~2. `sequential-slice-composition`~~ DONE - REFUTED
+
+> Mechanism works, outcome does not. Refusals 22% -> 0% at slice and
+> final level, compile rate 22% -> 42%. But exact stayed 0, mean score
+> FELL 39.0 -> 21.0, and it costs ~17x more per draw (198s vs 11.5s).
+> At equal compute the one-shot composer gets ~200 draws to its 12.
+> Real finding: we removed 100% of refusals and gained ZERO matches,
+> re-confirming that refusals were never on the critical path.
+
 
 Source: WaDec "temporal context". The biggest gap between our design and a
 published one that works.
