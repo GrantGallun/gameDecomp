@@ -717,5 +717,39 @@
       "context rot",
       "uncertainty"
     ]
+  },
+  {
+    "id": "anchor-density-predicts-matching",
+    "claim": "What predicts matching is the density of NAMED anchors (%hi/%lo globals and jal callees) per instruction, not function length.",
+    "source": "cliff analysis of solved vs failing tiers",
+    "status": "REFUTED",
+    "evidence": "Formed on four groups where it looked decisive: solved small 0.210, failing medium 0.073, solved huge 0.170, failing huge 0.030 -- and it explained the anomaly that huge (40%) beats medium (10%), which length decay cannot. THEN TESTED ON TIERS NOT USED TO FORM IT, and it failed. Tiny solved came in high at 0.167 as predicted, but LARGE FAILING came in at 0.156 -- as anchor-dense as the solved groups, with 11 of 15 above the 0.10 threshold. Pooled: solved median 0.187 vs failing 0.096; 85% of solved vs 49% of failing above 0.10. A real correlation with heavy overlap, so a weak correlate and NOT a discriminator. Reporting the medians alone would have shipped a clean and wrong story. Kept as a cautionary entry: the hypothesis was generated and would have been confirmed on the same data. The out-of-sample check is the only reason it was caught.",
+    "tested_on": "87 v3 dev functions, out-of-sample on tiny/large (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "anchors",
+      "globals",
+      "calls",
+      "tier",
+      "cliff",
+      "discriminator"
+    ]
+  },
+  {
+    "id": "tier-cliff-is-not-length-decay",
+    "claim": "The small->medium transition is a categorical cliff, not exponential decay in length; p^N is the wrong model.",
+    "source": "per-tier match rates on v3 dev",
+    "status": "CONFIRMED",
+    "evidence": "Measured match rates: tiny 21/21 (100%), small 20/20 (100%), medium 2/20 (10%), large 1/16 (6%), huge 4/10 (40%). Two facts kill the p^N story that has driven weeks of work. First, 100% -> 10% between adjacent tiers is a cliff, not a smooth exponential. Second, HUGE (40%) BEATS MEDIUM (10%) -- under monotonic per-instruction decay the longest functions must be worst, and they are not. Consequence: small is fully solved and has no headroom left, so 'go back to smalls' is already satisfied. The frontier is MEDIUM. Consequence: length-management work (region splitting, compression, sequential composition) was aimed at a mechanism the tier data says is not the binding one -- consistent with entry 2, where removing 100% of refusals produced 0 matches. The solved-huge group looks like a distinct class: median 691 instructions with 54.5 calls, i.e. long stereotyped call sequences rather than dense algorithmic code.",
+    "tested_on": "87 v3 dev functions (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "tier",
+      "cliff",
+      "length",
+      "p^N",
+      "medium",
+      "frontier"
+    ]
   }
 ]
