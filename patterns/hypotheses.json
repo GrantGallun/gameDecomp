@@ -801,5 +801,21 @@
       "for-loop",
       "harness"
     ]
+  },
+  {
+    "id": "for-break-rewrite-generalises-across-do-while-sites",
+    "claim": "The for(;;)+break rewrite is mechanically safe across essentially all do-while sites in the game, not just the one proven byte-exact.",
+    "source": "checking whether an n=1 proof generalises before acting on it",
+    "status": "CONFIRMED",
+    "evidence": "Scanned all 390 do-while sites in src/. 389 (100% to the nearest point) contain no `continue` at the loop's own level and are mechanically rewritable. Exactly ONE is unsafe: ending_credits_linda.c:614. The hazard is real and specific, which is why it was checked rather than assumed: in a do-while, `continue` jumps to the CONDITION TEST; in a for(;;), it jumps to the top and skips the trailing `if (!cond) break;`, turning a terminating loop into an infinite one. That is a correctness bug, not a matching bug, and it would not have shown up as a low score -- it would hang. Inner-loop `continue` was counted separately and correctly excluded, since a continue belonging to a nested loop does not affect the outer rewrite. Zero such cases exist here anyway. Consequence: the prompt rule is safe to state as a blanket instruction provided it carries the continue caveat, which it now does. Concentration is high -- race_ui_effects.c alone has 40 sites, course_select_ui.c 37 -- so a single correct rule unlocks large clusters at once.",
+    "tested_on": "all 390 do-while sites in src/ (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "do-while",
+      "continue",
+      "rewrite",
+      "generalisation",
+      "for-loop"
+    ]
   }
 ]
