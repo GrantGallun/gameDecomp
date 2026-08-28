@@ -176,18 +176,36 @@ def func_addr(conn: sqlite3.Connection, name: str) -> int | None:
     return row[0] if row else None
 
 
-def log_attempt(conn, addr, func, i, code, prompt, att, meta, strategy, model, wall_ms):
-    """Record one attempt. Never overwrite, never prune -- see TRAINING.md."""
+def log_attempt(conn, addr, func, i, code, prompt, att, meta, strategy, model,
+                wall_ms, temperature=None, run_id=None):
+    """Record one attempt. Never overwrite, never prune -- see TRAINING.md.
+
+    The sampling parameters must be the ones actually used. This previously
+    hardcoded temperature 0.2 while the pipeline sampled at 0.7, and passed
+    wall_ms=0 for every pipeline attempt. TRAINING.md's premise is that this
+    table becomes the refinement dataset; rows carrying the wrong sampling
+    parameters and no timing are unusable for exactly that purpose, so every
+    run was quietly writing damaged training data.
+
+    `run_id` distinguishes invocations, because `iteration` restarts at 1 on
+    every call and would otherwise collide across runs of the same function.
+    """
     if addr is None:
         return
+    sampling = {
+        "temperature": temperature,
+        "num_predict": meta.get("_num_predict"),
+        "eval_count": meta.get("eval_count"),
+        "prompt_eval_count": meta.get("prompt_eval_count"),
+        "run_id": run_id,
+    }
     conn.execute(
         "INSERT INTO attempts (func_addr, iteration, source_code, prompt_context,"
         " compiled, compiler_stderr, score, diff_summary, strategy, model,"
         " sampling, wall_ms, token_cost, created_at)"
         " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (addr, i, code, prompt, int(att.compiled), att.compiler_stderr,
-         att.score, att.diff, strategy, model,
-         json.dumps({"temperature": 0.2, "num_predict": meta.get("_num_predict")}),
+         att.score, att.diff, strategy, model, json.dumps(sampling),
          wall_ms, meta.get("eval_count", 0), int(time.time())),
     )
     conn.commit()

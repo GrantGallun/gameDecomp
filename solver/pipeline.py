@@ -61,10 +61,38 @@ class Outcome:
     route: str = ""
     stages: list = field(default_factory=list)
     tokens: int = 0
+    generations: int = 0
     wall_s: float = 0.0
 
 
+# A workbench verdict beats a score band, because the score is blind to whole
+# classes of mismatch. Only `allocation` and `register-permutation` are things
+# the permuter can actually move; everything else needs a source change.
+VERDICT_ROUTE = {
+    "allocation": "permute",
+    "allocation-mismatch": "permute",
+    "register-permutation": "permute",
+    "phase-shift": "permute",
+    # Instructions are right, symbols are wrong. Permuting cannot help.
+    "words-identical": "relocation",
+    "relocation-layout-mismatch": "relocation",
+    "unknown-relocation": "relocation",
+    # Source-shape problems.
+    "frame-layout": "retype",
+    "frame-layout-mismatch": "retype",
+    "constant": "retype",
+    "constant-mismatch": "retype",
+    "operand-mismatch": "retype",
+    "commutative-order": "retype",
+    "schedule": "retype",
+    "schedule-mismatch": "retype",
+    "structure": "reshape",
+    "structure-mismatch": "reshape",
+}
+
+
 def triage(score: float) -> str:
+    """Fallback routing when no verdict is available."""
     if score >= 100.0:
         return "matched"
     if score >= PERMUTE_FLOOR:
@@ -72,6 +100,22 @@ def triage(score: float) -> str:
     if score >= RETYPE_FLOOR:
         return "retype"
     return "reshape"
+
+
+def route_for(verdict: str, score: float) -> str:
+    """Verdict decides; score is only the fallback.
+
+    A `words-identical` candidate scores ~100% and must NOT go to the permuter:
+    its instructions already match and only the relocations are wrong.
+    """
+    if score >= 100.0:
+        return "matched"
+    if verdict:
+        # Mixed verdicts read like "mixed(structural:4, register:8)".
+        for key, route in VERDICT_ROUTE.items():
+            if verdict.startswith(key):
+                return route
+    return triage(score)
 
 
 def build_prompt(repo: Path, conn, func: str, asm: str, draft: str,
@@ -92,19 +136,46 @@ def build_prompt(repo: Path, conn, func: str, asm: str, draft: str,
                                       hints=hints + sib)
 
 
-def run_permuter(repo: Path, func: str, source: Path, seconds: int) -> float | None:
-    """Returns the permuter's best score, or None if it found nothing."""
-    rc, out = workspace.sh(
+def run_permuter(repo: Path, func: str, source: Path, seconds: int,
+                 ws: Path | None = None) -> tuple[float, bool, str]:
+    """Run the permuter and RE-VERIFY every candidate through the oracle.
+
+    Returns (best_score, exact, best_code).
+
+    The previous version parsed a score out of the permuter's output DIRECTORY
+    NAME and declared exact at >= 100. That is a false-positive generator and it
+    violates the project's foundational invariant: byte-exact object comparison
+    is the only source of truth. A fabricated EXACT is worse than a missed
+    match -- it poisons every downstream number, and the ratchet would lock it
+    in as ground truth.
+
+    A directory name is a claim. `workspace.score` is the verdict.
+    """
+    workspace.sh(
         f". .venv/bin/activate && timeout {seconds}s ./tools/permuter "
         f"--source-file {source} {func}", cwd=repo, timeout=seconds + 120)
 
-    best = None
-    for d in sorted((repo / "nonmatchings").glob(f"{func}-*/output-*")):
+    if ws is None:
+        return 0.0, False, ""
+
+    best_score, best_exact, best_code = 0.0, False, ""
+    # Permuter writes winners to nonmatchings/<func>-N/output-<score>-<n>/source.c
+    for i, cand in enumerate(sorted((repo / "nonmatchings").glob(
+            f"{func}-*/output-*/source.c"))[:8]):
         try:
-            best = max(best or 0.0, float(d.name.split("-")[1]))
-        except (IndexError, ValueError):
+            code = cand.read_text(errors="replace")
+        except OSError:
             continue
-    return best
+        att = workspace.score(ws, repo, f"permcheck_{i}", code)
+        if att.score > best_score:
+            best_score, best_exact, best_code = att.score, att.exact, code
+        if att.exact:
+            break
+
+    return best_score, best_exact, best_code
+
+
+SAMPLE_TEMP = 0.7
 
 
 def solve(repo: Path, conn, func: str, model: str, endpoint: str,
@@ -112,6 +183,7 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
           timeout: int, think: str, num_thread: int,
           verbose: bool = True) -> Outcome:
     t0 = time.time()
+    run_id = f"{int(t0)}-{func}"
     ws = workspace.bootstrap(repo, func)
     asm = workspace.target_asm(ws, func)
     draft = workspace.m2c_draft(ws)
@@ -126,14 +198,18 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
     best_file = None
     best_obj = None
     for i in range(1, samples + 1):
+        t_gen = time.time()
         text, meta = llm.generate(endpoint, model, prompt, timeout=timeout,
                                   think=think, num_thread=num_thread,
-                                  temperature=0.7)
+                                  temperature=SAMPLE_TEMP)
+        wall_ms = int((time.time() - t_gen) * 1000)
         code = llm.extract_c(text)
         out.tokens += meta.get("eval_count", 0)
+        out.generations += 1
         att = workspace.score(ws, repo, f"pipe_{i}", code)
         refine.log_attempt(conn, addr, func, i, code, prompt, att, meta,
-                           "pipeline-sample", model, 0)
+                           "pipeline-sample", model, wall_ms,
+                           temperature=SAMPLE_TEMP, run_id=run_id)
         if att.score > out.best_score:
             out.best_score, out.best_code = att.score, code
             best_file = ws / f"pipe_{i}.c"
@@ -150,46 +226,62 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
             print(f"    sample -> EXACT", flush=True)
         return out
 
-    route = triage(out.best_score)
+    # Diagnose FIRST, for every compiled non-exact candidate. Score alone
+    # cannot see a relocation error: a candidate with zero instruction
+    # differences and a wrong symbol reference scores ~100% and a score-band
+    # router hands it to the permuter, which only permutes register allocation
+    # and can never touch a symbol. The workbench names that case outright
+    # (`words-identical` -> relocation-only), so the verdict decides the route
+    # and the score is only a fallback.
+    dx, verdict = "", ""
+    if best_obj is not None and best_obj.exists():
+        d = diagnose.run(repo, ws / "target.o", best_obj)
+        if d is not None:
+            verdict = d.verdict
+            dx = diagnose.prompt_block(repo, d, asm_len=len(asm))
+            out.stages.append((f"verdict:{verdict}", out.best_score))
+
+    route = route_for(verdict, out.best_score)
     out.route = route
     if verbose:
-        print(f"    sample -> {out.best_score:.2f}%  route={route}", flush=True)
+        v = f" verdict={verdict}" if verdict else ""
+        print(f"    sample -> {out.best_score:.2f}%{v}  route={route}", flush=True)
 
     # --- pass 2: route-specific treatment -------------------------------
     if route == "permute" and best_file is not None and permute_s > 0:
         rel = best_file.relative_to(repo)
-        got = run_permuter(repo, func, rel, permute_s)
-        out.stages.append(("permute", got or out.best_score))
+        p_score, p_exact, p_code = run_permuter(repo, func, rel, permute_s, ws=ws)
+        out.stages.append(("permute", p_score))
         if verbose:
-            print(f"    permute -> {got if got else 'no improvement'}", flush=True)
-        if got and got >= 100.0:
+            state = "EXACT" if p_exact else (f"{p_score:.2f}%" if p_score
+                                             else "no improvement")
+            print(f"    permute -> {state} (oracle-verified)", flush=True)
+        # Only the oracle may declare a match.
+        if p_score > out.best_score:
+            out.best_score, out.best_code = p_score, p_code
+        if p_exact:
             out.exact = True
-            out.best_score = 100.0
 
-    elif route in ("retype", "reshape"):
-        # Classify the mismatch instead of guessing from the score. The
-        # workbench names a verdict and its playbook of levers; score alone
-        # cannot distinguish a relocation error from a register-allocation one.
-        dx = ""
-        if best_obj is not None and best_obj.exists():
-            d = diagnose.run(repo, ws / "target.o", best_obj)
-            if d is not None:
-                dx = diagnose.prompt_block(repo, d, asm_len=len(asm))
-                out.stages.append((f"verdict:{d.verdict}", out.best_score))
-                if verbose:
-                    print(f"    verdict -> {d.verdict} [{d.playbook}]", flush=True)
-
-        prompt2 = build_prompt(repo, conn, func, asm, draft, route, use_siblings) + dx
+    elif route in ("retype", "reshape", "relocation"):
+        # `dx` was already produced by the diagnosis above; reuse it rather
+        # than paying for a second workbench run.
+        ctx_route = "retype" if route == "relocation" else route
+        prompt2 = build_prompt(repo, conn, func, asm, draft, ctx_route,
+                               use_siblings) + dx
         workspace.assert_uncontaminated(prompt2, repo, func)
         for i in range(1, samples + 1):
+            t_gen = time.time()
             text, meta = llm.generate(endpoint, model, prompt2, timeout=timeout,
                                       think=think, num_thread=num_thread,
-                                      temperature=0.7)
+                                      temperature=SAMPLE_TEMP)
+            wall_ms = int((time.time() - t_gen) * 1000)
             code = llm.extract_c(text)
             out.tokens += meta.get("eval_count", 0)
+            out.generations += 1
             att = workspace.score(ws, repo, f"pipe_{route}_{i}", code)
             refine.log_attempt(conn, addr, func, samples + i, code, prompt2, att,
-                               meta, f"pipeline-{route}", model, 0)
+                               meta, f"pipeline-{route}", model, wall_ms,
+                               temperature=SAMPLE_TEMP, run_id=run_id)
             if att.score > out.best_score:
                 out.best_score, out.best_code = att.score, code
             if att.exact:

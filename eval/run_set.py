@@ -132,7 +132,7 @@ def main() -> None:
                                    args.siblings, args.timeout, args.think,
                                    args.num_thread)
                 row = {**entry, "exact": r.exact, "best_score": r.best_score,
-                       "draws": len(r.stages), "tokens": r.tokens,
+                       "draws": r.generations, "stages": len(r.stages), "tokens": r.tokens,
                        "wall_s": round(r.wall_s, 1), "route": r.route}
             else:
                 traj = refine.sample_one(repo, conn, func, args.model, endpoint,
