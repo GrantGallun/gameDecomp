@@ -477,5 +477,21 @@
       "dataflow",
       "kb"
     ]
+  },
+  {
+    "id": "infrastructure-failures-scored-as-model-failures",
+    "claim": "A function that errors during setup can be recorded at 0% alongside genuine model failures without distorting the result.",
+    "source": "user asked whether an internet outage had corrupted the run",
+    "status": "REFUTED",
+    "evidence": "Two v3 functions were logged 0.00% with draws=0 and wall=0s -- no model call ever happened. They were request timeouts, recorded identically to functions the solver genuinely failed. Impact on the run: exact 27.5% -> 28.4%, mean 68.2% -> 70.2% once excluded. CAUSE: --timeout was lowered 900s -> 300s for v3 to bound a hung request, which converted two intermittently-slow calls into recorded failures; every earlier run used 900s and is clean. Ollama demonstrably stalls at times -- a 5-token prompt was measured at 76s. run_set now reports never-ran rows separately and excludes them from rates and means. Not caused by the network outage: the later of the two rows was written after connectivity returned.",
+    "tested_on": "v3 dev run, 69 rows; audit of all 5 prior result files",
+    "date": "2026-08-28",
+    "keywords": [
+      "timeout",
+      "infrastructure",
+      "error",
+      "zero",
+      "reporting"
+    ]
   }
 ]

@@ -66,3 +66,4 @@
 {"function": "initMainMenuSceneModelParts", "tier": "medium", "leaf": true, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 22250, "wall_s": 148.1, "route": "reshape"}
 {"function": "fadeOutEndingCreditsFlow", "tier": "medium", "leaf": false, "exact": true, "best_score": 100.0, "draws": 6, "stages": 3, "tokens": 6986, "wall_s": 55.4, "route": "retype"}
 {"function": "updateRacePlayerMode16AerialTrick", "tier": "medium", "leaf": false, "exact": false, "best_score": 89.644, "draws": 6, "stages": 2, "tokens": 12915, "wall_s": 90.7, "route": "reshape"}
+{"function": "updateRaceSetupFourPlayerOption", "tier": "medium", "leaf": false, "exact": false, "best_score": 0.0, "draws": 0, "tokens": 0, "wall_s": 0.0, "error": "timed out"}

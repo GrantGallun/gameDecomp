@@ -43,6 +43,22 @@ def load_done(path: Path) -> dict:
 
 
 def report(rows: list[dict]) -> None:
+    # A function that never reached a model call is an INFRASTRUCTURE failure,
+    # not a model failure. Scoring a bootstrap timeout as 0% conflates "the
+    # solver could not do it" with "the harness never asked", which understates
+    # the rate and pollutes the mean. Reported separately, never averaged in.
+    never_ran = [r for r in rows if r.get("draws", 0) == 0]
+    rows = [r for r in rows if r.get("draws", 0) > 0]
+    if never_ran:
+        print(f"
+EXCLUDED -- never reached a model call ({len(never_ran)}):")
+        for r in never_ran:
+            print(f"  {r['function'][:40]:42} {r.get('error','no draws')[:50]}")
+
+    if not rows:
+        print("no attempted functions to report")
+        return
+
     by = defaultdict(list)
     for r in rows:
         by[(r["tier"], "leaf" if r["leaf"] else "non-leaf")].append(r)
