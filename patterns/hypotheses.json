@@ -560,5 +560,22 @@
       "prompt",
       "reframe"
     ]
+  },
+  {
+    "id": "refusals-cost-us-matches",
+    "claim": "gpt-oss:20b's refusals on large/huge functions are costing matches; a model that attempts them would do better.",
+    "source": "the natural reading of the refusal finding",
+    "status": "REFUTED",
+    "evidence": "Tested directly on three functions gpt-oss refused: ran qwen2.5-coder:14b, which produced NINE genuine attempts and zero refusals, up to 20KB of C per attempt. Scores: 0.00%, 0.87%, 0.00%. Attempting is worth no more than declining on these functions. Prediction stated beforehand -- qwen refuses less but scores no better -- and BOTH halves held. CONSEQUENCE: the refusals were a symptom, not a cause. Removing them recovers nothing, so the large/huge tiers are genuinely beyond both local models: one declines, the other emits confidently wrong code, and the outcome is identical.",
+    "tested_on": "3 large/huge functions, qwen2.5-coder:14b, 9 attempts",
+    "date": "2026-08-28",
+    "keywords": [
+      "refusal",
+      "qwen",
+      "capability",
+      "large",
+      "huge",
+      "model choice"
+    ]
   }
 ]
