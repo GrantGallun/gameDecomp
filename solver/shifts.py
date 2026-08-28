@@ -363,3 +363,134 @@ def compressed_prompt(asm: str, summaries: list[str], kb: str = "",
     return COMPRESSED_PROMPT.format(summaries="\n\n".join(summaries),
                                     lex=lexicon(asm), asm_block=block,
                                     kb=kb, hints=hints)
+
+
+# --- sequential composition ------------------------------------------------
+#
+# Entry 2. WaDec's "temporal context": each slice emits C and is told what
+# earlier slices already declared, rather than one composer reading prose
+# summaries and writing the whole function in a single pass.
+#
+# The load never grows with the function: a slice sees its own ~45 lines of
+# assembly plus the accumulated C, and the accumulated C is far smaller than
+# the assembly it came from.
+#
+# Stated risk, which is the point of the experiment: register allocation is
+# global and the measured prefix-exact depth is 0, so C emitted a slice at a
+# time may still not compose into a byte-exact whole.
+
+SLICE_PROMPT = """\
+You are reconstructing the original C source of ONE function compiled by
+IDO 5.3 at -O2 for MIPS, working through it a section at a time.
+
+{lex}
+
+{prior}
+SECTION {index} of {total} (instructions {start}-{end}) -- write C for THIS
+SECTION ONLY. Do not restate earlier sections. Do not write the function
+signature or closing brace.
+```
+{asm}
+```
+{hints}
+Answer with exactly two fenced blocks, both required, either may be empty:
+
+```decls
+/* any NEW local variable declarations this section needs, C89 style, one per
+   line. Do not repeat declarations listed above as already declared. */
+```
+```stmts
+/* the C statements for this section, in order */
+```"""
+
+FINAL_PROMPT = """\
+Assemble the final C file for one function compiled by IDO 5.3 at -O2 for MIPS,
+judged solely by whether recompiling it reproduces the target object byte for
+byte.
+
+{lex}
+
+Declarations gathered from all sections:
+{decls}
+
+Statements gathered from all sections, in order:
+{body}
+{kb}
+Rules:
+- Output ONE self-contained C file in a single ```c code block. No prose.
+- Only #include "common.h"; it defines u8/s8/u16/s16/u32/s32/f32/f64.
+  Supply any other types and externs INLINE, before use.
+- C89: declarations at the start of a block. No do-while, no inline asm.
+- Infer the signature from the argument registers used and the return value.
+- Keep the statements in the order given. Fix only what is needed to compile.
+
+Write the complete function now."""
+
+DECLS_RE = re.compile(r"```decls\s*\n(.*?)```", re.DOTALL)
+STMTS_RE = re.compile(r"```stmts\s*\n(.*?)```", re.DOTALL)
+
+
+def sequential_compose(endpoint: str, model: str, asm: str,
+                       regions: list[Region], kb: str = "", hints: str = "",
+                       timeout: int = 300, num_thread: int = 12,
+                       think: str = "", temperature: float = 0.3,
+                       verbose: bool = False) -> tuple[str, dict]:
+    """Walk the regions in order, each emitting C, then assemble.
+
+    Returns (final C, stats). Stats records per-slice refusals and emptiness so
+    an infrastructure failure is never silently scored as a model failure.
+    """
+    lex = lexicon(asm)
+    decls: list[str] = []
+    body: list[str] = []
+    stats = {"slices": len(regions), "refused": 0, "empty": 0}
+    refusal_words = ("i'm sorry", "i’m sorry", "cannot provide",
+                     "can't provide", "can’t provide", "can't produce")
+
+    for r in regions:
+        prior = ("Already declared by earlier sections:\n"
+                 + ("\n".join(f"  {d}" for d in decls) if decls
+                    else "  (nothing yet -- this is the first section)")
+                 + "\n\nC written so far:\n```c\n"
+                 + ("\n".join(body) if body else "/* nothing yet */")
+                 + "\n```\n")
+        prompt = SLICE_PROMPT.format(
+            lex=lex, prior=prior, index=r.index, total=len(regions),
+            start=r.start, end=r.end, asm=strip_asm(r.text), hints=hints)
+
+        text, _ = llm.generate(endpoint, model, prompt, timeout=timeout,
+                               num_thread=num_thread, think=think,
+                               num_predict=1200, temperature=temperature)
+        if any(w in text.lower()[:300] for w in refusal_words):
+            stats["refused"] += 1
+            if verbose:
+                print(f"      slice {r.index}/{len(regions)}: REFUSED",
+                      flush=True)
+            continue
+
+        d = DECLS_RE.search(text)
+        s = STMTS_RE.search(text)
+        new_d = [l.strip() for l in (d.group(1) if d else "").splitlines()
+                 if l.strip() and not l.strip().startswith("/*")]
+        new_s = (s.group(1).strip() if s else "")
+        if not new_s:
+            stats["empty"] += 1
+        for line in new_d:
+            if line not in decls:
+                decls.append(line)
+        if new_s:
+            body.append(f"/* section {r.index} */\n{new_s}")
+        if verbose:
+            print(f"      slice {r.index}/{len(regions)}: "
+                  f"+{len(new_d)} decls, {len(new_s)} chars stmts", flush=True)
+
+    final = llm.generate(
+        endpoint, model,
+        FINAL_PROMPT.format(lex=lex,
+                            decls="\n".join(f"  {d}" for d in decls) or "  (none)",
+                            body="\n".join(body) or "/* nothing */", kb=kb),
+        timeout=timeout * 2, num_thread=num_thread, think=think,
+        num_predict=4000, temperature=temperature)[0]
+    stats["decls"] = len(decls)
+    stats["sections_with_code"] = len(body)
+    return llm.extract_c(final), stats
