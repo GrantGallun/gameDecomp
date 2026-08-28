@@ -90,6 +90,69 @@ and must be recorded as one, not explained away.
 
 ---
 
+## S1. Kill the reasoning trace on slice calls
+
+**Why now:** measured today -- ~2,500-4,000 generated tokens per slice for
+~1,700 characters of answer. The trace is most of the cost, on a task that is
+mechanical translation. It is also what caused the entry-2 truncation bug.
+
+**Change:** `think=false` (not "low") on slice calls only. One variable.
+
+**Prediction:** wall-clock per slice drops at least 40%, and fenced-block
+compliance does NOT get worse -- the trace is not doing load-bearing work on a
+translation task.
+
+**PRE-REGISTERED DOUBT, recorded before running:** while verifying seeds, calls
+sent with `think=False` still came back with an empty `response` and reasoning
+prose in the `thinking` field ("The user wants: ..."). That suggests gpt-oss may
+not honour `think=False` at all, in which case S1 saves nothing and the honest
+result is "the lever does not exist on this model". If so, the fallback is a
+non-reasoning model for slices, which is entry S4 territory, not a rescue of
+S1.
+
+**Kill condition:** if empty-or-truncated slice rate rises at all, or mean score
+falls by more than the floor, thinking stays on. Speed is worthless if it costs
+correctness.
+
+**Measure:** tokens generated and wall-clock per slice, plus the empty/truncated
+counters, on the same 6 functions. Compare against the entry-2 rerun.
+
+---
+
+## S2. Cache generations -- with the sampling hazard designed out
+
+**Why now:** identical region summaries were generated THREE times today, twice
+only because a harness bug forced a re-run. The Oracle already caches on
+(source hash, flags hash); generation should too.
+
+**THE HAZARD, and it is serious.** Caching on prompt hash alone would silently
+destroy statistical validity: re-running an experiment to add draws would return
+the SAME draws, and n would look like 2n while carrying the information of n.
+That is a fabricated-confidence bug of exactly the kind this project keeps
+catching in itself, and it would be invisible in the output.
+
+**Change:** key the cache on (model, prompt hash, temperature, num_predict,
+**explicit per-draw seed**). Draw i passes seed i. Re-running the same
+experiment with the same seeds is free; asking for a NEW draw uses a new seed
+and always generates. A cache hit must be impossible for a draw that has not
+been drawn before.
+
+**Prediction:** a byte-identical re-run of the entry-2 rerun completes in under
+10% of its original wall time, and returns byte-identical candidate text.
+
+**Kill condition:** if a cache hit is ever served for an unseen seed, the cache
+is removed, not patched. Also required: a test asserting that two draws with
+different seeds never collide.
+
+**Seed behaviour: VERIFIED (2026-08-28), so the design is sound.** Probed with
+a high-entropy prompt at temperature 1.3: same seed returns byte-identical text
+across calls, different seeds return different text. Two earlier probes were
+VACUOUS and rejected -- one compared two empty strings ("reproducible" was
+trivially true), the other used a prompt whose answer was always "Blue". A
+determinism check on a deterministic prompt establishes nothing.
+
+---
+
 > **Contingent after entry 0.** Both remaining entries tune the
 > lexicon, and the lexicon is no longer on the default composer path.
 > Do not run either unless entry 2 puts a lexicon back in the loop.
