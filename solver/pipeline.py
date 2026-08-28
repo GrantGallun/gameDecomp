@@ -119,7 +119,8 @@ def route_for(verdict: str, score: float) -> str:
 
 
 def build_prompt(repo: Path, conn, func: str, asm: str, draft: str,
-                 route: str, use_siblings: bool) -> str:
+                 route: str, use_siblings: bool,
+                 historical_siblings: bool = False) -> str:
     """Assemble context appropriate to the route.
 
     Everything here is derived from the binary or from other already-matched
@@ -130,7 +131,9 @@ def build_prompt(repo: Path, conn, func: str, asm: str, draft: str,
 
     sib = ""
     if use_siblings and route in ("retype", "reshape"):
-        sib = siblings.context_block(repo, func, top=2 if route == "reshape" else 1)
+        sib = siblings.context_block(repo, func,
+                                     top=2 if route == "reshape" else 1,
+                                     historical=historical_siblings)
 
     return refine.FIRST_PROMPT.format(asm=asm, draft=draft, kb=kb,
                                       hints=hints + sib)
@@ -181,7 +184,7 @@ SAMPLE_TEMP = 0.7
 def solve(repo: Path, conn, func: str, model: str, endpoint: str,
           samples: int, permute_s: int, use_siblings: bool,
           timeout: int, think: str, num_thread: int,
-          verbose: bool = True) -> Outcome:
+          verbose: bool = True, historical_siblings: bool = False) -> Outcome:
     t0 = time.time()
     run_id = f"{int(t0)}-{func}"
     ws = workspace.bootstrap(repo, func)
@@ -267,7 +270,7 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
         # than paying for a second workbench run.
         ctx_route = "retype" if route == "relocation" else route
         prompt2 = build_prompt(repo, conn, func, asm, draft, ctx_route,
-                               use_siblings) + dx
+                               use_siblings, historical_siblings) + dx
         workspace.assert_uncontaminated(prompt2, repo, func)
         for i in range(1, samples + 1):
             t_gen = time.time()

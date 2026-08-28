@@ -31,9 +31,50 @@ SIM_RE = re.compile(r"^\s*\d+\.\s+(\w+)\s+\(score:\s*([\d.]+)\)")
 CSRC_RE = re.compile(r"^\s*C source:\s*(\S+)")
 
 
+_ORDER_CACHE: dict | None = None
+
+
+def _match_order(repo: Path) -> dict:
+    """function -> position in the reference project's matching history."""
+    global _ORDER_CACHE
+    if _ORDER_CACHE is None:
+        try:
+            from eval.history import build_map
+            _ORDER_CACHE = {n: mp.order for n, mp in build_map(repo).items()}
+        except Exception:
+            _ORDER_CACHE = {}
+    return _ORDER_CACHE
+
+
+def historical_filter(repo: Path, target: str):
+    """Keep only siblings a human would actually have had when solving `target`.
+
+    Full replay -- checking out each parent commit and rebuilding -- costs
+    minutes per function and would dominate the run. But the dominant leak is
+    sibling SOURCE, and that can be controlled far more cheaply: the reference
+    project's own matching order says which functions were already solved when
+    a human reached this one. Everything matched later is knowledge from the
+    future.
+
+    Returns a predicate, or None when the target has no recorded order (in
+    which case no honest filtering is possible and the caller should say so
+    rather than silently filter nothing).
+    """
+    order = _match_order(repo)
+    target_order = order.get(target)
+    if target_order is None:
+        return None
+    return lambda name: order.get(name, 10 ** 9) < target_order
+
+
 def find(repo: Path, func: str, top: int = 3, min_score: float = 0.45,
-         timeout: int = 300) -> list[tuple[str, float, Path]]:
-    """(name, score, source_path) for matched functions resembling `func`."""
+         timeout: int = 300, historical: bool = False
+         ) -> list[tuple[str, float, Path]]:
+    """(name, score, source_path) for matched functions resembling `func`.
+
+    `historical=True` restricts the pool to functions matched BEFORE this one
+    in the reference project, which is what a human actually had available.
+    """
     try:
         proc = subprocess.run(
             ["bash", "-lc",
@@ -43,13 +84,21 @@ def find(repo: Path, func: str, top: int = 3, min_score: float = 0.45,
     except subprocess.TimeoutExpired:
         return []
 
+    keep = historical_filter(repo, func) if historical else None
+    if historical and keep is None:
+        # No recorded order for this target: we cannot honestly say which
+        # siblings predate it, so supply none rather than pretend.
+        return []
+
     out: list[tuple[str, float, Path]] = []
     pending: tuple[str, float] | None = None
     for line in proc.stdout.splitlines():
         m = SIM_RE.match(line)
         if m:
             name, score = m.group(1), float(m.group(2))
-            pending = (name, score) if name != func and score >= min_score else None
+            eligible = (name != func and score >= min_score
+                        and (keep is None or keep(name)))
+            pending = (name, score) if eligible else None
             continue
         c = CSRC_RE.match(line)
         if c and pending:
@@ -84,14 +133,17 @@ def extract_source(path: Path, func: str, max_lines: int = 70) -> str:
     return "\n".join(body)
 
 
-def context_block(repo: Path, func: str, top: int = 2) -> str:
+def context_block(repo: Path, func: str, top: int = 2,
+                  historical: bool = False) -> str:
     """A prompt block of matched sibling sources, or "" if none are close."""
-    found = find(repo, func, top=top)
+    found = find(repo, func, top=top, historical=historical)
     if not found:
         return ""
 
-    parts = ["\nALREADY-MATCHED SIMILAR FUNCTIONS (these compile byte-exact; "
-             "mirror their structure, struct layouts and field signedness):"]
+    when = " -- restricted to functions matched BEFORE this one" if historical else ""
+    parts = [f"\nALREADY-MATCHED SIMILAR FUNCTIONS{when} (these compile "
+             "byte-exact; mirror their structure, struct layouts and field "
+             "signedness):"]
     for name, score, path in found:
         src = extract_source(path, name)
         if not src:

@@ -87,6 +87,9 @@ def main() -> None:
     ap.add_argument("--think", default="low")
     ap.add_argument("--num-thread", type=int, default=12)
     ap.add_argument("--pace", type=float, default=1.0)
+    ap.add_argument("--historical-siblings", action="store_true",
+                    help="restrict siblings to functions matched BEFORE "
+                         "the target, as a human would have had")
     ap.add_argument("--pipeline", action="store_true",
                     help="use the triage pipeline (GATHER/SAMPLE/TRIAGE)")
     ap.add_argument("--siblings", action="store_true",
@@ -102,7 +105,7 @@ def main() -> None:
     out = args.out or args.set.with_name(
         f"{args.set.stem}_{args.split}_{args.model.replace(':', '-')}"
         f"{'_pipe' if args.pipeline else ''}"
-        f"{'_sib' if args.siblings else ''}"
+        f"{'_sibhist' if args.historical_siblings else '_sib' if args.siblings else ''}"
         f"{'_kb' if args.kb_context else ''}.jsonl")
 
     if args.split == "heldout":
@@ -144,7 +147,8 @@ def main() -> None:
                 r = pipeline.solve(repo, conn, func, args.model, endpoint,
                                    args.samples, args.permute_seconds,
                                    args.siblings, args.timeout, args.think,
-                                   args.num_thread)
+                                   args.num_thread,
+                                   historical_siblings=args.historical_siblings)
                 row = {**entry, "exact": r.exact, "best_score": r.best_score,
                        "draws": r.generations, "stages": len(r.stages), "tokens": r.tokens,
                        "wall_s": round(r.wall_s, 1), "route": r.route}
