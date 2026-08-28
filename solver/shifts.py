@@ -129,3 +129,180 @@ def compose_prompt(asm: str, summaries: list[str], kb: str = "",
                    hints: str = "") -> str:
     return COMPOSE_PROMPT.format(summaries="\n\n".join(summaries), asm=asm,
                                  kb=kb, hints=hints)
+
+
+# --- compression + lexicon -------------------------------------------------
+#
+# The composer needs exact operands, offsets and symbol names to be byte-exact,
+# and that detail is exactly what overloads it. The way out is not to drop the
+# detail but to stop shipping it as 11KB of prose: strip what carries no
+# information, and index the rest so the composer LOOKS UP a fact instead of
+# re-reading the function to find it.
+#
+# All of this is mechanically derived from the assembly. It is evidence, not
+# inference -- no model output feeds it, and it is reproducible from the binary.
+
+ADDR_COMMENT = re.compile(r"/\*.*?\*/")
+WIDTH = {"lb": 1, "lbu": 1, "sb": 1, "lh": 2, "lhu": 2, "sh": 2,
+         "lw": 4, "sw": 4, "lwc1": 4, "swc1": 4, "lwl": 4, "lwr": 4,
+         "ld": 8, "sd": 8, "ldc1": 8, "sdc1": 8}
+SIGNED = {"lb": "s", "lh": "s", "lw": "s", "lbu": "u", "lhu": "u"}
+
+INSN = re.compile(r"^\s*(\w[\w.]*)\s*(.*)$")
+MEM = re.compile(r"^(\$\w+),\s*(-?(?:0x)?[0-9A-Fa-f]+)\((\$\w+)\)$")
+LO_MEM = re.compile(r"^(\$\w+),\s*%lo\(([\w.]+)\)\((\$\w+)\)$")
+HI = re.compile(r"%hi\(([\w.]+)\)")
+IMM_OPS = {"addiu", "addi", "ori", "andi", "xori", "slti", "sltiu",
+           "sll", "srl", "sra", "lui"}
+
+
+def strip_asm(asm: str) -> str:
+    """Remove the address/encoding comments. Lossless, and roughly halves it.
+
+    `/* 48784 80047B84 0005C400 */` is file offset, vram address and raw
+    encoding. None of it constrains the C source, and it is ~30 of every 61
+    characters. Shipping it spends half the context budget on noise.
+    """
+    out = []
+    for line in asm.splitlines():
+        line = ADDR_COMMENT.sub("", line).rstrip()
+        if line.strip():
+            out.append(re.sub(r"\s{2,}", " ", line).strip())
+    return "\n".join(out)
+
+
+def lexicon(asm: str) -> str:
+    """An index of every exact fact a summary would blur.
+
+    Summaries are lossy on precisely the things byte-exactness depends on:
+    which global, what offset, which constant, how big the frame. Those are
+    finite and extractable, so they can be listed once as a lookup table rather
+    than recovered by re-reading the assembly.
+    """
+    frame = None
+    saves: list[tuple[str, str]] = []
+    globals_: dict[str, set[str]] = {}
+    addr_of: set[str] = set()
+    calls: list[str] = []
+    fields: dict[str, dict[str, str]] = {}
+    consts: set[str] = set()
+    backward = 0
+    labels_seen: set[str] = set()
+
+    for raw in strip_asm(asm).splitlines():
+        if raw.startswith("glabel") or raw.endswith(":"):
+            labels_seen.add(raw.rstrip(":").split()[-1])
+            continue
+        m = INSN.match(raw)
+        if not m:
+            continue
+        op, rest = m.group(1), m.group(2).strip()
+        parts = [p.strip() for p in rest.split(",")]
+
+        if op == "jal":
+            calls.append(rest.strip())
+        elif op.startswith("b") and rest:
+            tgt = parts[-1]
+            if tgt in labels_seen:          # target already emitted => loop
+                backward += 1
+
+        for sym in HI.findall(rest):
+            globals_.setdefault(sym, set())
+        if op == "addiu" and "%lo(" in rest:
+            s = re.search(r"%lo\(([\w.]+)\)", rest)
+            if s:
+                addr_of.add(s.group(1))
+
+        lo = LO_MEM.match(rest)
+        if lo and op in WIDTH:
+            globals_.setdefault(lo.group(2), set()).add(
+                f"{WIDTH[op]}b{SIGNED.get(op, '')}")
+            continue
+
+        mem = MEM.match(rest)
+        if mem and op in WIDTH:
+            reg, off, base = mem.group(1), mem.group(2), mem.group(3)
+            if base == "$sp":
+                if reg.startswith(("$s", "$ra", "$fp"))                         and (reg, off) not in saves:
+                    # sw saves it and lw restores it from the same slot;
+                    # listing the slot twice implies a frame twice as busy.
+                    saves.append((reg, off))
+            else:
+                fields.setdefault(base, {})[off] = \
+                    f"{WIDTH[op]}b{SIGNED.get(op, '')}"
+            continue
+
+        if op == "addiu" and len(parts) == 3 and parts[0] == parts[1] == "$sp":
+            frame = parts[2].lstrip("-")
+        elif op in IMM_OPS and len(parts) == 3 and "%" not in parts[2]:
+            v = parts[2]
+            if v.startswith(("0x", "-0x")) or v.lstrip("-").isdigit():
+                if v not in ("0", "1", "2"):
+                    consts.add(v)
+
+    out = ["LEXICON -- exact facts extracted from the target. Consult this "
+           "instead of re-deriving them."]
+    if frame:
+        out.append(f"frame: {frame} bytes"
+                   + (f"; saved: {', '.join(f'{r}@{o}' for r, o in saves)}"
+                      if saves else ""))
+    if globals_:
+        out.append("globals: " + ", ".join(
+            f"{s}({'/'.join(sorted(w)) if w else 'addr'})"
+            for s, w in sorted(globals_.items())))
+    if addr_of:
+        out.append("address-taken (array or struct base): "
+                   + ", ".join(sorted(addr_of)))
+    if calls:
+        seen = list(dict.fromkeys(calls))
+        out.append(f"calls ({len(calls)} sites): " + ", ".join(seen))
+    for base, offs in sorted(fields.items()):
+        out.append(f"fields via {base}: " + ", ".join(
+            f"{o}:{w}" for o, w in sorted(offs.items(),
+                                          key=lambda kv: int(kv[0], 0))))
+    if consts:
+        out.append("constants: " + ", ".join(sorted(consts)))
+    out.append(f"loops: {backward} backward branch(es)")
+    return "\n".join(out)
+
+
+COMPRESSED_PROMPT = """\
+You are reconstructing the original C source of one function compiled by
+IDO 5.3 at -O2 for MIPS. The source is judged solely by whether recompiling it
+reproduces the target object byte for byte.
+
+The function was read in sections by separate passes. Their descriptions:
+
+{summaries}
+
+{lex}
+{asm_block}{kb}{hints}
+Rules:
+- Output ONE self-contained C file in a single ```c code block. No prose.
+- Only #include "common.h"; it already defines u8/s8/u16/s16/u32/s32/f32/f64.
+  Supply any other types and externs INLINE, defined before use.
+- C89: declarations at the start of a block. No do-while, no inline asm.
+- Write source, not registers: operate on real variables, not locals named
+  after t6/v0/a1.
+- Every symbol, offset and constant you emit must appear in the lexicon above.
+  If it is not there, you are inventing it.
+
+Write the complete function now."""
+
+
+def compressed_prompt(asm: str, summaries: list[str], kb: str = "",
+                      hints: str = "", include_asm: bool = True) -> str:
+    """Compose from summaries + lexicon, with the stripped asm optional.
+
+    `include_asm=False` is the pure-lookup arm: no linear scan available at
+    all. `include_asm=True` keeps the full detail but at half the character
+    cost, which is the arm that should win if the load -- not the information
+    -- was the problem.
+    """
+    block = ""
+    if include_asm:
+        block = ("\nTarget assembly (addresses and encodings stripped):\n"
+                 f"```\n{strip_asm(asm)}\n```\n")
+    return COMPRESSED_PROMPT.format(summaries="\n\n".join(summaries),
+                                    lex=lexicon(asm), asm_block=block,
+                                    kb=kb, hints=hints)
