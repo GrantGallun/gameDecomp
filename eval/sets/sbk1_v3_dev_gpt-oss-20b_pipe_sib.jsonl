@@ -1,0 +1,6 @@
+{"function": "tryQueueRacePlayerHitCueTrip", "tier": "tiny", "leaf": true, "exact": true, "best_score": 100.0, "draws": 4, "stages": 3, "tokens": 1961, "wall_s": 41.0, "route": "reshape"}
+{"function": "requestRumbleMotorStart", "tier": "tiny", "leaf": true, "exact": false, "best_score": 93.778, "draws": 6, "stages": 3, "tokens": 5106, "wall_s": 43.1, "route": "reshape"}
+{"function": "tryQueueRacePlayerHitCueReverseSpin", "tier": "tiny", "leaf": true, "exact": false, "best_score": 88.235, "draws": 6, "stages": 3, "tokens": 2962, "wall_s": 28.3, "route": "reshape"}
+{"function": "tryQueueRacePlayerHitCueTerrainCrash", "tier": "tiny", "leaf": true, "exact": true, "best_score": 100.0, "draws": 3, "stages": 1, "tokens": 3806, "wall_s": 25.3, "route": "matched"}
+{"function": "lockRelocatableHeapBlock", "tier": "tiny", "leaf": true, "exact": true, "best_score": 100.0, "draws": 1, "stages": 1, "tokens": 915, "wall_s": 5.5, "route": "matched"}
+{"function": "unlockRelocatableHeapBlock", "tier": "tiny", "leaf": true, "exact": true, "best_score": 100.0, "draws": 2, "stages": 1, "tokens": 1948, "wall_s": 11.3, "route": "matched"}
