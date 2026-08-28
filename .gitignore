@@ -1,0 +1,20 @@
+# Copyrighted game dumps — never commit these
+roms/
+*.z64
+*.n64
+*.v64
+*.zip
+
+# Generated / large
+__pycache__/
+*.pyc
+*.sqlite
+*.sqlite-journal
+cases/
+
+# Scratch
+rec*.py
+
+# Runtime / tooling artifacts, not project source
+.aioptimizer/
+.claude/scheduled_tasks.lock

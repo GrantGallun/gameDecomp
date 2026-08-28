@@ -1,0 +1,164 @@
+"""Run the solver over a frozen evaluation set and report by stratum.
+
+The aggregate number hides what matters. 75% on small leaf functions and 5% on
+large non-leaf ones averages to something respectable and describes nothing, so
+results are always broken out by tier and leaf/non-leaf.
+
+Results are written incrementally. A long run over large functions can take
+hours, and WSL on this machine has died mid-run more than once -- losing a
+completed function to a crash is pure waste when appending a line prevents it.
+
+Run:
+    python3 -m eval.run_set --repo ~/decomp/sbk1 --db ~/decomp/kb-sbk1.sqlite \\
+        --set eval/sets/sbk1_v1.json --split dev --model gpt-oss:20b -n 4
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sqlite3
+import time
+from collections import defaultdict
+from pathlib import Path
+
+from solver import llm, pipeline, refine
+
+
+def load_done(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    done = {}
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+            done[row["function"]] = row
+        except json.JSONDecodeError:
+            continue
+    return done
+
+
+def report(rows: list[dict]) -> None:
+    by = defaultdict(list)
+    for r in rows:
+        by[(r["tier"], "leaf" if r["leaf"] else "non-leaf")].append(r)
+
+    print("\n" + "=" * 72)
+    print("RESULTS BY STRATUM")
+    print("=" * 72)
+    print(f"{'tier':8} {'kind':9} {'n':>3} {'exact':>7} {'rate':>7} {'mean best':>10}")
+    print("-" * 72)
+
+    order = {"tiny": 0, "small": 1, "medium": 2, "large": 3}
+    for key in sorted(by, key=lambda k: (order.get(k[0], 9), k[1])):
+        rs = by[key]
+        exact = sum(1 for r in rs if r["exact"])
+        mean = sum(r["best_score"] for r in rs) / len(rs)
+        print(f"{key[0]:8} {key[1]:9} {len(rs):3} {exact:7} "
+              f"{100.0*exact/len(rs):6.1f}% {mean:9.2f}%")
+
+    print("-" * 72)
+    exact = sum(1 for r in rows if r["exact"])
+    leaf = [r for r in rows if r["leaf"]]
+    nonleaf = [r for r in rows if not r["leaf"]]
+    print(f"{'TOTAL':8} {'':9} {len(rows):3} {exact:7} "
+          f"{100.0*exact/len(rows) if rows else 0:6.1f}% "
+          f"{sum(r['best_score'] for r in rows)/len(rows) if rows else 0:9.2f}%")
+    for label, subset in (("leaf", leaf), ("non-leaf", nonleaf)):
+        if subset:
+            e = sum(1 for r in subset if r["exact"])
+            print(f"  {label:10} {len(subset):3} {e:7} {100.0*e/len(subset):6.1f}%")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--repo", required=True, type=Path)
+    ap.add_argument("--db", required=True, type=Path)
+    ap.add_argument("--set", required=True, type=Path)
+    ap.add_argument("--split", choices=["dev", "heldout"], default="dev")
+    ap.add_argument("--model", default="gpt-oss:20b")
+    ap.add_argument("-n", "--samples", type=int, default=4)
+    ap.add_argument("--temp", type=float, default=0.7)
+    ap.add_argument("--timeout", type=int, default=900)
+    ap.add_argument("--think", default="low")
+    ap.add_argument("--num-thread", type=int, default=12)
+    ap.add_argument("--pace", type=float, default=1.0)
+    ap.add_argument("--pipeline", action="store_true",
+                    help="use the triage pipeline (GATHER/SAMPLE/TRIAGE)")
+    ap.add_argument("--siblings", action="store_true",
+                    help="allow matched-sibling context in lower bands")
+    ap.add_argument("--permute-seconds", type=int, default=120)
+    ap.add_argument("--kb-context", action="store_true",
+                    help="inject verified KB facts into the prompt")
+    ap.add_argument("--out", type=Path, default=None)
+    args = ap.parse_args()
+
+    sets = json.loads(args.set.read_text())
+    entries = sets[args.split]
+    out = args.out or args.set.with_name(
+        f"{args.set.stem}_{args.split}_{args.model.replace(':', '-')}"
+        f"{'_pipe' if args.pipeline else ''}"
+        f"{'_sib' if args.siblings else ''}"
+        f"{'_kb' if args.kb_context else ''}.jsonl")
+
+    if args.split == "heldout":
+        print("*** HELD-OUT SPLIT ***")
+        print("Report this number as-is. Do not tune prompts and re-run;")
+        print("that converts the held-out set into a development set.\n")
+
+    repo = args.repo.expanduser()
+    conn = sqlite3.connect(args.db.expanduser())
+    refine.ensure_schema(conn)
+    endpoint = llm.host()
+
+    done = load_done(out)
+    todo = [e for e in entries if e["function"] not in done]
+    print(f"set {args.set.name} [{args.split}]: {len(entries)} functions, "
+          f"{len(done)} already done, {len(todo)} to run")
+    print(f"model {args.model}, best-of-{args.samples} @ temp {args.temp}\n", flush=True)
+
+    t_start = time.time()
+    for i, entry in enumerate(todo, 1):
+        func = entry["function"]
+        print(f"[{i}/{len(todo)}] {func} ({entry['tier']}, "
+              f"{'leaf' if entry['leaf'] else 'non-leaf'})", flush=True)
+        try:
+            if args.pipeline:
+                r = pipeline.solve(repo, conn, func, args.model, endpoint,
+                                   args.samples, args.permute_seconds,
+                                   args.siblings, args.timeout, args.think,
+                                   args.num_thread)
+                row = {**entry, "exact": r.exact, "best_score": r.best_score,
+                       "draws": len(r.stages), "tokens": r.tokens,
+                       "wall_s": round(r.wall_s, 1), "route": r.route}
+            else:
+                traj = refine.sample_one(repo, conn, func, args.model, endpoint,
+                                         args.samples, args.timeout, args.think,
+                                         args.num_thread, args.pace, args.temp,
+                                         verbose=True, use_kb=args.kb_context)
+                row = {**entry, "exact": traj.exact, "best_score": traj.best_score,
+                       "draws": traj.iterations, "tokens": traj.tokens,
+                       "wall_s": round(traj.wall_s, 1)}
+        except Exception as exc:
+            print(f"    ERROR: {exc}", flush=True)
+            row = {**entry, "exact": False, "best_score": 0.0, "draws": 0,
+                   "tokens": 0, "wall_s": 0.0, "error": str(exc)[:200]}
+
+        with out.open("a") as fh:
+            fh.write(json.dumps(row) + "\n")
+        done[func] = row
+
+        verdict = "EXACT" if row["exact"] else f"best {row['best_score']:.2f}%"
+        print(f"  -> {verdict}  ({row['draws']} draws, {row['wall_s']}s)\n", flush=True)
+
+    rows = [done[e["function"]] for e in entries if e["function"] in done]
+    report(rows)
+    print(f"\nwall clock: {(time.time()-t_start)/60:.1f} min")
+    print(f"results: {out}")
+
+
+if __name__ == "__main__":
+    main()

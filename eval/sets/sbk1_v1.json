@@ -1,0 +1,471 @@
+{
+  "seed": 20260827,
+  "per_stratum": 5,
+  "note": "heldout ground truth must never be inspected and prompts must never be tuned against it; run it once when a number is wanted",
+  "dev": [
+    {
+      "function": "tryQueueRacePlayerHitCueTrip",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "requestRumbleMotorStart",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "tryQueueRacePlayerHitCueReverseSpin",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "tryQueueRacePlayerHitCueTerrainCrash",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "lockRelocatableHeapBlock",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "unlockRelocatableHeapBlock",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "initEndingCreditsCharacterLoopingSparkle",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "renderMainMenuBoardModels",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "openSinglePlayerCourseSelectFlow",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "enqueueDrawRaceIntroAnimatedBillboards",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "initControllerPakContinuePrompt",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "allocMenuRenderScratch",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "resetRenderCallbackQueues",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "releaseGameTaskById",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "startSnowboardTrailEffect",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "tryQueueRacePlayerHitCueItemSteal",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "updateTimeTrialRecordDeltaPopupSlideOut",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "updateEndingLindaTumbleToPhase3C",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "initTimeTrialRecordDeltaPopup",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "updateEndingSlashSlideRightToMarker",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "bootThreadMain",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "updateRacePlayerLeanAngle",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "updateRacePlayerSmoothedPathOffset",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "getRaceCourseSurfaceSpawnTransform",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "packFixedTransformMatrix",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "resetAllViewports",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "initRacePlayerLandingSnowSpray",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "clampRacePlayerVectorXZHalfSpeed",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "renderRaceUiSingleTrailEffect",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "isRacePlayerRespawnSurfaceValid",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "initControllerPakRaceRecordSaveFlow",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "drawMenuAsciiFontTile",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "drawMenuPanelBackdrop",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "drawAssetTableSprite8bpp",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "createCallbackTaskPreservingArgs",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "tryStartRacePlayerCourseObjectMode",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "gameThreadMain",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateRacePlayerMode37AerialTrick",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateCourseSelectCourseDescription",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateRacePlayerMode53AerialTrick",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "initRaceGhostReplayFlow",
+      "tier": "large",
+      "leaf": false
+    }
+  ],
+  "heldout": [
+    {
+      "function": "getAssetTableImageAndExplicitPalette",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "setTitleFadeColor",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "approachRaceIntroFlyoverVerticalVelocity",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "tryQueueRacePlayerHitCueHeavyKnockdown",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "initRaceTypeSelectOption2Frame",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "drawMainMenuTitleLogo",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "loadMainMenuSceneModelAssets",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "updateRaceGhostUnavailableMessage",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "requestRumbleMotorInit",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "clearCurrentGameTaskCallback",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "setCurrentGameTaskCallback",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "incrementRaceElapsedTimer",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "areRacePlayersFinished",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "tryQueueRacePlayerHitCueGhostSpinout",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "setMainMenuSceneModelRotation",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "handleRaceTypeSelectFlow",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "func_8005DBD0",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "updateEndingJamDashOffLeftSetPhase31",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "updateEndingLindaWaitBeforePhase1B",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "applyRacePlayerTuning",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "isPositionNearAnyRaceViewportFocus",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "appendFadeOverlayDisplayList",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "removeCallbackTask",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "advanceRaceSurfaceCueSequence",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "updateEndingCreditsTransitionSnowboardIconFastSpin",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "fadeOutControllerPakFileDeleteFlow",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "closeControllerPakContinuePromptFlow",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateRacePlayerMode55AerialTrick",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateControllerPakRaceRecordSaveStatusMessage",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "drawAssetTableSpriteWithDefaultPalette",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "createCallbackTask",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "drawAssetTableSprite",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "drawAssetTableSpriteWithExplicitPalette",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "initRaceSetupPlayerSaveData",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "drawMainMenuModeLabel",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "configureViewportWithFovAndFarClip",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "drawCourseUnlockPurchasePrompt",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "makeFixedRotationZXY",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "func_8005B14C",
+      "tier": "large",
+      "leaf": false
+    }
+  ],
+  "skipped_infeasible": [
+    {
+      "function": "updateControllerInputState",
+      "tier": "small",
+      "leaf": true,
+      "reason": "ground truth uses do-while, which build.sh rejects"
+    },
+    {
+      "function": "applyMainMenuSceneModelAnimationFrame",
+      "tier": "medium",
+      "leaf": true,
+      "reason": "ground truth uses do-while, which build.sh rejects"
+    },
+    {
+      "function": "updateCourseSelectPreviewClose",
+      "tier": "medium",
+      "leaf": false,
+      "reason": "ground truth uses do-while, which build.sh rejects"
+    },
+    {
+      "function": "initRaceCourseSceneryObjects",
+      "tier": "medium",
+      "leaf": false,
+      "reason": "ground truth uses do-while, which build.sh rejects"
+    },
+    {
+      "function": "initCourseSelectPreviewModelIn",
+      "tier": "medium",
+      "leaf": false,
+      "reason": "ground truth uses do-while, which build.sh rejects"
+    },
+    {
+      "function": "drawMenuFillRectangle",
+      "tier": "large",
+      "leaf": true,
+      "reason": "ground truth uses do-while, which build.sh rejects"
+    },
+    {
+      "function": "validateControllerPakSaveData",
+      "tier": "large",
+      "leaf": true,
+      "reason": "ground truth uses do-while, which build.sh rejects"
+    },
+    {
+      "function": "drawCharacterSelectCoursePreviewPanel5",
+      "tier": "large",
+      "leaf": false,
+      "reason": "ground truth uses do-while, which build.sh rejects"
+    },
+    {
+      "function": "drawRaceSplitscreenSelectOption2Frame",
+      "tier": "large",
+      "leaf": false,
+      "reason": "ground truth uses do-while, which build.sh rejects"
+    },
+    {
+      "function": "drawCharacterSelectCoursePreviewPanel9",
+      "tier": "large",
+      "leaf": false,
+      "reason": "ground truth uses do-while, which build.sh rejects"
+    }
+  ]
+}

@@ -1,0 +1,336 @@
+[
+  {
+    "id": "sequential-diff-refinement",
+    "claim": "Feeding the instruction diff back to the model produces a targeted fix and converges on a match.",
+    "source": "own design intuition",
+    "status": "REFUTED",
+    "evidence": "Across 8 functions it rescued ZERO. Every match came on the first attempt. Best-of-N on the same budget got 6/8 vs 3/8. The model cannot invert 'this instruction differs' into 'this source change fixes it'; shown a diff it rewrites plausible-but-different C rather than converging.",
+    "tested_on": "8 leaf functions, gpt-oss:20b, budget-matched A/B",
+    "date": "2026-08-27",
+    "keywords": [
+      "refine",
+      "diff",
+      "feedback",
+      "iterate",
+      "sequential"
+    ]
+  },
+  {
+    "id": "best-of-n-sampling",
+    "claim": "Independent best-of-N sampling beats sequential refinement at equal budget, because the answer is already in the model's distribution.",
+    "source": "TRAINING.md Tier 1, then measured",
+    "status": "CONFIRMED",
+    "evidence": "6/8 vs 3/8 exact at identical budget. Direct proof of the mechanism: the same function resampled from an identical prompt scored 87.61%, 82.42%, then 100%.",
+    "tested_on": "8 leaf functions, gpt-oss:20b",
+    "date": "2026-08-27",
+    "keywords": [
+      "sampling",
+      "best-of-n",
+      "temperature",
+      "draws"
+    ]
+  },
+  {
+    "id": "permute-below-95",
+    "claim": "decomp-permuter can close a near-miss below 95%.",
+    "source": "own assumption",
+    "status": "REFUTED",
+    "evidence": "The permuter moves register allocation and never touches types or control flow. unlockRelocatableHeapBlock sat at 99.167% purely because the model declared an 18-byte struct against a real 20-byte one; 300s of permuting moved it nowhere. Confirmed by the repo's own skill docs.",
+    "tested_on": "unlockRelocatableHeapBlock, 300s",
+    "date": "2026-08-27",
+    "keywords": [
+      "permuter",
+      "permute",
+      "register allocation",
+      "near-miss"
+    ]
+  },
+  {
+    "id": "array-stride-decoding",
+    "claim": "Struct size can be read arithmetically out of the target's index arithmetic and handed to the model as fact.",
+    "source": "diagnosis of unlockRelocatableHeapBlock",
+    "status": "CONFIRMED",
+    "evidence": "`sll 2; addu; sll 2` is unambiguously x20. That function went from stuck-at-99.167% (permuter could not help) to EXACT on the first draw once the stride was stated.",
+    "tested_on": "unlockRelocatableHeapBlock, lockRelocatableHeapBlock",
+    "date": "2026-08-27",
+    "keywords": [
+      "stride",
+      "struct size",
+      "array",
+      "index",
+      "sll"
+    ]
+  },
+  {
+    "id": "narrow-param-homing",
+    "claim": "A dead `sw $aN, K($sp)` plus `andi 0xffff` at entry proves parameter N is 16-bit.",
+    "source": "DECOMPILATION_LEARNINGS.md, parameter homing section",
+    "status": "CONFIRMED",
+    "evidence": "setRaceCameraMode(u16,u16) shows the pattern twice; the s32 control getRaceItemEffectType shows neither instruction. Detector verified on both, plus a deliberate conservative miss on spawnPatrolCourseObject. Shipped in the same bundled run; not isolated.",
+    "tested_on": "3 functions, positive and negative controls",
+    "date": "2026-08-27",
+    "keywords": [
+      "parameter",
+      "narrow",
+      "homing",
+      "andi",
+      "u16",
+      "s16"
+    ]
+  },
+  {
+    "id": "blank-line-reflow",
+    "claim": "Statement line placement or blank lines change codegen.",
+    "source": "general decomp folklore",
+    "status": "REFUTED",
+    "evidence": "The reference repo ran the control: this project builds without -g, so inserting blank lines anywhere yields a byte-identical object. Guidance suggesting otherwise assumes a debug-bearing build. IMPORTANT DISTINCTION: this refutes BLANK LINES, not LOGICAL statement line numbers. Workbench levers 23/25/33 state that uopt/ugen honor statement line boundaries even at -g0, and that cfe numbers statements by LOGICAL line -- so splicing two statements onto ONE physical line makes them tie on lineno and lets ready-list position decide the schedule. That is a different lever and is NOT refuted. Do not conflate them.",
+    "tested_on": "reference repo's own control experiment",
+    "date": "2026-08-27",
+    "keywords": [
+      "blank line",
+      "line number",
+      "reflow",
+      "formatting",
+      "statement splicing",
+      "logical line",
+      "lineno"
+    ]
+  },
+  {
+    "id": "ground-truth-in-prompt",
+    "claim": "Feeding the workspace's generated ctx.c gives useful type context.",
+    "source": "naive setup",
+    "status": "REFUTED",
+    "evidence": "ctx.c contains the preprocessed translation unit INCLUDING the target function's own body -- line 2326 was literally the answer to getRaceItemEffectType. Using it fabricates a 100% and invalidates every downstream number. Harmless upstream where the function is genuinely undone; fatal for evaluation.",
+    "tested_on": "inspection of the generated ctx.c",
+    "date": "2026-08-27",
+    "keywords": [
+      "ctx",
+      "context",
+      "contamination",
+      "ground truth"
+    ]
+  },
+  {
+    "id": "byte-cast-shift-pair",
+    "claim": "`sll 24` followed by `srl 24` is a u8 cast; with `sra 24` it is an s8 cast -- so the variable should be declared 8-bit.",
+    "source": "OoT -O2 IDO 5.3 guide",
+    "status": "INCONCLUSIVE",
+    "evidence": "Probably true but negligible surface area: only 15 shifts of 0x18 exist in the whole binary versus 2,970 of 0x10. A real s8 pair exists at 0x8007dd48 (sll 0x18 / sra 0x18), but a detector would fire on ~1 function in 2,113. Not worth prompt budget. Prevalence-check before implementing.",
+    "tested_on": "frequency scan of the full SBK1 binary",
+    "date": "2026-08-27",
+    "keywords": [
+      "byte",
+      "u8",
+      "s8",
+      "cast",
+      "sll 24",
+      "shift"
+    ]
+  },
+  {
+    "id": "void-param-frame-size",
+    "claim": "`void f(void)` uses 4 more bytes of stack than `void f()`.",
+    "source": "OoT -O2 IDO 5.3 guide",
+    "status": "UNTESTED",
+    "evidence": "Folded into a broader frame-size hint rather than tested alone. The general lever -- state the target frame size as a fact and list what moves it -- covers 1,874 of 2,113 functions, versus this single 4-byte case.",
+    "tested_on": "",
+    "date": "",
+    "keywords": [
+      "frame",
+      "stack",
+      "void",
+      "prototype",
+      "frame size"
+    ]
+  },
+  {
+    "id": "comparison-normalization",
+    "claim": "`x > y` is emitted as `x >= y + 1` when y is a constant.",
+    "source": "OoT -O2 IDO 5.3 guide",
+    "status": "UNTESTED",
+    "evidence": "",
+    "tested_on": "",
+    "date": "",
+    "keywords": [
+      "comparison",
+      "slti",
+      "greater",
+      "constant"
+    ]
+  },
+  {
+    "id": "array-index-loop-form",
+    "claim": "`&a[i]` inside a loop makes IDO keep an extra loop counter; `a + i` uses multiplication instead.",
+    "source": "OoT -O2 IDO 5.3 guide",
+    "status": "UNTESTED",
+    "evidence": "",
+    "tested_on": "",
+    "date": "",
+    "keywords": [
+      "loop",
+      "array",
+      "index",
+      "pointer",
+      "counter"
+    ]
+  },
+  {
+    "id": "loop-unrolling",
+    "claim": "IDO unrolls small loops by 2 or 4; `continue;` or `i++; i--;` suppresses it.",
+    "source": "OoT -O2 IDO 5.3 guide",
+    "status": "UNTESTED",
+    "evidence": "",
+    "tested_on": "",
+    "date": "",
+    "keywords": [
+      "unroll",
+      "loop",
+      "continue"
+    ]
+  },
+  {
+    "id": "frame-size-as-stated-fact",
+    "claim": "Stating the target stack frame size as a fact, plus the levers that move it, prevents the whole-function offset noise a wrong frame causes.",
+    "source": "OoT -O2 IDO 5.3 guide + decomp-permuter README",
+    "status": "INCONCLUSIVE",
+    "evidence": "Implemented; extraction verified (spawnPatrolCourseObject=24, frameless leaves=None). Prevalence checked first: 1,874 functions allocate a frame vs 15 byte-casts. Permuter README confirms --stack-diffs is weak, so a frame mismatch cannot be permuted away and must be fixed in source. Shipped in a run bundling three changes (context fix, narrow-param hint, frame hint): 7/41 -> 10/41 exact, mean 55.33 -> 69.26. Cannot be attributed alone; the large-tier recovery is mechanistically the context fix.",
+    "tested_on": "41-function dev set, bundled with 2 other changes",
+    "date": "2026-08-27",
+    "keywords": [
+      "frame",
+      "stack",
+      "sp",
+      "prologue",
+      "addiu sp"
+    ]
+  },
+  {
+    "id": "context-window-truncation",
+    "claim": "num_ctx=8192 is adequate for this task.",
+    "source": "initial config, never questioned",
+    "status": "REFUTED",
+    "evidence": "Context is shared by prompt, reasoning trace and answer. On large functions the model was truncated mid-statement and scored 0. updateCourseSelectCourseDescription's best attempt ends at 'if (widget->field1c >=' and one attempt was 40 bytes. This made ADDING context actively harmful on exactly the functions it should help most: large-tier mean fell 8.2% -> 0.1% under the pipeline while small rose 75.9->85.4 and medium 36.2->48.7. Fixed by sizing num_ctx from prompt length up to 32768. CONFIRMED BY FIX: after sizing num_ctx from prompt length, large-tier mean recovered 0.1% -> 33.3% and compile failures across the set fell 10 -> 4.",
+    "tested_on": "41-function dev set, per-tier breakdown + direct inspection",
+    "date": "2026-08-27",
+    "keywords": [
+      "context",
+      "num_ctx",
+      "truncation",
+      "large",
+      "window",
+      "8192"
+    ]
+  },
+  {
+    "id": "value-position-and-expansion",
+    "claim": "A value-position `a && b` must be spelled the way cfe expands it -- `v = (a); if (v) { v = (b); }` -- which is byte-identical to the operator, while `v = 0; if (a && b) v = 1;`, if/else and branch-free forms cost hundreds of rows.",
+    "source": "n64-decomp-workbench field guide, lever 30",
+    "status": "UNTESTED",
+    "evidence": "Compiler-general (not tagged IDO 7.1). Cheap as a prompt rule; detectability unclear. Check prevalence of value-position && before implementing.",
+    "tested_on": "",
+    "date": "",
+    "keywords": [
+      "&&",
+      "logical and",
+      "value position",
+      "cfe",
+      "expansion"
+    ]
+  },
+  {
+    "id": "statement-splicing-lineno",
+    "claim": "Folding two statements onto one physical line ties their lineno so ready-list position decides scheduling; as1's scheduler reads source line numbers.",
+    "source": "n64-decomp-workbench field guide, levers 25 and 33",
+    "status": "UNTESTED",
+    "evidence": "Distinct from the refuted blank-line hypothesis. Applies to schedule-mismatch verdicts specifically, so it belongs behind the verdict router rather than in the first prompt.",
+    "tested_on": "",
+    "date": "",
+    "keywords": [
+      "splice",
+      "line",
+      "schedule",
+      "lineno",
+      "as1"
+    ]
+  },
+  {
+    "id": "frame-residual-save-slots",
+    "claim": "When registers and opcodes are exact but the frame is not, compare observed save-slot bytes against non-save frame bytes and work only the component that differs.",
+    "source": "n64-decomp-workbench field guide, lever 26",
+    "status": "UNTESTED",
+    "evidence": "Pairs with the frame-size hint already shipped. Applies to frame-layout-mismatch verdicts.",
+    "tested_on": "",
+    "date": "",
+    "keywords": [
+      "frame",
+      "save slot",
+      "residual",
+      "stack"
+    ]
+  },
+  {
+    "id": "ido71-levers-not-applicable",
+    "claim": "Workbench levers 34-39 apply to our target.",
+    "source": "n64-decomp-workbench field guide",
+    "status": "REFUTED",
+    "evidence": "Levers 34-39 are explicitly prefixed 'IDO 7.1:'. SBK1 builds with IDO 5.3 (tools/ido-recomp/linux/cc, -O2 -mips1). Do not spend iterations on peep_reg, dispatch-parity or selector-temp levers -- they describe a different compiler version.",
+    "tested_on": "field-guide text inspection",
+    "date": "2026-08-27",
+    "keywords": [
+      "ido 7.1",
+      "peep_reg",
+      "dispatch",
+      "selector temp"
+    ]
+  },
+  {
+    "id": "workbench-verdict-routing",
+    "claim": "Classifying the mismatch with n64-decomp-workbench and feeding that verdict's playbook levers beats routing on score alone.",
+    "source": "n64-decomp-workbench; named in the SBK author's own writeup",
+    "status": "CONFIRMED",
+    "evidence": "Shipped ALONE (single variable) on the 41-function dev set. Exact 10 -> 12, with 3 newly matched against 1 regressed, and the FIRST exact match in the medium tier (isRacePlayerRespawnSurfaceValid). CAVEAT, recorded rather than buried: mean best score FELL 69.26 -> 64.07, driven by small (86.7 -> 77.2) and large (33.3 -> 21.6). Exact rose while mean fell. Exact is the goal metric -- 96% is a failure in matching decomp -- so this is kept, but the mean drop is a real regression for the non-matching majority and is not explained.",
+    "tested_on": "41-function stratified dev set, n=3, single change",
+    "date": "2026-08-27",
+    "keywords": [
+      "verdict",
+      "workbench",
+      "diagnose",
+      "routing",
+      "playbook"
+    ]
+  },
+  {
+    "id": "playbook-text-crowds-large-prompts",
+    "claim": "The playbook levers appended by the verdict router (up to ~2200 chars) crowd large-function prompts and depress their scores.",
+    "source": "hypothesis from the iter-4 mean regression",
+    "status": "INCONCLUSIVE",
+    "evidence": "Tested by gating the playbook prose above 6000 chars of target asm (large block 2627 -> 446 chars). Large-tier mean recovered 21.6 -> 34.9, matching the prediction. BUT the small tier, whose prompts were byte-identical between the two runs (asm 1.5-3.1k, well under the gate), moved +9.8 on its own. An unchanged tier moving almost as much as the changed one means the recovery cannot be attributed to the gate. Exact went 12 -> 11. Kept -- it strictly reduces prompt size on large targets and cannot plausibly hurt -- but NOT confirmed.",
+    "tested_on": "41-function dev set, n=3, single change",
+    "date": "2026-08-27",
+    "keywords": [
+      "playbook",
+      "prompt length",
+      "large",
+      "context",
+      "crowding"
+    ]
+  },
+  {
+    "id": "tier-means-underpowered-at-n10",
+    "claim": "Per-tier mean scores at n=10 are precise enough to attribute a change to an intervention.",
+    "source": "accidental control in iteration 5",
+    "status": "REFUTED",
+    "evidence": "The small tier received IDENTICAL prompts across iterations 4 and 5 and its mean moved +9.8 points (77.2 -> 87.0). So tier-mean run-to-run variance is roughly +/-10 at n=10, which is the same size as the effects being chased. Consequence: tier-mean deltas below ~10 points are not evidence. Either raise functions per tier, or run each configuration repeatedly and compare distributions. Whole-set exact counts are steadier but still swing by 1-2.",
+    "tested_on": "iterations 4 and 5, small tier as an unintended control",
+    "date": "2026-08-27",
+    "keywords": [
+      "variance",
+      "power",
+      "tier",
+      "sample size",
+      "noise",
+      "n=10"
+    ]
+  }
+]
