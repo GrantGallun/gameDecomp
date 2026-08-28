@@ -493,5 +493,22 @@
       "zero",
       "reporting"
     ]
+  },
+  {
+    "id": "v3-fixes-improve-match-rate",
+    "claim": "The correctness and routing work (hints wired in, verdict-first routing, oracle-verified permuting, adaptive context) raises the match rate.",
+    "source": "an evening of fixes following external review",
+    "status": "REFUTED",
+    "evidence": "v3 dev run, 87 functions, first result with a config fingerprint. 84 attempted: 19 exact (22.6%), mean 60.9%. PAIRED against the pre-fix run on 65 shared functions: exact 19 -> 18, mean 69.75 -> 69.49. Both deltas sit well inside the measured noise floor (exact <3, mean <10), so the honest reading is NO CHANGE. By tier: tiny 71.4%, small 15.8%, medium 5.3%, large 0/15, huge 0/10 (first ever attempted, mean 9.6%). One match in 44 functions above `small`. The fixes remain correct and worth keeping -- run_permuter could fabricate an EXACT from a directory name, and the ratchet would have locked it in -- but correctness is not measured in score. They make the number trustworthy, not higher.",
+    "tested_on": "v3 dev, 87 functions, fingerprinted, paired on 65",
+    "date": "2026-08-28",
+    "keywords": [
+      "v3",
+      "fixes",
+      "routing",
+      "hints",
+      "permuter",
+      "null result"
+    ]
   }
 ]

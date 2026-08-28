@@ -84,3 +84,4 @@
 {"function": "resolveRaceCourseSurfaceCollisionWithVelocity", "tier": "huge", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 36000, "wall_s": 247.2, "route": "reshape"}
 {"function": "updateCourseSelectExtraCourseIconList", "tier": "huge", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 6871, "wall_s": 58.8, "route": "reshape"}
 {"function": "updateRacePlayerAirborneCruise", "tier": "huge", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 36000, "wall_s": 243.9, "route": "reshape"}
+{"function": "initRaceSceneFlow", "tier": "huge", "leaf": false, "exact": false, "best_score": 0.0, "draws": 6, "stages": 2, "tokens": 4762, "wall_s": 41.5, "route": "reshape"}
