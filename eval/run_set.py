@@ -151,7 +151,8 @@ def main() -> None:
                                    historical_siblings=args.historical_siblings)
                 row = {**entry, "exact": r.exact, "best_score": r.best_score,
                        "draws": r.generations, "stages": len(r.stages), "tokens": r.tokens,
-                       "wall_s": round(r.wall_s, 1), "route": r.route}
+                       "wall_s": round(r.wall_s, 1), "route": r.route,
+                       "verdict": r.verdict}
             else:
                 traj = refine.sample_one(repo, conn, func, args.model, endpoint,
                                          args.samples, args.timeout, args.think,

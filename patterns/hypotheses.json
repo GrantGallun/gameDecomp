@@ -395,5 +395,87 @@
       "verification",
       "wiring"
     ]
+  },
+  {
+    "id": "type-facts-break-the-medium-wall",
+    "claim": "Supplying verified type facts (array stride, narrow parameter widths, frame size, KB access widths) will let the solver match medium and larger functions.",
+    "source": "the premise behind six loop iterations of prompt enrichment",
+    "status": "REFUTED",
+    "evidence": "With the hints live for the first time, medium-tier mean went 49.8 -> 48.3 and exact stayed at 0. The routing shows why: ALL 10 medium and ALL 9 large functions routed to `reshape`, and not one reached `retype`, `permute` or `relocation`. Medium scores run 0-96%, mostly 27-55%. These are not near-misses with wrong types -- they are structurally wrong programs. Every type hint built targets the retype band, which medium functions do not reach, so the hints were aimed at a failure mode that is not occurring there. They did move `small` (79.5 -> 90.7, the only tier delta all night to clear the +/-10 noise floor), which is consistent: small functions DO sometimes reach retype.",
+    "tested_on": "v3 dev run, 39/87 partial, paired against the pre-fix run",
+    "date": "2026-08-28",
+    "keywords": [
+      "hints",
+      "types",
+      "medium",
+      "wall",
+      "stride",
+      "frame",
+      "reshape"
+    ]
+  },
+  {
+    "id": "medium-failures-are-structural",
+    "claim": "The wall above `small` is structural -- wrong control flow and program shape -- not missing type information.",
+    "source": "route distribution in the v3 run",
+    "status": "UNTESTED",
+    "evidence": "Strongly suggested but not yet isolated: 19/19 medium+large functions route to reshape. Note the route is ambiguous evidence on its own, because `reshape` is ALSO the score<80 fallback when no verdict is available -- so a low score produces reshape either way. To confirm, log the workbench VERDICT itself rather than the derived route, and check it reads structure-mismatch rather than being a fallback. If confirmed, prompt enrichment is the wrong lever entirely and effort should move to structural approaches: sibling mirroring, decomposition, or a stronger model.",
+    "tested_on": "",
+    "date": "",
+    "keywords": [
+      "structure",
+      "control flow",
+      "wall",
+      "medium",
+      "verdict"
+    ]
+  },
+  {
+    "id": "leafness-predicts-difficulty",
+    "claim": "Leaf functions are easier to match than non-leaf ones, so the eval set should stratify on it.",
+    "source": "own assumption when designing eval/sets.py",
+    "status": "REFUTED",
+    "evidence": "Measured over 68 completed functions: leaf 27.8% exact, non-leaf 28.1%. No difference whatsoever. Non-leaf functions actually have a HIGHER mean score (77.1 vs 62.2). Call count is not monotonic either -- functions with 1-4 calls match BEST (38.9%), better than functions with none. Inter-function context is not the difficulty. Half the eval stratification was spent on a non-factor.",
+    "tested_on": "v3 dev run, 68 functions",
+    "date": "2026-08-28",
+    "keywords": [
+      "leaf",
+      "calls",
+      "stratification",
+      "predictor"
+    ]
+  },
+  {
+    "id": "size-and-memory-density-predict-failure",
+    "claim": "Match probability is governed by function size and memory-access density, with hard cliffs rather than a gradient.",
+    "source": "predictor analysis of the v3 run",
+    "status": "CONFIRMED",
+    "evidence": "68 functions. By instruction count: 71.4% / 15.0% / 5.9% / 0.0% across <20, 20-50, 50-120, 120+. By memory accesses: 66.7% / 28.0% / 0.0% / 0.0% across <5, 5-15, 15-40, 40+. TWO HARD CLIFFS: above 15 memory accesses, 0 of 25 matched; above 5 unknown-base accesses, 0 of 25 matched. These are not 'harder' regions, they are zero. Tier labels (tiny/small/medium/large) are just a proxy for instruction count.",
+    "tested_on": "v3 dev run, 68 functions across 4 size tiers",
+    "date": "2026-08-28",
+    "keywords": [
+      "size",
+      "memory",
+      "density",
+      "cliff",
+      "predictor",
+      "instruction count"
+    ]
+  },
+  {
+    "id": "base-resolution-limits-matching",
+    "claim": "Improving the evidence tier's base resolution (currently 58.4%) would raise the match rate, because functions whose bases the KB cannot resolve are exactly the ones that fail.",
+    "source": "predictor analysis",
+    "status": "UNTESTED",
+    "evidence": "Above 5 unknown-base accesses: 0 of 25 matched, mean 48% then 28%. Below: 43-46% matched. CAUTION -- unknown-base count correlates with function size, so this may be size in disguise. The way to separate them is to hold size constant: compare same-size functions with high vs low unknown-base counts. If the effect survives, improving base resolution is a lever that is NOT prompt enrichment, which the medium-tier result already refuted.",
+    "tested_on": "",
+    "date": "",
+    "keywords": [
+      "base resolution",
+      "unknown",
+      "evidence",
+      "dataflow",
+      "kb"
+    ]
   }
 ]

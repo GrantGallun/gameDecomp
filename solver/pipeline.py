@@ -55,6 +55,7 @@ RETYPE_FLOOR = 80.0    # below this the shape itself is wrong
 @dataclass
 class Outcome:
     function: str
+    verdict: str = ""          # workbench verdict, or "" if none was obtained
     exact: bool = False
     best_score: float = 0.0
     best_code: str = ""
@@ -246,6 +247,10 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
 
     route = route_for(verdict, out.best_score)
     out.route = route
+    # Record the verdict separately. `reshape` is also the score<80 fallback,
+    # so the route alone cannot distinguish "the workbench said structure-
+    # mismatch" from "no verdict was available and the score was low".
+    out.verdict = verdict
     if verbose:
         v = f" verdict={verdict}" if verdict else ""
         print(f"    sample -> {out.best_score:.2f}%{v}  route={route}", flush=True)
