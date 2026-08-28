@@ -817,5 +817,22 @@
       "generalisation",
       "for-loop"
     ]
+  },
+  {
+    "id": "extraction-and-truncation-faults-counted-as-model-failures",
+    "claim": "A seventh of all non-compiling attempts are harness faults -- fence leakage, assembly picked as C, and truncation -- not model errors.",
+    "source": "mining compiler_stderr across 956 non-compiling attempts",
+    "status": "CONFIRMED",
+    "evidence": "Clustered after stripping the random temp-file names, which the first pass failed to strip -- that scattered the whole long tail into count-1 buckets and made the data look unstructured. The measurement was broken before the finding appeared. THREE CONFIRMED HARNESS FAULTS, 132 of 956 (13.8%): (1) BACKTICK, 53 (5.5%). Source begins with a literal ```c. extract_c's FENCE_RE needs a CLOSING fence; when generation is truncated there is none, the regex fails, and the fallback `return text.strip()` hands the compiler the opening fence. (2) UNTERM, 47 (4.9%). Cut mid string or comment. Same root cause as (1): truncation. Together, truncation alone accounts for over 10% of all compile failures. (3) DOLLAR, 32 (3.3%). The stored 'source' is literally MIPS assembly -- '/* 1C858 8001BC58 */ or $t9, $t7, $at'. FENCE_RE accepts a bare ``` block, so when the model echoes the target assembly and no fence contains a function definition, `max(candidates, key=len)` selects the ASSEMBLY as the answer. The fallback is choosing the longest block, and the assembly is always the longest block. MY PREDICTION WAS WRONG in its specifics. I predicted a large SDK-struct redefinition cluster from the prompt's 'define types inline' instruction. Explicit redeclaration errors number 23, and the 53 ultratypes.h 'Syntax Error' hits are the model redefining the SCALAR types (line 33 is `typedef unsigned char u8;`) which the prompt already forbids in as many words. The type story is real but it is not what is breaking the build. Consequence: every compile-rate figure reported so far is understated, and infrastructure faults have again been scored as model failures -- the same error already made twice today.",
+    "tested_on": "956 non-compiling attempts (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "extract_c",
+      "truncation",
+      "fence",
+      "assembly",
+      "harness",
+      "stderr"
+    ]
   }
 ]
