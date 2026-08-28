@@ -98,6 +98,48 @@ and must be recorded as one, not explained away.
 
 ---
 
+## T1. Tell the model the SDK types it already has  [JUMPS THE QUEUE]
+
+**Why this preempts S1/S2:** reading an actual failing candidate found two
+CONFIRMED root causes, and this is the first hypothesis all week whose
+mechanism predicts the tier data.
+
+- The inference tier is EMPTY: 72,845 evidence rows, 0 inference rows. The KB
+  hands the model "global:0x80124830+0x0  4 byte int, signed" -- an address and
+  a width. That address holds a Gfx pointer.
+- The prompt STATES SOMETHING FALSE: that common.h defines only u8..f64, and
+  that all other types must be supplied INLINE. common.h includes <PR/mbi.h>,
+  so Gfx/Vtx/Mtx already exist -- and defining them inline is a redefinition
+  error. The model is instructed into a dead end.
+
+The 52.4% candidate for drawMenuSolidRect invented `u32 *p` with `(u8*)p + 8`
+and wrote `*p = 0; p[0] = 0xE7000000;` believing those were different words.
+They are the same location. It repeated that three times.
+
+**Change:** correct the type paragraph, naming only types VERIFIED to compile
+(Gfx, Gwords, Vtx, Vtx_t, Mtx, Vp, Vp_t, Light, Ambient, Lights1, LookAt,
+Hilite, TexRect). OSTask/OSMesgQueue/OSThread were probed and are NOT
+available, so they are deliberately not named -- naming a missing type would
+turn workarounds into compile errors.
+
+**Prediction:** mean score on the 18 failing mediums rises by more than 10,
+and/or new exact matches appear.
+
+**Kill condition:** mean delta <10 AND exact delta <3. Then type vocabulary is
+not the fix, even though the diagnosis stands.
+
+**Guard against a false null:** count candidates that actually use Gfx. If arm
+B does not change what the model writes, a null means the instruction was
+ignored -- a different failure from the hypothesis being wrong.
+
+**Honesty note:** this is prompt work, and prompt enrichment is REFUTED by six
+null results. The distinction claimed here is that those added facts to an
+already-correct prompt, while this corrects a FALSE statement and unlocks C the
+model previously could not express. If it nulls, that distinction was wrong and
+must be recorded as such.
+
+---
+
 ## S1. Kill the reasoning trace on slice calls
 
 **Why now:** measured today -- ~2,500-4,000 generated tokens per slice for
