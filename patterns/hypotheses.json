@@ -645,12 +645,12 @@
   },
   {
     "id": "loop-aware-slicing-with-markers",
-    "claim": "Cut slices at loop boundaries and replace nested loops with markers acting as reassembly points, rather than cutting at any branch.",
+    "claim": "Cut slices so that no loop body is split across a region boundary. (Marker substitution for nested loops was dropped -- see evidence.)",
     "source": "WaDec Algorithm 1",
-    "status": "UNTESTED",
-    "evidence": "Ours cuts at any branch or label near a size target, so a slice can hold half a nested body. Loop-aware cutting guarantees each slice is at most one loop plus conditionals.",
-    "tested_on": "",
-    "date": "",
+    "status": "CONFIRMED",
+    "evidence": "PREVALENCE FIRST, per the project rule. Over the 39 hard functions: 556 branch instructions, 17 backward branches, and the old branch-only rule split 7 of them (41% of loops) across a region boundary -- leaving a region holding a loop body whose head it cannot see. WaDec's concern is real here, not imported. IMPLEMENTED and verified mechanically: split loops 7 -> 0, and the change is confined to exactly the 4 functions that had split loops (35 of 39 produce byte-identical region boundaries). 32 unit tests pass. SCOPE, stated honestly: this is a CORRECTNESS fix, not a measured improvement. It touches 4 of 39 functions (10%), which is far too few to move any aggregate past the significance floor, so no score claim is made and none should be inferred. Its value is as a PREREQUISITE for [[sequential-slice-composition]]: a split loop costs little while regions only emit prose, but is fatal once regions emit C, because you cannot write half a loop. Measure it there, not here. DROPPED from the WaDec design: marker substitution for nested loops. Merging overlapping spans collapses nested loops into the outermost span, which already prevents every split; markers would add reassembly machinery for zero additional coverage at this prevalence. BUG CAUGHT, worth keeping as an instance of the standing pattern: the first version of the prevalence script reported 0 backward branches across 39 functions. That is impossible, and it was a parser bug -- split_regions preserves the /* offset vram encoding */ prefix, so a '^\\s*b\\w*' branch pattern never matched. A suspiciously clean zero is a broken measurement until proven otherwise; the script now asserts a non-zero branch count before drawing any conclusion.",
+    "tested_on": "39 hard functions, deterministic, zero GPU (2026-08-28)",
+    "date": "2026-08-28",
     "keywords": [
       "slicing",
       "loops",
