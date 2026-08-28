@@ -27,6 +27,30 @@ def host() -> str:
     return f"http://{gw}:11434"
 
 
+def _throttle() -> tuple[float, int]:
+    """Opt-in limits so the machine stays usable while a run is going.
+
+    The GPU sits at ~99% during generation, which is what makes video stutter;
+    CPU priority barely touches that. Two knobs, both no-ops unless set, so
+    nothing changes for existing runs:
+
+      SOLVER_GAP_MS   idle milliseconds after every call, giving the compositor
+                      a regular window instead of a solid block of work.
+      SOLVER_NUM_GPU  layers to keep on the GPU. Lower means more of the model
+                      runs on CPU: markedly slower, but it stops the GPU being
+                      saturated. Try ~24 of 33 before going lower.
+
+    Deliberately env-driven rather than arguments: throttling is a property of
+    the machine at that moment, not of the experiment, and it must never end up
+    baked into a recorded run configuration where it could look like a variable
+    under test.
+    """
+    import os
+    gap = float(os.environ.get("SOLVER_GAP_MS", "0") or 0) / 1000.0
+    ngpu = os.environ.get("SOLVER_NUM_GPU", "")
+    return gap, (int(ngpu) if ngpu.strip() else -1)
+
+
 def generate(endpoint: str, model: str, prompt: str, timeout: int = 900,
              num_thread: int = 0, num_gpu: int = -1,
              num_predict: int = 6000, think: str = "",
@@ -50,6 +74,10 @@ def generate(endpoint: str, model: str, prompt: str, timeout: int = 900,
     # small functions do not need the headroom.
     needed = len(prompt) // 3 + num_predict + 1024
     ctx = min(32768, max(8192, 1 << (needed - 1).bit_length()))
+
+    gap_s, env_gpu = _throttle()
+    if env_gpu >= 0:
+        num_gpu = env_gpu
 
     options = {"temperature": temperature, "num_predict": num_predict,
                "num_ctx": ctx}
@@ -99,6 +127,9 @@ def generate(endpoint: str, model: str, prompt: str, timeout: int = 900,
                 raise
         time.sleep(delay)
         delay *= 2
+
+    if gap_s:
+        time.sleep(gap_s)
 
     text = data.get("response", "") or ""
     if not text.strip():
