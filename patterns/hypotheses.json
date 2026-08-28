@@ -785,5 +785,21 @@
       "gfx",
       "vocabulary"
     ]
+  },
+  {
+    "id": "do-while-functions-are-unmatchable",
+    "claim": "The 239 do-while functions (11.3% of the game) can never be matched, so 88.7% is a hard ceiling.",
+    "source": "eval/feasibility.py, and repeated by me several times",
+    "status": "REFUTED",
+    "evidence": "REFUTED BY CONSTRUCTION. removeSchedulerClient, one of the 239, rewritten as for(;;){ body; if (!cond) break; } scores 100.00 and is BYTE-EXACT. Accepted by build.sh, no `do` token anywhere. The claim confused a TOKEN ban with a SEMANTIC one. build.sh rejects the identifier `do`; it does not reject the control-flow shape. do-while compiles to a loop with no entry guard, and for(;;)+break produces exactly that shape -- which is why a naive while() rewrite fails (it adds an entry test) and this one does not. This is NOT a bypass of the restriction. build.sh's own error text says 'Rewrite the loop using while or for instead', so the rewrite is the sanctioned path. The guard's 'do not remove or bypass' instruction is untouched and must stay untouched. NOT A MODEL RESULT: hand-written by me as a harness-feasibility probe and must never be counted as a match. Ground truth was used to CHECK what the harness can express, which CLAUDE.md permits; it entered no prompt. Getting there took two corrections worth recording: the first attempt scored 99.86 because I invented SchedulerState with clients at offset 0, when it is at 0x768. The loop was never the problem -- the TYPE was, which is the same root cause as [[inference-tier-is-empty-kb-thesis-unexercised]]. CONSEQUENCE: 'MAXIMUM ACHIEVABLE 88.7%' in eval/feasibility.py is wrong and must be corrected. 239 functions were written off as impossible and excluded from the eval set. Every prompt says 'No do-while loops', which reads as 'avoid this construct' when it should say 'express it as for(;;) + break'.",
+    "tested_on": "removeSchedulerClient, byte-exact probe (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "do-while",
+      "ceiling",
+      "feasibility",
+      "for-loop",
+      "harness"
+    ]
   }
 ]
