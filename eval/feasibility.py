@@ -7,8 +7,19 @@ rejects any candidate containing a `do` token --
     ERROR: The C file contains a do-while loop.
 
 -- while SBK1's own `initMenuAssetHandles` is written with `do { ... } while`.
-The correct answer is forbidden, so no model can ever score it. It sat in the
-eval set as a 0 and dragged the reported match rate down.
+CORRECTION (2026-08-28): the conclusion drawn from this -- that no model can
+ever score it -- was WRONG, and went untested for weeks. The guard rejects the
+TOKEN `do`, not the loop shape. do-while compiles to a loop with no entry
+guard, and `for (;;) { body; if (!cond) break; }` produces exactly that shape.
+removeSchedulerClient written that way is BYTE-EXACT.
+
+A naive `while (cond)` rewrite does genuinely fail, because it adds an entry
+test and so an extra branch. That is the likely origin of the error: one
+rewrite was tried, it failed, and the failure was generalised to impossible
+without trying the other.
+
+A function is infeasible only if a CANDIDATE literally contains `do`. These
+functions are otherwise reachable and must not be excluded from the eval set.
 
 This screens the eval set against the known-good source BEFORE running, so
 infeasible functions are excluded and *reported* rather than silently counted
@@ -147,7 +158,23 @@ def main() -> None:
         print(f"  the harness cannot accept: {c['blocked']}  ({pct:.1f}%)")
         for reason, n in sorted(c["by_reason"].items(), key=lambda kv: -kv[1]):
             print(f"    {reason:12} {n:5}   e.g. {', '.join(c['examples'][reason][:3])}")
-        print(f"\n  MAXIMUM ACHIEVABLE: {100 - pct:.1f}% of the game.")
+        dw = c["by_reason"].get("do-while", 0)
+        hard_pct = (100.0 * (c["blocked"] - dw) / c["total"]
+                    if c["total"] else 0.0)
+        if dw:
+            print()
+            print("  do-while is NOT a real blocker (proven 2026-08-28):")
+            print("    removeSchedulerClient, written as")
+            print("      for (;;) { body; if (!cond) break; }")
+            print("    is BYTE-EXACT, with no do token. build.sh bans the")
+            print("    TOKEN, not the control-flow shape, and its own error")
+            print("    text says to rewrite using while or for.")
+            print("    These %d functions are REACHABLE, not impossible." % dw)
+        print()
+        print("  MAXIMUM ACHIEVABLE: %.1f%% of the game." % (100 - hard_pct))
+        if dw:
+            print("    (previously reported as %.1f%%, with do-while"
+                  " miscounted as a hard block)" % (100 - pct))
         print("  A match rate quoted over the feasible subset is not a match "
               "rate over the game.")
         return
