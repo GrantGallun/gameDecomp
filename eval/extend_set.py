@@ -30,6 +30,51 @@ from eval.feasibility import check
 from eval.sets import EXCLUDE_TU, TIERS, candidates
 
 
+def extend_heldout_new_tier(conn, repo: Path, sets: dict, tier: str, lo: int,
+                            hi: int, per_stratum: int, rng, assigned: set):
+    """Extend heldout into a tier it does not yet cover.
+
+    Normally heldout is untouchable. This is the one principled exception, and
+    it is only safe under a condition the code checks rather than trusts:
+
+        heldout may gain functions from a tier it does NOT already contain.
+
+    The purpose of heldout is an honest final number, never tuned against.
+    Functions from a tier that has never been measured or tuned against are as
+    held-out as the rest. But the ordering matters absolutely: adding a tier
+    AFTER measuring it on dev and tuning against those results would be
+    laundering contamination through a rule change. Adding it BEFORE any
+    measurement exists is just widening coverage.
+
+    Refuses if the tier is already present, which is the case where the
+    exception would become an excuse.
+    """
+    existing = {e["tier"] for e in sets["heldout"]}
+    if tier in existing:
+        raise ValueError(
+            f"heldout already covers tier '{tier}'. Extending it now would mean "
+            f"adding functions after results exist -- that is contamination, "
+            f"not coverage.")
+
+    added, skipped = [], []
+    for is_leaf in (1, 0):
+        pool = [f for f in candidates(conn, lo, hi, is_leaf) if f not in assigned]
+        rng.shuffle(pool)
+        taken = 0
+        for name in pool:
+            if taken >= per_stratum:
+                break
+            ok, reason = check(repo, name)
+            assigned.add(name)
+            if not ok:
+                skipped.append({"function": name, "tier": tier,
+                                "leaf": bool(is_leaf), "reason": reason})
+                continue
+            added.append({"function": name, "tier": tier, "leaf": bool(is_leaf)})
+            taken += 1
+    return added, skipped
+
+
 def extend(db: Path, repo: Path, src: Path, add: int, seed: int) -> dict:
     sets = json.loads(src.read_text())
     conn = sqlite3.connect(db)

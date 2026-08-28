@@ -43,11 +43,15 @@ TAINTED = {
 # it, which would inflate the score without reflecting any real capability.
 EXCLUDE_TU = ("%ultra%", "%libmus%", "%libc%", "%audio%")
 
+# 300+ is a real population -- 85 game functions in SBK1 -- and the hardest.
+# Stopping at 300 measured only the part of the problem that was tractable,
+# which flatters the number. Review finding 7.
 TIERS = [
     ("tiny", 8, 20),
     ("small", 20, 50),
     ("medium", 50, 120),
     ("large", 120, 300),
+    ("huge", 300, 100000),
 ]
 
 QUERY = """

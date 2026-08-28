@@ -53,7 +53,7 @@ def report(rows: list[dict]) -> None:
     print(f"{'tier':8} {'kind':9} {'n':>3} {'exact':>7} {'rate':>7} {'mean best':>10}")
     print("-" * 72)
 
-    order = {"tiny": 0, "small": 1, "medium": 2, "large": 3}
+    order = {"tiny": 0, "small": 1, "medium": 2, "large": 3, "huge": 4}
     for key in sorted(by, key=lambda k: (order.get(k[0], 9), k[1])):
         rs = by[key]
         exact = sum(1 for r in rs if r["exact"])
