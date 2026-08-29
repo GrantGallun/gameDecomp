@@ -1105,5 +1105,21 @@
       "multi-factor",
       "glasses"
     ]
+  },
+  {
+    "id": "call-site-evidence-resolves-what-one-function-cannot",
+    "claim": "A choice that is ambiguous inside one function is determined by how the rest of the program uses the same symbol.",
+    "source": "user: this uses this register because another function uses it here",
+    "status": "CONFIRMED",
+    "evidence": "Built solver/callsig.py: for a given callee, scan every call site in the FULL program disassembly and aggregate what each argument register was last set from. Evidence-only -- disassembly, never source -- so it is usable on held-out functions and cannot leak ground truth. VALIDATED AGAINST GROUND TRUTH, 3 of 4 correct: addRenderCallback derived (pointer, pointer, passthrough) from 361 sites at 98-99% agreement, actual (RenderCallbackNode**, RenderCallback, void*). setCallbackTaskCallback derived a1=pointer at 203 of 204 sites, actual (void*, CallbackTaskCallback). removeCallbackTask a0=passthrough, actual (void*). THE FOURTH IS A CONCEPTUAL CORRECTION, not noise. getRaceCourseSurfaceType derived a0=s16; it is declared (s32, s32, s32). Both are true: the caller loads arg0 with `lh` and passes it sign-extended. This pass measures WHAT THE CALLER LOADS, not what the callee declares. For generating matching C that is the more useful fact -- the model must emit code that produces an lh -- but calling it a prototype would be wrong, and the docstring now says so. A PLUMBING BUG worth keeping: the first version read nonmatchings/<fn>/target.s and found 2 call sites for a function with 586 callers, because only ~91 functions have workspaces. Every widely-called symbol reported 'nothing confident' -- an empty result that looked like a weak signal rather than a broken scan. Reading repo/asm (2,306 files) gives 205-361 sites. A CLASSIFICATION BUG too: move/or/addiu were all lumped as unknown, so pointer arguments -- which is what utility functions mostly take -- were discarded as absent. Distinguishing pointer / passthrough / const / computed is what made the signal appear.",
+    "tested_on": "4 callees, 2-361 call sites each, checked against src/ and include/ (2026-08-29)",
+    "date": "2026-08-29",
+    "keywords": [
+      "cross-function",
+      "call-site",
+      "signature",
+      "evidence",
+      "inference"
+    ]
   }
 ]
