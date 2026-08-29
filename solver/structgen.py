@@ -22,10 +22,15 @@ from __future__ import annotations
 
 import re
 
+# kind is 'mem_access', not 'access'. The first version of this query used
+# 'access', matched zero rows, and reported layout=0 for every function --
+# which read as "no struct data available" rather than "the query is wrong".
+# A filter that silently matches nothing is indistinguishable from absent data;
+# the run below now asserts a non-empty layout before drawing any conclusion.
 ACCESSES = """
 SELECT base, offset, width, signed, is_load
   FROM evidence
- WHERE kind = 'access'
+ WHERE kind = 'mem_access'
    AND func_addr = (SELECT addr FROM functions WHERE name = ?)
    AND base != 'unknown'
    AND base NOT LIKE 'stack%'
@@ -88,7 +93,12 @@ def render(name: str, fields: list[tuple[int, int, str]]) -> str:
     return "\n".join(out)
 
 
-STRUCT_RE_TMPL = r"typedef\s+struct\s*(?:\w+\s*)?\{[^{}]*\}\s*{name}\s*;"
+# Built by concatenation, not .format(): the pattern contains literal { and }
+# which str.format treats as placeholders, and it raised IndexError rather than
+# producing a wrong pattern -- a loud failure, which is the good case.
+def _struct_pattern(struct_name: str) -> re.Pattern:
+    return re.compile(r"typedef\s+struct\s*(?:\w+\s*)?\{[^{}]*\}\s*"
+                      + re.escape(struct_name) + r"\s*;", re.S)
 
 
 def rewrite(code: str, struct_name: str, fields: list[tuple[int, int, str]]
@@ -99,12 +109,26 @@ def rewrite(code: str, struct_name: str, fields: list[tuple[int, int, str]]
     space after `struct`. Returns (code, changed) so a silent no-op is
     detectable -- this project has shipped "patched" edits that never applied.
     """
-    pat = re.compile(STRUCT_RE_TMPL.format(name=re.escape(struct_name)), re.S)
+    pat = _struct_pattern(struct_name)
     if not pat.search(code):
         return code, False
     return pat.sub(render(struct_name, fields), code, count=1), True
 
 
 def struct_names(code: str) -> list[str]:
-    """Names of typedef'd structs defined in the candidate."""
-    return re.findall(r"\}\s*(\w+)\s*;", code)
+    """Names of typedef'd structs defined in the candidate.
+
+    The first version matched r"\\}\\s*(\\w+)\\s*;" and returned ['break'] --
+    because \\s* spans newlines, so an ordinary
+
+        }
+        break;
+
+    reads as a struct named `break`. That made three functions look like
+    "struct rewrite applied and did not help" when in fact they declare no
+    structs at all, and the two cases are not distinguishable in the output.
+
+    Anchored to an actual typedef struct body instead.
+    """
+    return re.findall(r"typedef\s+struct\s*(?:\w+\s*)?\{[^{}]*\}\s*(\w+)\s*;",
+                      code, re.S)

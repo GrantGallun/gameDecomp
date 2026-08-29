@@ -229,7 +229,21 @@ name is a claim; workspace.score is the verdict.
 
 ---
 
-## T2. Synthesise structs from evidence  [INSERTED AHEAD OF S1]
+## ~~T2. Synthesise structs from evidence~~ DONE - INCONCLUSIVE
+
+> 0 closed, 0 improved -- but only ONE genuine test happened. The harness
+> could not tell 'rewrite applied and did not help' from 'rewrite never
+> applied'. Diagnosis: 1 real null, 3 where struct_names() returned
+> ['break'] and nothing was rewritten, 6 with no candidate on disk.
+>
+> Correction: the four stuck diffs are NOT one bug. Only SlideIn is
+> confirmed struct layout. RespawnSurfaceValid is a wrong BASE REGISTER;
+> ExitUntilPhase3C is partly a load-ORDER swap no struct can fix. I
+> generalised from one case on a superficial shared shape.
+>
+> structgen is kept and tested (9 tests). It is correct and validated
+> against the layout that produced the byte-exact match.
+
 
 **Why it preempts everything else:** proven by construction.
 updateTimeTrialRecordDeltaPopupSlideIn went 99.61 -> 100.00 BYTE-EXACT by

@@ -28,6 +28,7 @@ if sys.argv[1:]:
 print(f"{len(targets)} functions in the 90-100 band\n")
 
 closed, improved, flat, skipped = [], [], [], []
+n_layouts = []
 
 for func in targets:
     try:
@@ -61,6 +62,10 @@ for func in targets:
 
     lay = structgen.layout(conn, func)
     names = structgen.struct_names(code)
+    # A layout of 0 for EVERY function means a broken query, not absent data --
+    # that happened on the first run (kind='access' vs 'mem_access') and read
+    # as "no struct data" rather than "the filter matches nothing".
+    n_layouts.append(len(lay))
     if not lay or not names:
         skipped.append((func, f"layout={len(lay)} structs={len(names)}"))
         continue

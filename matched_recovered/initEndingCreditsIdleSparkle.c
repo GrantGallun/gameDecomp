@@ -15,11 +15,9 @@ struct EndingCreditsEffectActor
 void initEndingCreditsIdleSparkle(EndingCreditsEffectActor *actor)
 {
   int new_var;
-  new_var = -0x59;
   actor->linePositions[0] = -0x14;
+  new_var = -0x59;
   actor->linePositions[1] = new_var;
-  actor->linePositions[2] = 0;
-  actor->linePositions[3] = 0;
-  actor->linePositions[2] = 0;
+ actor->linePositions[2] = 0; actor->linePositions[3] = 0;
   setCallbackTaskCallback(actor, updateEndingCreditsIdleSparkle);
 }
