@@ -195,3 +195,31 @@ def test_pointer_type_survives_the_split():
     lines = [l.strip() for l in out.splitlines()]
     assert "Gfx *p;" in lines
     assert "p = gRegionAllocPtr;" in lines
+
+
+def test_trailing_comment_does_not_defeat_the_split():
+    """Matching ran on the masked line but the edit re-matched the original.
+
+    A trailing comment made the second match fail, so the pass silently did
+    nothing -- 5 of the 10 residual syntax errors after the first version.
+    """
+    src = ("void f(s32 diff) {\n"
+           "    g();\n"
+           "    s32 quotient = diff / 0x6400;   /* truncates toward 0 */\n"
+           "}\n")
+    out = c89.hoist_declarations(src)
+    lines = [l.strip() for l in out.splitlines()]
+    assert "s32 quotient;" in lines
+    assert any(l.startswith("quotient = diff / 0x6400;") for l in lines)
+    # the comment must survive -- it is the model's own reasoning
+    assert "/* truncates toward 0 */" in out
+
+
+def test_trailing_comment_on_a_bare_declaration():
+    src = ("void f(void) {\n"
+           "    g();\n"
+           "    s32 t;   /* scratch */\n"
+           "}\n")
+    out = c89.hoist_declarations(src)
+    assert "/* scratch */" in out
+    assert out.count("s32 t;") == 1

@@ -1,10 +1,25 @@
 {
  "transform": "c89",
- "changed": 80,
+ "changed": 90,
  "fixed": [
+  {
+   "function": "calculateRaceTimerDelta",
+   "score": 49.69,
+   "exact": false
+  },
+  {
+   "function": "createCallbackTaskPreservingArgs",
+   "score": 0.0,
+   "exact": false
+  },
   {
    "function": "drawAssetTableSprite8bpp",
    "score": 0.0,
+   "exact": false
+  },
+  {
+   "function": "drawMenuAsciiFontTile",
+   "score": 2.347,
    "exact": false
   },
   {
@@ -48,6 +63,16 @@
    "exact": false
   },
   {
+   "function": "updateRacePlayerLeanAngle",
+   "score": 39.806,
+   "exact": false
+  },
+  {
+   "function": "updateRacePlayerLeanAngle",
+   "score": 19.841,
+   "exact": false
+  },
+  {
    "function": "updateRacePlayerMode16AerialTrick",
    "score": 36.415,
    "exact": false
@@ -59,18 +84,20 @@
   },
   {
    "function": "updateRacePlayerSmoothedPathOffset",
+   "score": 26.982,
+   "exact": false
+  },
+  {
+   "function": "updateRacePlayerSmoothedPathOffset",
    "score": 0.0,
    "exact": false
   }
  ],
  "still_failing": [
-  "calculateRaceTimerDelta",
   "clampRacePlayerVectorXZHalfSpeed",
   "compressRaceRecordReplayData",
   "createCallbackTaskPreservingArgs",
-  "createCallbackTaskPreservingArgs",
   "drawAssetTableSprite8bpp",
-  "drawMenuAsciiFontTile",
   "drawMenuAsciiFontTile",
   "drawMenuAsciiFontTile",
   "drawMenuPanelBackdrop",
@@ -90,6 +117,7 @@
   "func_8005804C",
   "func_800615BC",
   "func_800615BC",
+  "func_800615BC",
   "getRaceCourseSurfaceSpawnTransform",
   "initMainMenuSceneModelParts",
   "initMainMenuSceneModelParts",
@@ -99,25 +127,30 @@
   "initRaceMotionModelParts",
   "initRaceMotionModelParts",
   "initRaceMotionModelParts",
+  "initRaceMotionModelParts",
   "initRacePlayerLandingSnowSpray",
+  "isRacePlayerRespawnSurfaceValid",
   "packFixedTransformMatrix",
   "pushRaceCourseSurfaceBoundaryWithVelocity",
   "pushRaceCourseSurfaceBoundaryWithVelocity",
   "renderRaceUiSingleTrailEffect",
+  "renderRaceUiSingleTrailEffect",
   "resetAllViewports",
   "tryStartRacePlayerCourseObjectMode",
   "tryStartRacePlayerCourseObjectMode",
+  "updateCourseSelectCourseDescription",
   "updateRaceHud",
   "updateRaceHud",
   "updateRaceHud",
-  "updateRacePlayerLeanAngle",
-  "updateRacePlayerLeanAngle",
   "updateRacePlayerLeanAngle",
   "updateRacePlayerMode16AerialTrick",
   "updateRacePlayerMode37AerialTrick",
+  "updateRacePlayerMode37AerialTrick",
   "updateRacePlayerMode40Stun",
+  "updateRacePlayerMode40Stun",
+  "updateRacePlayerMode53AerialTrick",
   "updateRacePlayerSmoothedPathOffset",
-  "updateRacePlayerSmoothedPathOffset",
+  "updateRaceSplitscreenSelectPlayerCountIcons",
   "updateRaceSplitscreenSelectPlayerCountIcons",
   "zoomTrainingCourseRaceViewport"
  ],

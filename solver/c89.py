@@ -130,6 +130,23 @@ def strip_inline(code: str) -> str:
 
 # ------------------------------------------------- declaration-after-statement
 
+def _grp(original: str, m: "re.Match[str]", name: str) -> str:
+    """A match group's text, read out of the ORIGINAL line.
+
+    Matching happens on the masked copy so comments and strings cannot be
+    mistaken for code, but the edit has to be built from real text. Masking
+    replaces characters one-for-one, so spans index both identically.
+
+    Doing this the naive way -- re-matching the pattern against the original --
+    silently did nothing whenever a line carried a trailing comment, because
+    `s32 quotient = diff / 0x6400;   /* truncates */` does not match a pattern
+    anchored at `;$`. That was 5 of the 10 residual syntax errors after the
+    first version of this pass.
+    """
+    s, e = m.span(name)
+    return original[s:e] if s >= 0 else ""
+
+
 def _splittable(type_text: str) -> bool:
     """Can `T x = v;` be split into `T x;` and `x = v;` without changing it?
 
@@ -195,27 +212,31 @@ def hoist_declarations(code: str) -> str:
 
         if fm and seen_stmt.get(block) and _splittable(fm.group("type")):
             # for (s32 i = 0; ...) -> s32 i; ... for (i = 0; ...)
-            orig = FOR_DECL_RE.match(lines[i])
-            if orig:
-                ind = orig.group("indent")
-                inserts.setdefault(block, []).append(
-                    f"{ind}{orig.group('type')} {orig.group('name')};")
-                edits[i] = (f"{ind}for ({orig.group('name')} = "
-                            f"{orig.group('init').strip()};"
-                            f"{orig.group('tail')}")
+            ind = _grp(lines[i], fm, "indent")
+            inserts.setdefault(block, []).append(
+                f"{ind}{_grp(lines[i], fm, 'type')} "
+                f"{_grp(lines[i], fm, 'name')};")
+            edits[i] = (f"{ind}for ({_grp(lines[i], fm, 'name')} = "
+                        f"{_grp(lines[i], fm, 'init').strip()};"
+                        f"{_grp(lines[i], fm, 'tail')}")
             continue
 
         if m and not stripped.endswith(")"):
             if seen_stmt.get(block) and _splittable(m.group("type")):
-                orig = DECL_RE.match(lines[i])
-                if orig and orig.group("rest"):
-                    ind = orig.group("indent")
+                ind = _grp(lines[i], m, "indent")
+                if m.group("rest"):
                     inserts.setdefault(block, []).append(
-                        f"{ind}{orig.group('type')}{orig.group('ptr')}"
-                        f"{orig.group('name')};")
-                    edits[i] = (f"{ind}{orig.group('name')} "
-                                f"{orig.group('rest').strip()};")
-                elif orig:
+                        f"{ind}{_grp(lines[i], m, 'type')}"
+                        f"{_grp(lines[i], m, 'ptr')}"
+                        f"{_grp(lines[i], m, 'name')};")
+                    # keep whatever followed the ';' -- a trailing comment is
+                    # the common case and dropping it loses information
+                    # the ';' sits just past the initialiser; everything after
+                    # it is trailing text (usually a comment) and is kept
+                    tail = lines[i][m.end("rest") + 1:]
+                    edits[i] = (f"{ind}{_grp(lines[i], m, 'name')} "
+                                f"{_grp(lines[i], m, 'rest').strip()};{tail}")
+                else:
                     # a bare `s32 t;` after a statement: just move it up
                     inserts.setdefault(block, []).append(lines[i])
                     edits[i] = ""
