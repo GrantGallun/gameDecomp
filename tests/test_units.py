@@ -281,3 +281,18 @@ def test_every_python_file_in_the_repo_parses():
         except SyntaxError as exc:
             broken.append(f"{py.relative_to(root)}:{exc.lineno}: {exc.msg}")
     assert not broken, "files with syntax errors:\n  " + "\n  ".join(broken)
+
+
+def test_a_failing_sample_does_not_abandon_the_function():
+    """A union run died on all 38 functions with draws=0, because
+    qwen2.5-coder rejects `think` with a 400 on the chat endpoint and the
+    unhandled exception discarded the gpt-oss sample that had already
+    succeeded. An infrastructure failure on ONE proposer is not a result for
+    the whole function."""
+    import inspect
+    from solver import pipeline
+    src = inspect.getsource(pipeline.solve)
+    gen = src.index("llm.generate")
+    before = src[:gen]
+    assert "try:" in before.split("for i in range")[-1], \
+        "the sample loop calls llm.generate without a try/except"

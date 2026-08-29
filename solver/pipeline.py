@@ -217,9 +217,22 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
     for i in range(1, samples + 1):
         t_gen = time.time()
         this_model = models[(i - 1) % len(models)]
-        text, meta = llm.generate(endpoint, this_model, prompt, timeout=timeout,
-                                  think=think, num_thread=num_thread,
-                                  temperature=SAMPLE_TEMP, prefill=PREFILL)
+        # A failing SAMPLE must not abandon the FUNCTION. A union run died on
+        # all 38 functions with draws=0 because qwen2.5-coder rejects `think`
+        # with a 400 on one endpoint, and the unhandled exception discarded the
+        # gpt-oss sample that had already succeeded. An infrastructure failure
+        # on one proposer is not a result for the whole function.
+        try:
+            text, meta = llm.generate(endpoint, this_model, prompt,
+                                      timeout=timeout, think=think,
+                                      num_thread=num_thread,
+                                      temperature=SAMPLE_TEMP, prefill=PREFILL)
+        except Exception as exc:
+            out.errors = getattr(out, "errors", 0) + 1
+            if verbose:
+                print(f"    sample {i} ({this_model}) failed: "
+                      f"{type(exc).__name__}: {str(exc)[:80]}", flush=True)
+            continue
         wall_ms = int((time.time() - t_gen) * 1000)
         code = llm.extract_c(text)
         if llm.is_refusal(code) or llm.is_refusal(text):
@@ -299,10 +312,15 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
         workspace.assert_uncontaminated(prompt2, repo, func)
         for i in range(1, samples + 1):
             t_gen = time.time()
-            text, meta = llm.generate(endpoint, model, prompt2, timeout=timeout,
-                                      think=think, num_thread=num_thread,
-                                      temperature=SAMPLE_TEMP,
-                                      prefill=PREFILL)
+            try:
+                text, meta = llm.generate(endpoint, model, prompt2,
+                                          timeout=timeout, think=think,
+                                          num_thread=num_thread,
+                                          temperature=SAMPLE_TEMP,
+                                          prefill=PREFILL)
+            except Exception:
+                out.errors = getattr(out, "errors", 0) + 1
+                continue
             wall_ms = int((time.time() - t_gen) * 1000)
             code = llm.extract_c(text)
             if llm.is_refusal(code) or llm.is_refusal(text):
