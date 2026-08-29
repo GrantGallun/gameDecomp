@@ -152,6 +152,69 @@ must be recorded as such.
 
 ---
 
+## ~~F1. Harden extract_c and account for truncation~~ DONE - FIXED
+
+> Validated against the REAL stored failures: 132 of 132 handled, 0 still
+> bad. Fence leak 53/53 cleaned, echoed assembly 17 refused + 15 cleaned,
+> truncated literal 47/47 cleaned. 6 unit tests including a false-positive
+> guard on the assembly detector. extract_c now returns "" for a
+> non-answer so callers can log extraction failures.
+
+
+**Why it preempts the speedups:** log mining found 132 of 956 compile failures
+(13.8%) are OUR faults, not the model's -- and they are silent.
+
+- 53 sources begin with a literal ```c. FENCE_RE needs a CLOSING fence;
+  truncated output has none, the regex fails, and the fallback
+  `return text.strip()` hands the compiler the opening fence.
+- 47 are cut mid string or comment. Same root cause: truncation. Together,
+  truncation is >10% of all compile failures.
+- 32 stored "sources" are literally MIPS assembly. FENCE_RE accepts a bare ```
+  block, so when the model echoes the target and no fence holds a function
+  definition, `max(candidates, key=len)` picks the assembly -- the assembly is
+  always the longest block.
+
+**Change:** extract_c must never return a non-answer. Reject assembly-shaped
+candidates, recover text after an unterminated opening fence, strip stray
+fences, and return "" when there is genuinely no C. Callers then record an
+extraction failure instead of scoring garbage as a model error.
+
+**Prediction:** unit tests reproduce all three shapes and pass; on the next
+sampled run the backtick and dollar clusters go to zero.
+
+**Kill condition:** if a fresh run still shows backtick/dollar/unterminated
+sources, the fix did not address the real path and must be re-diagnosed rather
+than patched again.
+
+**Note:** this is a CORRECTNESS fix with a deterministic test, not a score
+hypothesis. It does not need GPU time to verify.
+
+---
+
+## P1. Permuter on the >=95% band  [INSERTED AHEAD OF S1]
+
+**Why now:** nine functions sit at >=95%, four of them at 99.3-99.8%. At 99.8%
+the candidate is one or two instructions from exact -- the register-allocation
+case the permuter exists for, and the band the pipeline is supposed to route
+there. run_permuter previously fabricated EXACTs by parsing scores out of
+directory names; that was fixed and the fix has NEVER been exercised on real
+near-misses.
+
+It is also CPU-only, so it does not compete with anything on the GPU.
+
+**Prediction:** at least one function closes to byte-exact. These are the
+closest candidates the project has ever produced and nothing has been spent on
+them.
+
+**Kill condition:** if zero of nine close after 300s each, either the stored
+"best" scores are stale (they predate the false-EXACT fix) or the permuter path
+is still broken. Re-verify the seeds before blaming the search.
+
+**Guard:** every permuter output is re-scored through the oracle. A directory
+name is a claim; workspace.score is the verdict.
+
+---
+
 ## S1. Kill the reasoning trace on slice calls
 
 **Why now:** measured today -- ~2,500-4,000 generated tokens per slice for

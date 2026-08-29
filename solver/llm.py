@@ -142,16 +142,57 @@ def tokens_per_second(meta: dict) -> float:
     return meta.get("eval_count", 0) / ((meta.get("eval_duration", 0) or 1) / 1e9)
 
 
+# A candidate is assembly, not C, if it is mostly MIPS instruction lines.
+ASM_LINE = re.compile(r"^\s*(/\*[^*]*\*/)?\s*[a-z][a-z0-9.]{1,7}\s+\$\w+", re.M)
+OPEN_FENCE = re.compile(r"```(?:c|cpp)?[ \t]*\n")
+
+
+def _looks_like_asm(block: str) -> bool:
+    """True when the block is disassembly the model echoed back.
+
+    32 stored 'sources' were literally the target assembly. The old fallback
+    chose max(candidates, key=len), and the echoed assembly is always the
+    longest block -- so the fallback reliably picked the one thing that can
+    never compile.
+    """
+    lines = [l for l in block.splitlines() if l.strip()]
+    if not lines:
+        return False
+    return len(ASM_LINE.findall(block)) >= max(3, len(lines) // 3)
+
+
 def extract_c(text: str) -> str:
-    """Pull the C file out of a model response.
+    """Pull the C file out of a model response, or return "" if there is none.
+
+    Returning "" matters: it lets the caller record an EXTRACTION FAILURE
+    instead of handing the compiler garbage and booking the result as a model
+    error. 13.8% of all compile failures were this -- fences, echoed assembly,
+    and truncated output scored as if the model had written bad C.
 
     Reasoning models emit fenced fragments and discarded attempts inside their
-    trace. Taking the longest fence picks the essay; taking the last fence that
-    actually contains a function definition picks the answer.
+    trace, so the last fence containing a function definition is the answer.
     """
     text = THINK_RE.sub("", text)
     candidates = [f.strip() for f in FENCE_RE.findall(text)]
+
+    # A truncated generation has an opening fence and no closing one, so
+    # FENCE_RE matches nothing and the old code returned the whole response --
+    # leading ``` included, which the compiler reports as "Unknown character `".
     if not candidates:
-        return text.strip()
+        m = OPEN_FENCE.search(text)
+        if m:
+            candidates = [text[m.end():].strip()]
+        else:
+            candidates = [text.strip()]
+
+    candidates = [c for c in candidates if c and not _looks_like_asm(c)]
+    if not candidates:
+        return ""
+
     real = [c for c in candidates if FUNC_DEF_RE.search(c)]
-    return real[-1] if real else max(candidates, key=len)
+    best = real[-1] if real else max(candidates, key=len)
+
+    # Belt and braces: never hand a stray fence marker to the compiler.
+    best = re.sub(r"^```(?:c|cpp)?[ \t]*\n?", "", best)
+    best = re.sub(r"\n?```\s*$", "", best)
+    return best.strip()
