@@ -850,5 +850,22 @@
       "false-negative",
       "recovered"
     ]
+  },
+  {
+    "id": "stuck-99-percent-band-is-struct-layout-not-registers",
+    "claim": "Functions stuck at 99%+ fail on STRUCT FIELD OFFSETS, not register allocation -- and the correct offsets are already in the KB.",
+    "source": "reading the remaining diffs after the permuter closed nothing",
+    "status": "CONFIRMED",
+    "evidence": "PROVEN BY CONSTRUCTION: updateTimeTrialRecordDeltaPopupSlideIn went 99.61 -> 100.00 BYTE-EXACT by changing ONLY the struct padding. Every other line byte-identical. 500s of permuter each closed ZERO of five, and three produced no output directories at all -- the fix is not in its mutation space. That is the tell: the router sends >=95% to the permuter as 'register allocation', and for these functions that classification is simply wrong. All four stuck functions show the same shape. Target vs candidate: 0x28/0x1c/0x18 vs 8/4/0; 0x24/0x26 swapped; 0x2e/0x30 vs 0x2c/0x2e; 0x28 vs 0x24. Every one is a struct layout error. THE KB ALREADY HAD THE ANSWER. kb_context reports 'param0+0x18 2 byte, param0+0x1c 4 byte, param0+0x28 4 byte' -- exactly the target's offsets. The model named its fields field_1c and field_28 and then laid them out at 0, 4 and 8 with no padding. It read the offsets, used them as NAMES, and ignored them as LAYOUT. This is the same failure as T1, where only 4 of 36 candidates used Gfx after being told it existed. The model does not honour facts it is given. The fix is therefore not to state them more clearly -- seven prompt-level nulls say that does not work -- but to ENFORCE them: synthesise the struct mechanically from the evidence tier and hand the model a fixed definition it cannot get wrong. That is also exactly the representation CLAUDE.md already mandates: 'Emit char unk_00[0x24]; rather than a guessed field.' The rule was written and never implemented.",
+    "tested_on": "4 stuck functions diagnosed, 1 closed byte-exact (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "struct",
+      "offsets",
+      "padding",
+      "permuter",
+      "99percent",
+      "evidence"
+    ]
   }
 ]
