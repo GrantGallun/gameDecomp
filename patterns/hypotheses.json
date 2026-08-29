@@ -963,5 +963,35 @@
       "measurement",
       "compile-rate"
     ]
+  },
+  {
+    "id": "lexical-rewording-does-not-stop-refusals",
+    "claim": "Refusals are lexical overfitting on source-reproduction wording, so rewording the task should stop them (XSTest identifies lexical overfitting as the primary cause of false refusals).",
+    "source": "XSTest / OR-Bench over-refusal literature",
+    "status": "INCONCLUSIVE",
+    "evidence": "Tested on six functions that refused 4 of 4 tonight, so the baseline is a clean 100%. Replaced every source-reproduction phrase: 'reconstructing the original C source' -> 'writing a C function that assembles to a given instruction sequence', 'recover what a human WROTE' -> 'produce an equivalent C form', 'reproduces the target object' -> 'yields the same object bytes', 'Original game code' -> 'Code of this kind'. 24 substitutions applied across the prompts, asserted rather than assumed. Result: 16/18 refused unchanged vs 14/18 reworded, 89% -> 78%. Two draws out of eighteen, far below the significance floor. Direction is right, magnitude is nothing. Compile and exact are unchanged at 1 and 0, so even the small movement bought no capability. So the lexical account is not supported here, though a stronger rewrite than mine might do better -- I changed the task description, not the surrounding instructions, and the prompt still contains 'TARGET ASSEMBLY', 'm2c draft' and other decomp vocabulary.",
+    "tested_on": "6 functions x 3 draws x 3 arms (2026-08-29)",
+    "date": "2026-08-29",
+    "keywords": [
+      "refusal",
+      "lexical",
+      "xstest",
+      "rewording"
+    ]
+  },
+  {
+    "id": "fake-prefill-via-generate-endpoint",
+    "claim": "Appending an open ```c fence to the prompt acts as an assistant prefill and prevents refusals.",
+    "source": "my own arm C",
+    "status": "REFUTED",
+    "evidence": "18/18 still refused -- WORSE than the 16/18 baseline. But this did not test prefill at all, and recording it as a refutation of prefill would be wrong. /api/generate applies the model's chat template to `prompt`, so the appended fence landed INSIDE THE USER MESSAGE. It was trailing user text, not a partial assistant turn, and the model was free to begin its reply with a refusal as usual. Real prefill requires /api/chat with a partial assistant message (or raw mode bypassing the template). Tested separately. Recorded because the failure mode is instructive: an arm that silently tests nothing looks exactly like an arm that tests something and fails.",
+    "tested_on": "6 functions x 3 draws (2026-08-29)",
+    "date": "2026-08-29",
+    "keywords": [
+      "prefill",
+      "api",
+      "template",
+      "invalid-arm"
+    ]
   }
 ]
