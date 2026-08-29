@@ -216,7 +216,14 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
 
     for i in range(1, samples + 1):
         t_gen = time.time()
-        this_model = models[(i - 1) % len(models)]
+        # GROUPED by model, not interleaved. gpt-oss:20b is 13.8GB and
+        # qwen2.5-coder:14b is 9GB against 16GB of VRAM, so they cannot both be
+        # resident: alternating per sample forces ollama to evict and reload on
+        # EVERY sample. Round-robin made the union thrash, and calls failed
+        # during the swap. Grouping costs one swap per function instead of one
+        # per sample.
+        per = max(1, samples // len(models))
+        this_model = models[min((i - 1) // per, len(models) - 1)]
         # A failing SAMPLE must not abandon the FUNCTION. A union run died on
         # all 38 functions with draws=0 because qwen2.5-coder rejects `think`
         # with a 400 on one endpoint, and the unhandled exception discarded the
@@ -312,8 +319,14 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
         workspace.assert_uncontaminated(prompt2, repo, func)
         for i in range(1, samples + 1):
             t_gen = time.time()
+            # `model` may be a comma-separated LIST; passing it whole sent
+            # ollama the literal string "gpt-oss:20b,qwen2.5-coder:14b" as a
+            # model name, which is a 400 on every reshape sample. The guard
+            # above turned that into a silent errors+=1 rather than a crash,
+            # which is why it survived a smoke test that otherwise looked fine.
+            stage_model = models[min((i - 1) // per, len(models) - 1)]
             try:
-                text, meta = llm.generate(endpoint, model, prompt2,
+                text, meta = llm.generate(endpoint, stage_model, prompt2,
                                           timeout=timeout, think=think,
                                           num_thread=num_thread,
                                           temperature=SAMPLE_TEMP,
