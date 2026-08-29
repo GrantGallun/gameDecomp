@@ -82,3 +82,24 @@ def test_score_accepts_conn_and_func_kwargs():
     sig = inspect.signature(workspace.score)
     assert "conn" in sig.parameters
     assert "func" in sig.parameters
+
+
+def test_raw_response_is_captured_when_the_column_exists(conn):
+    """Only post-extraction source was ever stored, so a failed extraction was
+    unreadable afterwards -- which is how 13.8% of compile failures hid."""
+    conn.execute("ALTER TABLE attempts ADD COLUMN raw_response TEXT")
+    conn.execute("ALTER TABLE attempts ADD COLUMN extract_status TEXT")
+    conn.commit()
+    workspace.log_attempt(conn, "someFunc", "", _att(compiled=False, score=0.0),
+                          raw_response="```c\nint x;  (truncated",
+                          extract_status="unterminated")
+    row = conn.execute(
+        "select raw_response, extract_status from attempts").fetchone()
+    assert "truncated" in row[0], "raw model output must survive"
+    assert row[1] == "unterminated"
+
+
+def test_logging_still_works_without_the_new_columns(conn):
+    """Older databases lack them; logging must degrade, never raise."""
+    assert workspace.log_attempt(conn, "someFunc", "x", _att(),
+                                 raw_response="ignored me") is True

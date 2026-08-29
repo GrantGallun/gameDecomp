@@ -161,6 +161,30 @@ def _looks_like_asm(block: str) -> bool:
     return len(ASM_LINE.findall(block)) >= max(3, len(lines) // 3)
 
 
+def classify_extraction(text: str, extracted: str) -> str:
+    """Why extraction produced what it did -- stored so failures stay legible.
+
+    Only the POST-extraction source was ever kept, so when extraction failed
+    there was no way to tell a refusal from a truncation from a format slip.
+    13.8% of all compile failures lived in exactly that blind spot, and the fix
+    for it had to be validated against a proxy instead of real output.
+    """
+    low = text.lower()[:400]
+    if any(w in low for w in ("i'm sorry", "i’m sorry", "cannot provide",
+                              "can't provide", "can’t provide",
+                              "can't produce")):
+        return "refusal"
+    if not extracted:
+        return "empty"
+    if extracted.lstrip().startswith("```"):
+        return "fence"
+    if _looks_like_asm(extracted):
+        return "asm"
+    if "```" in text and not re.search(r"```(?:c|cpp)?\s*\n[\s\S]*?```", text):
+        return "unterminated"
+    return "ok"
+
+
 def extract_c(text: str) -> str:
     """Pull the C file out of a model response, or return "" if there is none.
 

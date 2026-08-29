@@ -93,3 +93,15 @@ def test_asm_detector_does_not_reject_real_c():
          "}\n")
     assert not llm._looks_like_asm(c)
     assert llm.extract_c("```c\n" + c + "```") != ""
+
+
+def test_classify_extraction_names_the_failure_mode():
+    """A bare "it failed" is unactionable; the mode decides the fix."""
+    assert llm.classify_extraction(GOOD, llm.extract_c(GOOD)) == "ok"
+    assert llm.classify_extraction(ECHOED_ASM,
+                                   llm.extract_c(ECHOED_ASM)) == "empty"
+    assert llm.classify_extraction("I'm sorry, I can't provide that.",
+                                   "") == "refusal"
+    trunc = "```c\nvoid f(void) {\n  int x = 1;"
+    assert llm.classify_extraction(trunc, llm.extract_c(trunc)) in (
+        "unterminated", "ok")

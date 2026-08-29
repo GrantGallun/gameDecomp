@@ -81,7 +81,8 @@ def assert_uncontaminated(prompt: str, repo: Path, func: str) -> None:
 def log_attempt(conn, func: str, code: str, att: "Attempt", *,
                 strategy: str = "adhoc", model: str = "", prompt: str = "",
                 temperature=None, wall_ms: int = 0, run_id: str = "",
-                extra: dict | None = None) -> bool:
+                extra: dict | None = None, raw_response: str = "",
+                extract_status: str = "", done_reason: str = "") -> bool:
     """Record one attempt. Returns True if a row was written.
 
     CLAUDE.md requires every attempt to be logged, including failures -- it is
@@ -104,14 +105,27 @@ def log_attempt(conn, func: str, code: str, att: "Attempt", *,
     sampling = {"temperature": temperature, "run_id": run_id}
     if extra:
         sampling.update(extra)
+    # raw_response is the PRE-extraction text. Without it a failed extraction
+    # is unreadable after the fact, which is how 13.8% of compile failures hid.
+    cols = {r[1] for r in conn.execute("pragma table_info(attempts)")}
+    extra_cols, extra_vals = [], []
+    for name, val in (("raw_response", raw_response),
+                      ("extract_status", extract_status),
+                      ("done_reason", done_reason)):
+        if name in cols and val:
+            extra_cols.append(name)
+            extra_vals.append(val)
+
+    base = ("func_addr, iteration, source_code, prompt_context, compiled,"
+            " compiler_stderr, score, diff_summary, strategy, model, sampling,"
+            " wall_ms, token_cost, created_at")
+    names = base + ("".join(f", {c}" for c in extra_cols))
+    marks = ",".join("?" * (14 + len(extra_cols)))
     conn.execute(
-        "INSERT INTO attempts (func_addr, iteration, source_code,"
-        " prompt_context, compiled, compiler_stderr, score, diff_summary,"
-        " strategy, model, sampling, wall_ms, token_cost, created_at)"
-        " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        f"INSERT INTO attempts ({names}) VALUES ({marks})",
         (row[0], 0, code, prompt, int(att.compiled), att.compiler_stderr,
          att.score, att.diff, strategy, model, json.dumps(sampling),
-         wall_ms, 0, int(_time.time())))
+         wall_ms, 0, int(_time.time()), *extra_vals))
     conn.commit()
     return True
 
