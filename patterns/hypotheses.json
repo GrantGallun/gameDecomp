@@ -1024,5 +1024,21 @@
       "repad",
       "terseness"
     ]
+  },
+  {
+    "id": "remaining-failures-are-structural-not-type-shaped",
+    "claim": "Types are the wall, so permuting type assignments until the oracle accepts one would close functions.",
+    "source": "user: if it's just types can't we permute until correct?",
+    "status": "REFUTED",
+    "evidence": "Categorised the remaining diff for every function that COMPILES and scores but is not exact, using tonight's prefilled candidates (which compile far more often than before). 19 of 21: INSTRUCTION COUNT DIFFERS -- structural. 2 of 21: load/store WIDTH differs -- type-shaped. 0 of 21: same opcodes with only registers differing. So permuting types cannot work as a general fix: the code is WRONG, not merely typed wrong. A type assignment cannot add or remove an instruction. This CORRECTS MY OWN FRAMING from the audit. I reported '58 of 91 fail on types' from COMPILE ERROR text -- unknown type name, undeclared symbol, redefined scalar. That is accurate about why candidates fail to BUILD, and I wrongly carried it over into why they fail to MATCH. They are two different walls: TYPES block compilation -- fixing them raises the compile rate, which is what prefill partly did, 15% -> 33%. STRUCTURE blocks matching -- and everything that compiles is still structurally wrong. It also re-confirms the oldest measurement in the bank, from before any of this week's work: 29 of 30 hard functions diagnose structure-mismatch and 27 of 29 differ in instruction count. That was right, and I spent a week on layers above it. The 2 type-shaped cases ARE reachable and worth a bounded search: isRacePlayerRespawnSurfaceValid sits at 91.75 with only 8 diff lines. But that is ~10% of the compiled population, not the fix.",
+    "tested_on": "21 compiled non-exact candidates from the prefill run (2026-08-29)",
+    "date": "2026-08-29",
+    "keywords": [
+      "structural",
+      "types",
+      "permute",
+      "instruction-count",
+      "reframing"
+    ]
   }
 ]
