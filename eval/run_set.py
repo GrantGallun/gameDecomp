@@ -50,8 +50,7 @@ def report(rows: list[dict]) -> None:
     never_ran = [r for r in rows if r.get("draws", 0) == 0]
     rows = [r for r in rows if r.get("draws", 0) > 0]
     if never_ran:
-        print(f"
-EXCLUDED -- never reached a model call ({len(never_ran)}):")
+        print(f"\nEXCLUDED -- never reached a model call ({len(never_ran)}):")
         for r in never_ran:
             print(f"  {r['function'][:40]:42} {r.get('error','no draws')[:50]}")
 

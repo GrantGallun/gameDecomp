@@ -257,3 +257,27 @@ def test_every_prompt_template_actually_formats():
             raise AssertionError(
                 f"{mod.__name__}.{attr} does not format: {exc}. "
                 f"Literal braces must be doubled.") from exc
+
+
+def test_every_python_file_in_the_repo_parses():
+    """A syntax error in a module no test imports is invisible.
+
+    eval/run_set.py -- the MAIN eval runner -- carried an unterminated f-string
+    for dozens of commits, because a \n written through a shell heredoc became
+    a real newline. Nothing imported it, so nothing noticed, and every
+    experiment since then was run through one-off harnesses instead.
+    """
+    import ast
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parent.parent
+    broken = []
+    for py in root.rglob("*.py"):
+        parts = set(py.parts)
+        if parts & {".git", ".venv", "site-packages", "__pycache__"}:
+            continue
+        try:
+            ast.parse(py.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError as exc:
+            broken.append(f"{py.relative_to(root)}:{exc.lineno}: {exc.msg}")
+    assert not broken, "files with syntax errors:\n  " + "\n  ".join(broken)
