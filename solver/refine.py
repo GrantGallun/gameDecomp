@@ -159,6 +159,11 @@ start of a block.
 """
 
 DIFF_PROMPT = """\
+TARGET ASSEMBLY -- the instructions your C must produce:
+```
+{asm}
+```
+
 This is the BEST attempt so far, scoring {score:.2f}% against the target.
 It is not yet a byte-exact match.
 
@@ -396,7 +401,8 @@ def refine_one(repo: Path, conn, func: str, model: str, endpoint: str,
             strategy = "fix-compile"
         else:
             hints = catalog_hints(anchor_att.diff)
-            prompt = DIFF_PROMPT.format(score=anchor_att.score, code=anchor_code,
+            prompt = DIFF_PROMPT.format(asm=asm, score=anchor_att.score,
+                                        code=anchor_code,
                                         diff=anchor_att.diff[:4000],
                                         history=history, hints=hints)
             strategy = "fix-diff"
