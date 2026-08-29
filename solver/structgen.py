@@ -169,6 +169,82 @@ def rewrite(code: str, struct_name: str, fields: list[tuple[int, int, str]]
     return pat.sub(render(struct_name, fields, keep), code, count=1), True
 
 
+DECL = re.compile(r"^\s*([A-Za-z_][\w ]*?)\s+([A-Za-z_]\w*)\s*"
+                  r"(?:\[\s*(0[xX][0-9A-Fa-f]+|\d+)\s*\])?\s*;", re.M)
+SIZEOF = {"u8": 1, "s8": 1, "char": 1, "u16": 2, "s16": 2, "short": 2,
+          "u32": 4, "s32": 4, "int": 4, "long": 4, "float": 4, "f32": 4,
+          "u64": 8, "s64": 8, "f64": 8, "double": 8}
+
+
+def repad(body: str, observed: dict[int, int]) -> tuple[str, bool]:
+    """Resize padding arrays so named fields land on their observed offsets.
+
+    Regenerating a struct from one function's evidence DELETES every field that
+    function does not touch -- on updateEndingLindaExitUntilPhase3C that removed
+    posX/posY/posZ/rotY/textureId/paletteId and the body stopped compiling. A
+    struct is a program-wide fact; per-function evidence cannot reconstruct one.
+
+    So never remove a field. Walk the declarations, track the running offset,
+    and when a field whose NAME encodes an offset lands in the wrong place,
+    resize the padding array immediately before it. That is precisely the
+    one-number fix that closed SlideOut: _pad1[0x4] -> _pad1[0x8].
+
+    `observed` maps offset -> width, from the evidence tier.
+    """
+    decls = list(DECL.finditer(body))
+    if not decls:
+        return body, False
+
+    out, cursor, changed = body, 0, False
+    edits: list[tuple[int, int, str]] = []       # (start, end, replacement)
+    last_pad: tuple[int, int, int] | None = None  # (start, end, cur_size)
+
+    for m in decls:
+        ctype, name, count = m.group(1).strip(), m.group(2), m.group(3)
+        n = int(count, 0) if count else 1
+        size = SIZEOF.get(ctype.split()[-1], 4) * n
+
+        is_pad = name.lstrip("_").lower().startswith("pad")
+        if is_pad:
+            last_pad = (m.start(), m.end(), size)
+            cursor += size
+            continue
+
+        want = None
+        tail = ""
+        for ch in reversed(name):
+            if ch in "0123456789abcdefABCDEF":
+                tail = ch + tail
+            else:
+                break
+        for i in range(len(tail)):
+            try:
+                cand = int(tail[i:], 16)
+            except ValueError:
+                continue
+            if cand in observed:
+                want = cand
+                break
+
+        if want is not None and want != cursor and last_pad is not None:
+            delta = want - cursor
+            new_size = last_pad[2] + delta
+            if new_size > 0:
+                old = body[last_pad[0]:last_pad[1]]
+                new = re.sub(r"\[\s*(?:0[xX][0-9A-Fa-f]+|\d+)\s*\]",
+                             f"[{new_size:#x}]", old)
+                if new != old:
+                    edits.append((last_pad[0], last_pad[1], new))
+                    changed = True
+                    cursor += delta
+        cursor += size
+        last_pad = None
+
+    for start, end, new in reversed(edits):
+        out = out[:start] + new + out[end:]
+    return out, changed
+
+
 def struct_names(code: str) -> list[str]:
     """Names of typedef'd structs defined in the candidate.
 

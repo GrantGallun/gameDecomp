@@ -81,9 +81,17 @@ for func in targets:
     top, top_code, top_exact, broke_here = base, code, False, 0
     for fields in lay.values():
         for nm in names:
-            new, changed = structgen.rewrite(code, nm, fields)
+            # repad, not rewrite: regenerating the struct from ONE
+            # function's evidence deletes every field that function does not
+            # touch, and the body stops compiling. Only padding is resized.
+            m = structgen._struct_pattern(nm).search(code)
+            if not m:
+                continue
+            observed = {o: w for o, w, _ in fields}
+            body2, changed = structgen.repad(m.group(0), observed)
             if not changed:
                 continue
+            new = code[:m.start()] + body2 + code[m.end():]
             n_applied += 1
             try:
                 att = workspace.score(ws, repo, "t2b_fix", new, conn=conn,

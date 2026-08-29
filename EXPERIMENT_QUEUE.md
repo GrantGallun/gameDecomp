@@ -275,7 +275,21 @@ unknown, not absent -- CLAUDE.md invariant 5.
 
 ---
 
-## T2b. Re-run struct repair with names preserved  [INSERTED AHEAD OF S1]
+## ~~T2b. Re-run struct repair with names preserved~~ DONE - NO SURFACE
+
+> 0 rewrites applied, 0 closed -- not because the technique fails (it has
+> closed two functions by hand) but because the band has nothing to work
+> on: of 12 functions, 5 have no candidate on disk, 3 have candidates
+> with no struct, 1 has no param evidence, and the one testable function
+> already has correct padding.
+>
+> Decisive finding: regenerating a struct from ONE function's evidence
+> DELETES every field that function does not touch, breaking the body.
+> A struct is a PROGRAM-WIDE fact. That is a first-party argument for the
+> inference tier, independent of any external benchmark.
+>
+> structgen.repad() is the safe form and reproduces the SlideOut fix.
+
 
 **Why:** T2 was inconclusive because of two harness bugs, not because the idea
 failed. structgen renamed field28 to field_28, breaking every function body,

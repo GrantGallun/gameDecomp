@@ -137,3 +137,35 @@ def test_pad_fields_are_not_treated_as_named_fields():
     body = "{ u8 _pad0[0x1C]; s32 field1C; }"
     keep = structgen.preserve_names(body, [(0x1C, 4, "s32")])
     assert keep == {0x1C: "field1C"}, keep
+
+
+def test_repad_reproduces_the_slideout_fix():
+    """The one-number change that took SlideOut 99.999 -> byte-exact."""
+    body = "{\n u8 _pad0[0x1C];\n s32 field1C;\n u8 _pad1[0x4];\n s32 field28;\n}"
+    new, changed = structgen.repad(body, {0x1C: 4, 0x28: 4})
+    assert changed
+    assert "_pad1[0x8]" in new, new
+
+
+def test_repad_never_deletes_unobserved_fields():
+    """Regenerating from ONE function's evidence deleted posX/posY/posZ/rotY
+    and broke the body. A struct is a program-wide fact; per-function evidence
+    cannot reconstruct one, so fields are never removed."""
+    body = ("{\n u8 _pad0[0x18];\n int posX;\n int posY;\n int posZ;\n"
+            " s16 field24;\n s16 rotY;\n u16 textureId;\n}")
+    new, _ = structgen.repad(body, {0x18: 4, 0x24: 2})
+    for f in ("posX", "posY", "posZ", "field24", "rotY", "textureId"):
+        assert f in new, f"{f} was deleted"
+
+
+def test_repad_is_a_no_op_when_offsets_already_line_up():
+    body = ("{\n u8 _pad0[0x18];\n int posX;\n int posY;\n int posZ;\n"
+            " s16 field24;\n}")
+    _, changed = structgen.repad(body, {0x18: 4, 0x24: 2})
+    assert changed is False, "must not churn a struct that is already correct"
+
+
+def test_repad_reports_no_change_when_there_is_no_padding_to_adjust():
+    body = "{\n s32 field00;\n s32 fieldFF;\n}"
+    _, changed = structgen.repad(body, {0x00: 4, 0xFF: 4})
+    assert changed is False
