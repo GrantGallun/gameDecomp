@@ -165,7 +165,43 @@ def test_repad_is_a_no_op_when_offsets_already_line_up():
     assert changed is False, "must not churn a struct that is already correct"
 
 
-def test_repad_reports_no_change_when_there_is_no_padding_to_adjust():
+def test_repad_inserts_when_a_field_is_short_of_its_offset():
+    """This test previously asserted changed is False, encoding repad's
+    inability to INSERT padding as though it were correct behaviour. It was a
+    limitation, not a specification: prefilled candidates emit no pad members
+    at all, and repad found 0 of 22 to repair while reporting "padding already
+    right". fieldFF belongs at 0xFF and must be moved there."""
     body = "{\n s32 field00;\n s32 fieldFF;\n}"
-    _, changed = structgen.repad(body, {0x00: 4, 0xFF: 4})
-    assert changed is False
+    new, changed = structgen.repad(body, {0x00: 4, 0xFF: 4})
+    assert changed is True
+    assert "pad04[0xfb]" in new, new          # 0x04 + 0xfb == 0xff
+
+
+def test_repad_INSERTS_padding_where_there_is_none():
+    """Prefilled candidates write named-by-offset fields with no pad members at
+    all, so they land at 0, 4, 8. Resizing cannot fix that -- there is nothing
+    to resize -- and the first version silently reported "padding already
+    right" for exactly this case, then found 0 of 22 candidates to repair."""
+    body = "{\n    s32 field1C;\n    s32 field24;\n    s16 field502;\n}"
+    new, changed = structgen.repad(body, {0x1C: 4, 0x24: 4, 0x502: 2})
+    assert changed
+    assert "pad00[0x1c]" in new, new
+    assert "pad20[0x4]" in new, new
+    assert "pad28[0x4da]" in new, new       # 0x28 + 0x4da == 0x502
+
+
+def test_inserted_padding_puts_every_field_on_its_offset():
+    body = "{\n    s32 field1C;\n    s32 field24;\n    s16 field502;\n}"
+    new, _ = structgen.repad(body, {0x1C: 4, 0x24: 4, 0x502: 2})
+    import re
+    cursor = 0
+    sizes = {"s32": 4, "s16": 2, "char": 1}
+    for m in re.finditer(r"(\w+)\s+(\w+)(?:\[(0x[0-9a-f]+)\])?\s*;", new):
+        ctype, name, arr = m.group(1), m.group(2), m.group(3)
+        n = int(arr, 16) if arr else 1
+        if name.startswith("pad"):
+            cursor += sizes[ctype] * n
+            continue
+        want = int(name[5:], 16)
+        assert cursor == want, f"{name} at {cursor:#x}, should be {want:#x}"
+        cursor += sizes[ctype] * n

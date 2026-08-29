@@ -226,17 +226,31 @@ def repad(body: str, observed: dict[int, int]) -> tuple[str, bool]:
                 want = cand
                 break
 
-        if want is not None and want != cursor and last_pad is not None:
+        if want is not None and want != cursor:
             delta = want - cursor
-            new_size = last_pad[2] + delta
-            if new_size > 0:
-                old = body[last_pad[0]:last_pad[1]]
-                new = re.sub(r"\[\s*(?:0[xX][0-9A-Fa-f]+|\d+)\s*\]",
-                             f"[{new_size:#x}]", old)
-                if new != old:
-                    edits.append((last_pad[0], last_pad[1], new))
-                    changed = True
-                    cursor += delta
+            if last_pad is not None:
+                # resize the padding that is already there
+                new_size = last_pad[2] + delta
+                if new_size > 0:
+                    old = body[last_pad[0]:last_pad[1]]
+                    new = re.sub(r"\[\s*(?:0[xX][0-9A-Fa-f]+|\d+)\s*\]",
+                                 f"[{new_size:#x}]", old)
+                    if new != old:
+                        edits.append((last_pad[0], last_pad[1], new))
+                        changed = True
+                        cursor += delta
+            elif delta > 0:
+                # INSERT padding where there is none. Prefilled candidates
+                # write "s32 field1C; s32 field24; s16 field502;" with no pad
+                # fields at all, so those land at 0, 4, 8 instead of 0x1C,
+                # 0x24, 0x502. Resizing cannot fix that -- there is nothing to
+                # resize -- and an earlier version of this function silently
+                # reported "padding already right" for exactly that case.
+                indent = re.match(r"[ \t]*", body[m.start():m.end()]).group(0)
+                pad = f"{indent}char pad{cursor:02x}[{delta:#x}];\n"
+                edits.append((m.start(), m.start(), pad + body[m.start():m.start()]))
+                changed = True
+                cursor += delta
         cursor += size
         last_pad = None
 
