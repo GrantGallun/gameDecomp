@@ -1,0 +1,125 @@
+{
+ "transform": "c89",
+ "changed": 80,
+ "fixed": [
+  {
+   "function": "drawAssetTableSprite8bpp",
+   "score": 0.0,
+   "exact": false
+  },
+  {
+   "function": "drawMenuPanelBackdrop",
+   "score": 16.894,
+   "exact": false
+  },
+  {
+   "function": "drawScaledAssetTableSprite",
+   "score": 4.09,
+   "exact": false
+  },
+  {
+   "function": "func_8005804C",
+   "score": 48.125,
+   "exact": false
+  },
+  {
+   "function": "getRacePlayerRankingProgress",
+   "score": 88.836,
+   "exact": false
+  },
+  {
+   "function": "packFixedTransformMatrix",
+   "score": 0.0,
+   "exact": false
+  },
+  {
+   "function": "packFixedTransformMatrix",
+   "score": 32.895,
+   "exact": false
+  },
+  {
+   "function": "renderRaceUiSingleTrailEffect",
+   "score": 80.846,
+   "exact": false
+  },
+  {
+   "function": "updateCourseSelectCourseDescription",
+   "score": 40.787,
+   "exact": false
+  },
+  {
+   "function": "updateRacePlayerMode16AerialTrick",
+   "score": 36.415,
+   "exact": false
+  },
+  {
+   "function": "updateRacePlayerMode16AerialTrick",
+   "score": 62.75,
+   "exact": false
+  },
+  {
+   "function": "updateRacePlayerSmoothedPathOffset",
+   "score": 0.0,
+   "exact": false
+  }
+ ],
+ "still_failing": [
+  "calculateRaceTimerDelta",
+  "clampRacePlayerVectorXZHalfSpeed",
+  "compressRaceRecordReplayData",
+  "createCallbackTaskPreservingArgs",
+  "createCallbackTaskPreservingArgs",
+  "drawAssetTableSprite8bpp",
+  "drawMenuAsciiFontTile",
+  "drawMenuAsciiFontTile",
+  "drawMenuAsciiFontTile",
+  "drawMenuPanelBackdrop",
+  "drawMenuPanelBackdrop",
+  "drawMenuSolidRect",
+  "drawMenuSolidRect",
+  "drawMenuSpriteClipped",
+  "drawMenuSpriteClipped",
+  "drawMenuSpriteClipped",
+  "drawMenuSpriteWithAlphaClipped",
+  "drawMenuSpriteWithAlphaClipped",
+  "drawMenuSpriteWithAlphaClipped",
+  "drawMenuSpriteWithAlphaClipped",
+  "drawPulsingAssetTableSprite",
+  "drawPulsingAssetTableSprite",
+  "drawScaledAssetTableSprite",
+  "func_8005804C",
+  "func_800615BC",
+  "func_800615BC",
+  "getRaceCourseSurfaceSpawnTransform",
+  "initMainMenuSceneModelParts",
+  "initMainMenuSceneModelParts",
+  "initMainMenuSceneModelParts",
+  "initMainMenuSceneModelParts",
+  "initRaceGhostReplayFlow",
+  "initRaceMotionModelParts",
+  "initRaceMotionModelParts",
+  "initRaceMotionModelParts",
+  "initRacePlayerLandingSnowSpray",
+  "packFixedTransformMatrix",
+  "pushRaceCourseSurfaceBoundaryWithVelocity",
+  "pushRaceCourseSurfaceBoundaryWithVelocity",
+  "renderRaceUiSingleTrailEffect",
+  "resetAllViewports",
+  "tryStartRacePlayerCourseObjectMode",
+  "tryStartRacePlayerCourseObjectMode",
+  "updateRaceHud",
+  "updateRaceHud",
+  "updateRaceHud",
+  "updateRacePlayerLeanAngle",
+  "updateRacePlayerLeanAngle",
+  "updateRacePlayerLeanAngle",
+  "updateRacePlayerMode16AerialTrick",
+  "updateRacePlayerMode37AerialTrick",
+  "updateRacePlayerMode40Stun",
+  "updateRacePlayerSmoothedPathOffset",
+  "updateRacePlayerSmoothedPathOffset",
+  "updateRaceSplitscreenSelectPlayerCountIcons",
+  "zoomTrainingCourseRaceViewport"
+ ],
+ "broke": []
+}

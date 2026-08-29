@@ -1153,5 +1153,55 @@
       "duplication",
       "shared-helper"
     ]
+  },
+  {
+    "id": "oracle-types-ceiling",
+    "claim": "Perfect type knowledge (the reference decomp's own headers, injected as inference) raises the dev-set match rate materially above the clean-KB baseline.",
+    "source": "CLAUDE.md next-action premise, which contradicts CONFIRMED medium-failures-are-structural",
+    "status": "UNTESTED",
+    "evidence": "Not yet run. This exists because the project holds two contradictory positions: CLAUDE.md says matching collapses where types start to matter and names an inference tier as the next action, while medium-failures-are-structural is CONFIRMED on 30 hard functions and says the wall is program SHAPE, not missing type facts. The ceiling run is the decisive test and costs one dev-set evaluation. If the bank is right the gap is ~zero and an entire inference tier should not be built. Run: miner.import_existing --ceiling then eval.run_set --db kb-sbk1-ceiling.sqlite --split dev --kb-context, compared against the same fingerprint on the clean KB.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "strip-unresolvable-includes",
+    "claim": "Stripping every #include except common.h from model output raises the per-function score mean on hard_v1",
+    "source": "inc_hard_v1 vs prefill_hard_v1, identical fingerprints except git_rev",
+    "status": "INCONCLUSIVE",
+    "evidence": "39/39 dev, gpt-oss:20b, n=2, temp 0.7. Mean 25.42 -> 18.12, exact 0 -> 0, scoring functions 17 -> 16. Attempt level: compiled 33/156 (21.2%) -> 37/156 (23.7%), so the fix DID admit +4 compiles and +3 scoring attempts. But per-function score is best-of-N, a max, so added candidates cannot lower it -- the -7.3 mean is therefore sampling variance at temp 0.7, not an effect of the fix. Same trap as 28b70b5 (lost match blamed on padding, was variance). Verified NOT destructive: over 2719 pre-fix attempts, 0 compiling attempts included any header other than common.h, so nothing working was stripped. Keep the fix (it is a real if small compile-rate gain and cannot hurt) but it does NOT move the mean and did not move exact.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "model-union-round-robin",
+    "claim": "Splitting a fixed sample budget across two models beats spending it all on the better model",
+    "source": "union2_hard_v1 vs prefill_hard_v1",
+    "status": "REFUTED",
+    "evidence": "Mean 14.82 at 31/39 vs 22.8 at the same index for single-model gpt-oss. The +38% head-to-head that motivated this gave EACH model its own 2 draws and took best-of-4; the pipeline split 2 draws BETWEEN them, which is sampling SUBSTITUTION not union. qwen2.5-coder:14b compiles about half as often as gpt-oss:20b, so trading gpt-oss draws for qwen draws is a straight loss. A real union needs N draws PER model, which doubles cost and is untested.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "c89-mechanical-repair",
+    "claim": "Mechanically repairing post-C89 constructs and stripping redeclarations of build-provided types raises compile rate",
+    "source": "corpus analysis of 2834 attempts during inc_hard_v1",
+    "status": "UNTESTED",
+    "evidence": "Measured shares of NON-COMPILING attempts: redeclaration of a build-provided type 87/1562 (5.6%; Vec3i 21, Gfx 7, Mtx 2, plus scalar typedefs) -- killed 4/4 attempts on clampRacePlayerVectorXZHalfSpeed; inline 4.9% vs 0.2% of compiling; stdint spellings 3.1% vs 0.0%. Separately, a literal ... in code (comments/strings/varargs excluded) appears in 34/1541 non-compiling and 0/1295 compiling -- perfect separation. That one is an ABSTENTION, not a bug: the model declined to write the body, so it must be classified and dropped like a refusal, never repaired. Patch staged, not applied. NOTE the include-fix precedent: a compile-rate gain of this size did NOT move the mean, because per-function score is best-of-N and the marginal candidates score low. Predict compile rate up, mean unchanged.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "c89-mechanical-repair",
+    "claim": "Rewriting C99 constructs into C89 repairs candidates IDO 5.3 rejects",
+    "source": "eval/replay.py paired replay over inc_hard_v1 stored attempts",
+    "status": "CONFIRMED",
+    "evidence": "PAIRED replay, no model, no GPU, 11 seconds: same 80 stored candidates compiled with and without the transform, so there is zero sampling variance to see through. Previously failing -> now compiles: 12 of 68 (17.6%). Previously compiling -> broken: 0. Repaired scores max 88.84, median 32.90, exact 0. First attempt had 2 REGRESSIONS (getRaceCourseSurfaceSpawnTransform 35.78 -> broken), from two bugs the safety arm caught: (a) splitting a const decl produces a write to a constant, (b) DECL_RE could not parse a pointer declarator, so 'const struct S *p = ...' read as a STATEMENT and the next declaration was wrongly hoisted past it. Both fixed and covered by tests. NOTE the honest limit: this is a SYNTAX win. 0 exact, median 32.90 -- repaired candidates compile but remain structurally wrong, so this raises scoring surface and does not close the match gap.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]
