@@ -111,10 +111,10 @@ def check_or_claim(results_path: Path, fp: Fingerprint) -> tuple[bool, str]:
     side = sidecar(results_path)
 
     if not results_path.exists() or results_path.stat().st_size == 0:
-        # a run that dies because its output directory does not exist has
-    # burned nothing yet, but it wastes a launch and reads as a crash
-    side.parent.mkdir(parents=True, exist_ok=True)
-    side.write_text(json.dumps(asdict(fp), indent=2))
+        # A run that dies because its output directory does not exist has
+        # burned nothing, but it wastes a launch and reads as a crash.
+        side.parent.mkdir(parents=True, exist_ok=True)
+        side.write_text(json.dumps(asdict(fp), indent=2))
         return True, f"new run, fingerprint {fp.digest()}"
 
     if not side.exists():
