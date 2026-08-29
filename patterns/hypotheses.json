@@ -1056,5 +1056,21 @@
       "guiding",
       "target-asm"
     ]
+  },
+  {
+    "id": "hunk-scoped-refinement-does-not-help",
+    "claim": "Whole-diff refinement fails on large diffs because the diff is too big to localise, so correcting ONE hunk at a time should work.",
+    "source": "user's guiding hypothesis, applied to correction instead of comprehension",
+    "status": "REFUTED",
+    "evidence": "0 of 8 improved, 0 hunks fixed, against whole-diff refinement's 1 of 8 on the same functions and baselines. Hunk-scoping is no better and arguably worse. The pre-registered kill condition was 'if it still improves only the small function, diff size is not the constraint'. It improved none. The attempts genuinely ran: 29 hunk refinements, ALL 29 compiled, mean 81.7. The model produces valid, plausible C and simply never improves on the input. THE DECISIVE ROW: isRacePlayerRespawnSurfaceValid at 99.462% with exactly ONE hunk remaining, on a 52-instruction function, shown that single mismatch and told everything else was correct -- and it could not fix it. That is as small and as guided as the task can be made. So diff size is not the constraint and presentation is not the constraint. The guiding hypothesis is exhausted at this scale. What the remaining gap actually is, on that function: the arguments are mapped to the WRONG PARAMETERS. Target loads a1<-0x1c, a2<-0x24, a0<-0x502; the candidate loads a0<-0, a1<-4, a2<-8. repad corrected the offsets (99.462 -> 99.558) but the argument ORDER is a semantic error in the C that no mechanical pass fixes and the model will not correct when shown it directly.",
+    "tested_on": "8 functions, up to 4 hunks each, 29 refinements (2026-08-29)",
+    "date": "2026-08-29",
+    "keywords": [
+      "hunk",
+      "refinement",
+      "guiding",
+      "capability",
+      "argument-order"
+    ]
   }
 ]
