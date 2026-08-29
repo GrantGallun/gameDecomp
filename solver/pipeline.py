@@ -206,9 +206,18 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
 
     best_file = None
     best_obj = None
+    # `model` may name several proposers, comma-separated. With a perfect
+    # verifier, running more than one is FREE: the oracle cannot be fooled, so
+    # a weaker model that succeeds on DIFFERENT functions is strictly additive.
+    # Measured 2026-08-29 over 8 functions: gpt-oss:20b 23.81, qwen2.5-coder:14b
+    # 18.00, UNION 32.86 -- the union beats the better model alone by 38%, and
+    # qwen scored 68.27 on a function where gpt-oss scored 0.
+    models = [m.strip() for m in model.split(",") if m.strip()] or [model]
+
     for i in range(1, samples + 1):
         t_gen = time.time()
-        text, meta = llm.generate(endpoint, model, prompt, timeout=timeout,
+        this_model = models[(i - 1) % len(models)]
+        text, meta = llm.generate(endpoint, this_model, prompt, timeout=timeout,
                                   think=think, num_thread=num_thread,
                                   temperature=SAMPLE_TEMP, prefill=PREFILL)
         wall_ms = int((time.time() - t_gen) * 1000)
@@ -223,7 +232,7 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
         out.generations += 1
         att = workspace.score(ws, repo, f"pipe_{i}", code)
         refine.log_attempt(conn, addr, func, i, code, prompt, att, meta,
-                           "pipeline-sample", model, wall_ms,
+                           "pipeline-sample", this_model, wall_ms,
                            temperature=SAMPLE_TEMP, run_id=run_id, raw_response=text)
         if att.score > out.best_score:
             out.best_score, out.best_code = att.score, code
