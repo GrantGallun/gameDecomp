@@ -915,5 +915,21 @@
       "format",
       "build_prompt"
     ]
+  },
+  {
+    "id": "type-declaration-failures-dominate-the-corpus",
+    "claim": "Across the whole corpus the dominant failure family is types and declarations, not context length, not refusals, not search.",
+    "source": "tools/audit.py -- the first cross-function view we have had",
+    "status": "CONFIRMED",
+    "evidence": "Ranked over all 91 functions with attempts, by distinct functions affected: TYPES/DECLARATIONS 58 of 91 -- unknown type name 40, undeclared symbol 30, redefined a scalar type 20, wrong struct shape 17, redeclared a type 9, type conflict 4. OUR OWN HARNESS 36 of 91 -- do-while token 13, assembly extracted as C 9, fence leak, truncation. All of these were fixed today, so a large share of the historical failure record measured our bugs rather than the model. NO CANDIDATE OR NO EVIDENCE 45 of 91 -- 14 functions have no compiling candidate at all, 35 have no param-based evidence, 3 have an empty KB context. This is the number that should have driven the week. Every context-length experiment (region splitting, compression, sequential composition) and all seven prompt-enrichment nulls were aimed at a family that does not appear in this ranking at all. The dominant mode is the model naming a type that does not exist, which is exactly what an inference tier binding types to symbols would supply -- and the inference tier has 0 rows. Also confirms the fix worked: 'score displays 100.00 but is not exact' now matches exactly ONE function, and the true-score ranking puts the two remaining near-misses at 99.9990 and 99.5450 rather than hiding them behind two-decimal display.",
+    "tested_on": "all 91 functions with attempts (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "audit",
+      "types",
+      "declarations",
+      "aggregate",
+      "ranking"
+    ]
   }
 ]
