@@ -1089,5 +1089,21 @@
       "oracle",
       "free-selection"
     ]
+  },
+  {
+    "id": "constrained-enumeration-works-but-the-gap-is-multi-factor",
+    "claim": "Enumerating a finite set of mechanical alternatives and letting the oracle choose ('constrained glasses') can fix what the model will not fix when shown the diff.",
+    "source": "external critique: translate compiler differences into constrained decisions a mechanical search can act on",
+    "status": "INCONCLUSIVE",
+    "evidence": "THE MECHANISM WORKS. Enumerating the 6 argument orderings of one call site, with NO model involved, moved isRacePlayerRespawnSurfaceValid 99.558 -> 99.654. Different orderings score 99.654 / 99.596 / 99.500 / 97.000 / 96.808, so the choice genuinely matters and the oracle can rank it for free. That is the critique's level-3 idea working as described, and it did something 29 model refinements could not. IT DID NOT CLOSE THE FUNCTION, and the reason matters: I have now predicted this function's remaining error THREE times and been wrong every time -- struct padding (repad applied, +0.0), callee signature s16 (+0.058), argument order (predicted ordering scored 97.000, WORSE than baseline; the best ordering was one I did not predict). Three wrong predictions is itself the finding: the 'one clean remaining error' framing is wrong. A function at 99.6% has SEVERAL small interacting errors, and fixing one in isolation moves the score by a fraction of a point. That is why single targeted corrections keep failing, and it is a better explanation than 'the model cannot localise'. A METHOD BUG worth keeping: the first enumeration matched the extern PROTOTYPE and permuted its parameter names. All six variants scored identically, which read as 'argument order is not the problem' when the call site had never been touched. Same shape as every other measurement bug today -- an arm that tests nothing looks like an arm that tests something and fails.",
+    "tested_on": "6 orderings on one call site, oracle-verified (2026-08-29)",
+    "date": "2026-08-29",
+    "keywords": [
+      "constrained",
+      "enumeration",
+      "oracle",
+      "multi-factor",
+      "glasses"
+    ]
   }
 ]
