@@ -43,6 +43,11 @@
    "exact": false
   },
   {
+   "function": "initRaceMotionModelParts",
+   "score": 0.0,
+   "exact": false
+  },
+  {
    "function": "packFixedTransformMatrix",
    "score": 0.0,
    "exact": false
@@ -124,7 +129,6 @@
   "initMainMenuSceneModelParts",
   "initMainMenuSceneModelParts",
   "initRaceGhostReplayFlow",
-  "initRaceMotionModelParts",
   "initRaceMotionModelParts",
   "initRaceMotionModelParts",
   "initRaceMotionModelParts",

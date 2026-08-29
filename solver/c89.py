@@ -63,7 +63,8 @@ DECL_RE = re.compile(
     rf"(?P<ptr>(?:\s*\*)+\s*|\s+)"
     rf"(?P<name>\w+)\s*(?P<rest>=[^;]*)?;[ \t]*$")
 FOR_DECL_RE = re.compile(
-    rf"^(?P<indent>[ \t]*)for\s*\(\s*(?P<type>{TYPE_WORD}(?:\s*\*)*)\s+"
+    rf"^(?P<indent>[ \t]*)for\s*\(\s*(?P<type>{TYPE_WORD})"
+    rf"(?P<ptr>(?:\s*\*)+\s*|\s+)"
     rf"(?P<name>\w+)\s*=\s*(?P<init>[^;]+);(?P<tail>.*)$")
 
 LABEL_RE = re.compile(r"^\s*(case\b|default\s*:|\w+\s*:(?!:))")
@@ -210,11 +211,15 @@ def hoist_declarations(code: str) -> str:
         m = DECL_RE.match(ml)
         fm = FOR_DECL_RE.match(ml)
 
-        if fm and seen_stmt.get(block) and _splittable(fm.group("type")):
+        # A for-init declaration is illegal in C89 WHEREVER it appears: the
+        # grammar allows only an expression there, so unlike an ordinary
+        # declaration this does not depend on a statement coming first.
+        if fm and _splittable(fm.group("type")):
             # for (s32 i = 0; ...) -> s32 i; ... for (i = 0; ...)
             ind = _grp(lines[i], fm, "indent")
             inserts.setdefault(block, []).append(
-                f"{ind}{_grp(lines[i], fm, 'type')} "
+                f"{ind}{_grp(lines[i], fm, 'type')}"
+                f"{_grp(lines[i], fm, 'ptr')}"
                 f"{_grp(lines[i], fm, 'name')};")
             edits[i] = (f"{ind}for ({_grp(lines[i], fm, 'name')} = "
                         f"{_grp(lines[i], fm, 'init').strip()};"

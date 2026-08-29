@@ -223,3 +223,33 @@ def test_trailing_comment_on_a_bare_declaration():
     out = c89.hoist_declarations(src)
     assert "/* scratch */" in out
     assert out.count("s32 t;") == 1
+
+
+def test_for_init_declaration_hoisted_even_as_first_statement():
+    """C89's for-grammar takes an expression, never a declaration.
+
+    So this is illegal even at the top of a block, where an ordinary
+    declaration would be fine. The pass previously only fired after a
+    statement and left these alone.
+    """
+    src = ("void f(u32 w) {\n"
+           "    for (u32 j = 0; j < w; j++) {\n"
+           "        h(j);\n"
+           "    }\n"
+           "}\n")
+    out = c89.hoist_declarations(src)
+    lines = [l.strip() for l in out.splitlines()]
+    assert "u32 j;" in lines
+    assert any(l.startswith("for (j = 0;") for l in lines)
+
+
+def test_for_init_pointer_declaration():
+    src = ("void f(s8 *buf) {\n"
+           "    for (s8 *p = buf; *p != 0; p++) {\n"
+           "        h(p);\n"
+           "    }\n"
+           "}\n")
+    out = c89.hoist_declarations(src)
+    lines = [l.strip() for l in out.splitlines()]
+    assert "s8 *p;" in lines
+    assert any(l.startswith("for (p = buf;") for l in lines)
