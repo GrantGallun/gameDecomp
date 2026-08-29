@@ -56,7 +56,14 @@ Rules:
 - Supply any OTHER types (game structs, unions, enums) and every extern
   declaration INLINE in the file.
 - C89 only: declare all variables at the start of a function or block.
-- No do-while loops. No inline assembly, GLOBAL_ASM, or INCLUDE_ASM.
+- Do NOT write the `do` keyword -- the build rejects the token outright.
+  For a POST-TESTED loop (body runs once before the condition is tested) write
+      for (;;) { body; if (!cond) break; }
+  which compiles to the same shape and DOES match. Do NOT reach for
+  `while (cond) { body }` there: it adds a loop-entry test, so an extra branch,
+  and cannot match. One exception: if the body needs `continue`, this rewrite
+  changes behaviour (continue would skip the test), so restructure instead.
+- No inline assembly, GLOBAL_ASM, or INCLUDE_ASM.
 - Source shape decides codegen. An intermediate local variable, the choice of
   for/while, and whether a value is s16 or s32 all change the output. If the
   draft's shape does not produce the target, restructure it.

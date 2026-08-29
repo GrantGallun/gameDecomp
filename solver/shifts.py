@@ -67,7 +67,10 @@ Rules:
 - Output ONE self-contained C file in a single ```c code block. No prose.
 - Only #include "common.h"; it already defines u8/s8/u16/s16/u32/s32/f32/f64.
   Supply any other types and externs INLINE, defined before use.
-- C89: declarations at the start of a block. No do-while, no inline asm.
+- C89: declarations at the start of a block. No inline asm.
+- Never write the `do` keyword; the build rejects it. A post-tested loop is
+  written for (;;) { body; if (!cond) break; } -- not while (cond) { body },
+  which adds an entry test and cannot match.
 - Write source, not registers: operate on real variables, not locals named
   after t6/v0/a1.
 
@@ -338,7 +341,10 @@ Rules:
 - Output ONE self-contained C file in a single ```c code block. No prose.
 - Only #include "common.h"; it already defines u8/s8/u16/s16/u32/s32/f32/f64.
   Supply any other types and externs INLINE, defined before use.
-- C89: declarations at the start of a block. No do-while, no inline asm.
+- C89: declarations at the start of a block. No inline asm.
+- Never write the `do` keyword; the build rejects it. A post-tested loop is
+  written for (;;) { body; if (!cond) break; } -- not while (cond) { body },
+  which adds an entry test and cannot match.
 - Write source, not registers: operate on real variables, not locals named
   after t6/v0/a1.
 - Every symbol, offset and constant you emit must appear in the lexicon above.
@@ -422,7 +428,10 @@ Rules:
 - Output ONE self-contained C file in a single ```c code block. No prose.
 - Only #include "common.h"; it defines u8/s8/u16/s16/u32/s32/f32/f64.
   Supply any other types and externs INLINE, before use.
-- C89: declarations at the start of a block. No do-while, no inline asm.
+- C89: declarations at the start of a block. No inline asm.
+- Never write the `do` keyword; the build rejects it. A post-tested loop is
+  written for (;;) { body; if (!cond) break; } -- not while (cond) { body },
+  which adds an entry test and cannot match.
 - Infer the signature from the argument registers used and the return value.
 - Keep the statements in the order given. Fix only what is needed to compile.
 
