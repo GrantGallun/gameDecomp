@@ -130,7 +130,11 @@ class Trace:
             note = ""
             while len(args) > 1:
                 last = args[-1]
-                if last == f"param{len(args)-1}" or last in args[:-1]:
+                # "?a3" means the register was never set on this path, or was
+                # clobbered by an earlier call. Either way it is not an
+                # argument, and printing it invents one.
+                if last.startswith("?") or last == f"param{len(args)-1}" \
+                        or last in args[:-1]:
                     args.pop()
                     note = "   /* trailing arg regs dropped: unset, or a copy "
                     "of an earlier one */"
@@ -162,15 +166,50 @@ class Trace:
             self.reg[ops[0]] = f"{op}({', '.join(self.val(o) for o in ops[1:])})"
 
 
+CALLER_SAVED = tuple(f"v{i}" for i in range(2)) + \
+               tuple(f"a{i}" for i in range(4)) + \
+               tuple(f"t{i}" for i in range(10))
+
+
 def trace(asm: str, max_events: int = 60) -> list[str]:
+    """Walk the function, honouring the delay slot and clobbering across calls.
+
+    Two corrections over the first version, both real:
+
+    DELAY SLOT. The instruction AFTER a jal executes BEFORE the call, and IDO
+    routinely puts argument setup there. Emitting the CALL event on sight of
+    the jal read arguments one instruction too early. callsig already looked
+    into the delay slot; this did not.
+
+    CALLER-SAVED CLOBBER. v0/v1, a0-a3 and t0-t9 do not survive a call. Without
+    invalidating them, a stale value from before the call leaks into every
+    later event and reads as though it were still live.
+    """
     t = Trace()
-    for raw in asm.splitlines():
-        line = _clean(raw)
+    lines = [_clean(l) for l in asm.splitlines()]
+    i = 0
+    while i < len(lines):
+        line = lines[i]
         if not line or line.startswith("glabel") or line.endswith(":"):
             if line.endswith(":"):
-                t.events.append(f"{line}")
+                t.events.append(line)
+            i += 1
             continue
+
+        if re.match(r"jal\s", line) or re.match(r"jalr\s", line):
+            # run the delay slot first, then the call
+            if i + 1 < len(lines) and lines[i + 1]:
+                t.step(lines[i + 1])
+            t.step(line)
+            for r in CALLER_SAVED:
+                if r not in ("v0",):        # v0 is set by the call itself
+                    t.reg.pop(r, None)
+                    t.written.discard(r)
+            i += 2
+            continue
+
         t.step(line)
+        i += 1
     return t.events[:max_events]
 
 

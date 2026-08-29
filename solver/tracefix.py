@@ -24,7 +24,16 @@ import re
 from solver import symtrace
 
 CALL_EV = re.compile(r"^CALL (\w+)\((.*?)\)")
-TYPEWORD = re.compile(r"(s8|u8|s16|u16|s32|u32|f32|f64|int|char|void|long|short|struct|unsigned|extern)")
+# An explicit character class, not \b: this line was previously written
+# through a shell heredoc, which turned every \b into a literal BACKSPACE
+# (0x08). The prototype filter matched nothing, so every rewrite landed on
+# the extern declaration instead of the call site -- the failure I spent
+# several cycles unable to explain.
+TYPEWORD = re.compile(
+    r"(?:^|[^A-Za-z0-9_])"
+    r"(?:s8|u8|s16|u16|s32|u32|f32|f64|int|char|void|long|short"
+    r"|struct|unsigned|extern)"
+    r"(?:[^A-Za-z0-9_]|$)")
 
 
 def traced_calls(asm: str) -> dict[str, list[str]]:
