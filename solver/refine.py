@@ -207,8 +207,9 @@ def func_addr(conn: sqlite3.Connection, name: str) -> int | None:
     return row[0] if row else None
 
 
-def log_attempt(conn, addr, func, i, code, prompt, att, meta, strategy, model,
-                wall_ms, temperature=None, run_id=None):
+def log_attempt(conn, addr, func, i, code, prompt, att, meta, strategy,
+                model, wall_ms, temperature=None, run_id=None,
+                raw_response=""):
     """Record one attempt. Never overwrite, never prune -- see TRAINING.md.
 
     The sampling parameters must be the ones actually used. This previously
@@ -230,14 +231,26 @@ def log_attempt(conn, addr, func, i, code, prompt, att, meta, strategy, model,
         "prompt_eval_count": meta.get("prompt_eval_count"),
         "run_id": run_id,
     }
+    # The eval runner logs through here, and it captured 0 of 157 raw responses
+    # on the last run -- so a failed extraction was unreadable afterwards for
+    # exactly the run that mattered. Written only when the columns exist, so an
+    # older database degrades instead of raising.
+    cols = {r[1] for r in conn.execute("pragma table_info(attempts)")}
+    names = ("func_addr, iteration, source_code, prompt_context, compiled,"
+             " compiler_stderr, score, diff_summary, strategy, model,"
+             " sampling, wall_ms, token_cost, created_at")
+    vals = [addr, i, code, prompt, int(att.compiled), att.compiler_stderr,
+            att.score, att.diff, strategy, model, json.dumps(sampling),
+            wall_ms, meta.get("eval_count", 0), int(time.time())]
+    if "raw_response" in cols and raw_response:
+        names += ", raw_response"
+        vals.append(raw_response)
+    if "done_reason" in cols and meta.get("done_reason"):
+        names += ", done_reason"
+        vals.append(meta.get("done_reason"))
     conn.execute(
-        "INSERT INTO attempts (func_addr, iteration, source_code, prompt_context,"
-        " compiled, compiler_stderr, score, diff_summary, strategy, model,"
-        " sampling, wall_ms, token_cost, created_at)"
-        " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (addr, i, code, prompt, int(att.compiled), att.compiler_stderr,
-         att.score, att.diff, strategy, model, json.dumps(sampling),
-         wall_ms, meta.get("eval_count", 0), int(time.time())),
+        f"INSERT INTO attempts ({names}) VALUES ({','.join('?' * len(vals))})",
+        vals,
     )
     conn.commit()
 

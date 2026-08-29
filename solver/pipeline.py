@@ -219,7 +219,7 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
         att = workspace.score(ws, repo, f"pipe_{i}", code)
         refine.log_attempt(conn, addr, func, i, code, prompt, att, meta,
                            "pipeline-sample", model, wall_ms,
-                           temperature=SAMPLE_TEMP, run_id=run_id)
+                           temperature=SAMPLE_TEMP, run_id=run_id, raw_response=text)
         if att.score > out.best_score:
             out.best_score, out.best_code = att.score, code
             best_file = ws / f"pipe_{i}.c"
@@ -298,7 +298,7 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
             att = workspace.score(ws, repo, f"pipe_{route}_{i}", code)
             refine.log_attempt(conn, addr, func, samples + i, code, prompt2, att,
                                meta, f"pipeline-{route}", model, wall_ms,
-                               temperature=SAMPLE_TEMP, run_id=run_id)
+                               temperature=SAMPLE_TEMP, run_id=run_id, raw_response=text)
             if att.score > out.best_score:
                 out.best_score, out.best_code = att.score, code
             if att.exact:
