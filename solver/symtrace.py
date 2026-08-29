@@ -128,7 +128,10 @@ class Trace:
             # written" does not distinguish the two, and neither does anything
             # else visible inside this function.
             note = ""
-            while len(args) > 1:
+            # May drop to zero: a call whose argument registers are all unknown
+            # takes no arguments we can see. Stopping at one reported "b(?a0)"
+            # for a call immediately after another call had clobbered a0.
+            while args:
                 last = args[-1]
                 # "?a3" means the register was never set on this path, or was
                 # clobbered by an earlier call. Either way it is not an
