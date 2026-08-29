@@ -98,7 +98,19 @@ and must be recorded as one, not explained away.
 
 ---
 
-## T1. Tell the model the SDK types it already has  [JUMPS THE QUEUE]
+## ~~T1. Tell the model the SDK types it already has~~ DONE - KILLED
+
+> arm A (current) mean 42.6, compiled 13/36. arm B (SDK types named)
+> mean 36.4, compiled 10/36. Delta mean -6.2, exact +0. Kill condition
+> fired. Only 4 of 36 arm-B candidates used Gfx, so the instruction was
+> largely ignored -- the pre-registered Gfx counter is the only reason
+> that is distinguishable from a wrong diagnosis.
+>
+> The diagnosis stands; the PROMPT FIX is dead. Knowing 'Gfx exists' does
+> not tell the model that the symbol at 0x80124830 IS a Gfx*. That is a
+> per-symbol fact and only the inference tier can supply it.
+> Seventh null from a prompt-level change. Prompt work is closed.
+
 
 **Why this preempts S1/S2:** reading an actual failing candidate found two
 CONFIRMED root causes, and this is the first hypothesis all week whose
