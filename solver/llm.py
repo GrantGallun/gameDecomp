@@ -54,7 +54,8 @@ def _throttle() -> tuple[float, int]:
 def generate(endpoint: str, model: str, prompt: str, timeout: int = 900,
              num_thread: int = 0, num_gpu: int = -1,
              num_predict: int = 6000, think: str = "",
-             temperature: float = 0.2) -> tuple[str, dict]:
+             temperature: float = 0.2,
+             prefill: str = "") -> tuple[str, dict]:
     """One completion. Returns (text, raw response metadata).
 
     `num_predict` must be generous for reasoning models: they return the trace
@@ -86,12 +87,25 @@ def generate(endpoint: str, model: str, prompt: str, timeout: int = 900,
     if num_gpu >= 0:
         options["num_gpu"] = num_gpu
 
-    body = {"model": model, "prompt": prompt, "stream": False, "options": options}
+    # A partial ASSISTANT turn stops refusals outright: 9/9 -> 0/9 measured on
+    # functions that refuse every draw. It only works through /api/chat --
+    # appending the same text to /api/generate puts it inside the USER message,
+    # where it does nothing (18/18 still refused). Which turn it lands in is
+    # the whole effect.
+    if prefill:
+        msgs = [{"role": "user", "content": prompt},
+                {"role": "assistant", "content": prefill}]
+        body = {"model": model, "messages": msgs, "stream": False,
+                "options": options}
+    else:
+        body = {"model": model, "prompt": prompt, "stream": False,
+                "options": options}
     if think:
         body["think"] = False if think == "false" else think
 
     def post(payload: dict) -> dict:
-        req = urllib.request.Request(f"{endpoint}/api/generate",
+        path = "/api/chat" if "messages" in payload else "/api/generate"
+        req = urllib.request.Request(f"{endpoint}{path}",
                                      data=json.dumps(payload).encode(),
                                      headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -131,10 +145,20 @@ def generate(endpoint: str, model: str, prompt: str, timeout: int = 900,
     if gap_s:
         time.sleep(gap_s)
 
-    text = data.get("response", "") or ""
-    if not text.strip():
-        text = data.get("thinking", "") or ""
-        data["_fell_back_to_thinking"] = True
+    if "message" in data:                      # /api/chat shape
+        msg = data.get("message") or {}
+        text = msg.get("content") or ""
+        if not text.strip():
+            text = msg.get("thinking") or ""
+            data["_fell_back_to_thinking"] = True
+        # the prefill is not echoed back; without it the opening fence is
+        # missing and extract_c sees an unterminated block
+        text = prefill + text
+    else:
+        text = data.get("response", "") or ""
+        if not text.strip():
+            text = data.get("thinking", "") or ""
+            data["_fell_back_to_thinking"] = True
     return text, data
 
 
