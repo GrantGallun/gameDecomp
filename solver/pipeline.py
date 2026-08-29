@@ -181,6 +181,11 @@ def run_permuter(repo: Path, func: str, source: Path, seconds: int,
 
 SAMPLE_TEMP = 0.7
 
+# A partial assistant turn. Measured on six functions that refused every
+# draw: refusals 17/18 -> 0/18, compiling candidates 0 -> 5, max score
+# 71.5%. Without it those functions are structurally excluded.
+PREFILL = '```c\n#include "common.h"\n'
+
 
 def solve(repo: Path, conn, func: str, model: str, endpoint: str,
           samples: int, permute_s: int, use_siblings: bool,
@@ -205,7 +210,7 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
         t_gen = time.time()
         text, meta = llm.generate(endpoint, model, prompt, timeout=timeout,
                                   think=think, num_thread=num_thread,
-                                  temperature=SAMPLE_TEMP)
+                                  temperature=SAMPLE_TEMP, prefill=PREFILL)
         wall_ms = int((time.time() - t_gen) * 1000)
         code = llm.extract_c(text)
         if llm.is_refusal(code) or llm.is_refusal(text):
@@ -287,7 +292,8 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
             t_gen = time.time()
             text, meta = llm.generate(endpoint, model, prompt2, timeout=timeout,
                                       think=think, num_thread=num_thread,
-                                      temperature=SAMPLE_TEMP)
+                                      temperature=SAMPLE_TEMP,
+                                      prefill=PREFILL)
             wall_ms = int((time.time() - t_gen) * 1000)
             code = llm.extract_c(text)
             if llm.is_refusal(code) or llm.is_refusal(text):
