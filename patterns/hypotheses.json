@@ -1072,5 +1072,22 @@
       "capability",
       "argument-order"
     ]
+  },
+  {
+    "id": "model-union-beats-either-model-alone",
+    "claim": "Running two local models and letting the oracle pick the best beats either alone, because a perfect verifier makes selection free.",
+    "source": "user: first pass with efficient models, later passes with stronger",
+    "status": "CONFIRMED",
+    "evidence": "8 functions, 2 draws, both models, prefill on, fixed harness. Per-function best score averaged: gpt-oss:20b 23.81, qwen2.5-coder:14b 18.00, UNION 32.86. The union beats the better single model by 38% relative. The complement is genuine, not noise: func_8005804C scores 0.00 under gpt-oss and 68.27 under qwen. gameThreadMain 71.61 vs 75.74. gpt-oss wins 3, qwen wins 2. The two fail differently by profile. qwen has a HIGHER mean on what it compiles (72.0 vs 47.6) but compiles half as often (2 of 16 vs 4 of 16): more precise, less reliable. That is the ideal shape for a union. This also RETIRES an earlier verdict. qwen2.5-coder was recorded as 'attempts where gpt-oss refuses and still scores ~0'. That was measured with fence-leaking extraction, no prefill, and refusal text compiled as candidates. Under the fixed harness it produces 68-76% candidates. A model judgement made through broken instrumentation is worth nothing, and this is the second such verdict overturned today. Both models refused ZERO times, confirming prefill holds across models rather than being a gpt-oss quirk. COST: qwen is 9GB against gpt-oss's 13.8GB, so the cheap-then-expensive cascade the user proposed is buildable as stated. Note also: there is no STRONGER local model available -- gpt-oss:20b is already the largest installed, and a 32B coder at Q4 needs ~20GB against 16GB of VRAM. 'Stronger local' means differently specialised, not bigger.",
+    "tested_on": "8 functions x 2 draws x 2 models (2026-08-29)",
+    "date": "2026-08-29",
+    "keywords": [
+      "union",
+      "cascade",
+      "qwen",
+      "model",
+      "oracle",
+      "free-selection"
+    ]
   }
 ]
