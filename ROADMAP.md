@@ -199,7 +199,7 @@ draft-and-attempt workspace. We add the refine loop and, critically, an eval har
 that does not exist there.
 
 **Tasks**
-- [ ] `solver/refine.py` — compile → diff → feed back → regenerate, bounded, best-so-far
+- [x] `solver/refine.py` — compile → diff → feed back → regenerate, bounded, best-so-far
 - [ ] `eval/harness.py` — hold out SBK1 functions, stratified by size and leaf-ness
 - [ ] Trajectory logging per [TRAINING.md](TRAINING.md) — full source, prompt context,
       stderr, full diff, model + sampling params. Log this from the first run or the
@@ -286,7 +286,7 @@ over RAM and WSL fails to boot. Write that file BOM-free — PowerShell 5.1's
 *Goal: make bad facts survivable. This is the first phase that is genuinely novel.*
 
 **Tasks**
-- [ ] `kb/tms.py` — inference writes with mandatory evidence citation; reject uncited
+- [x] `kb/tms.py` — inference writes with mandatory evidence citation; reject uncited
 - [ ] `kb/retract.py` — transitive retraction; demote and rebuild affected functions
 - [ ] `kb/ratchet.py` — savepoint / apply / rebuild / compare / rollback
 - [ ] `func_deps` population from the refine loop

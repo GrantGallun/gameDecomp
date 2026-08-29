@@ -131,5 +131,32 @@ of times. Design docs can live on the Windows side; the build tree cannot.
 
 ## Status
 
-Design complete. No implementation yet. Next action: Phase 0, task 1 — pick the target
-game and reproduce its reference build.
+**Do not hand-edit this section.** Run `python3 -m eval.status` and paste. It said
+"Design complete. No implementation yet." for weeks while 65 tests passed and 33
+functions matched — an external review caught it. Any agent reading a stale status
+reasons from a false premise, so a generated number is worth more than a careful
+sentence.
+
+Target is SBK1 (N64, IDO 5.3 `-O2`). Last generated 2026-08-28:
+
+| | |
+|---|---|
+| functions byte-exact | **33** of 91 attempted |
+| attempts logged | 1,939 |
+| evidence rows | 72,845 |
+| **inference rows** | **0** |
+| tests | 65 |
+
+**The inference tier being empty is the headline, not the match count.** The thesis is
+"the model proposes, the database remembers why", and the database has never remembered
+anything. Every function is reconstructed from an address and a width, with no
+accumulated type knowledge — which is why matching collapses at exactly the tier where
+types start to matter (tiny/small 100%, medium 10%, large 6%).
+
+Known-dead directions, so they are not retried: prompt enrichment (7 nulls), telling the
+model a type exists without binding it to a symbol, whole-function context/length
+management (region splitting, compression, sequential composition — all null, and
+removing 100% of refusals produced 0 extra matches). See `patterns/hypotheses.py`.
+
+Next action: bind real prototypes and types to symbols (`miner/import_existing.py`,
+still unwritten) so the inference tier stops being empty.
