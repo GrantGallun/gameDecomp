@@ -883,5 +883,21 @@
       "padding",
       "harness"
     ]
+  },
+  {
+    "id": "struct-padding-errors-are-rare-not-systemic",
+    "claim": "Wrong struct padding is a widespread cause of near-miss failures, so repairing it mechanically should close several functions.",
+    "source": "two functions closed by padding alone (SlideIn, SlideOut)",
+    "status": "REFUTED",
+    "evidence": "Swept repad over the best STORED candidate for all 75 functions that have one -- a much larger pool than the permuter output directories earlier passes globbed. ZERO rewrites applied. The counters make the null interpretable rather than mysterious: 18 candidates declare no struct at all, 29 functions have no param-based evidence (they touch only globals and stack), and 28 have both a struct and evidence with the padding ALREADY CORRECT. So the technique had a real surface of 28 functions and found nothing wrong with any of them. SlideIn and SlideOut were genuine but rare. Two closed functions out of a 28-function surface is not a systemic bug, and generalising from them -- which I did, twice -- was wrong both times. The technique is now exhausted rather than untested: it has been run against every candidate in the corpus. Kept in the tree because it is correct, tested, and costs nothing to re-run when new candidates appear.",
+    "tested_on": "all 75 functions with a stored compiled candidate (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "struct",
+      "padding",
+      "repad",
+      "exhausted",
+      "near-miss"
+    ]
   }
 ]
