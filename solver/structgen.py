@@ -73,7 +73,8 @@ def layout(conn, func: str) -> dict[str, list[tuple[int, int, str]]]:
             for b, s in per_base.items()}
 
 
-def render(name: str, fields: list[tuple[int, int, str]]) -> str:
+def render(name: str, fields: list[tuple[int, int, str]],
+           keep: dict[int, str] | None = None) -> str:
     """Emit a struct where every observed offset lands exactly where observed.
 
     Gaps become explicit padding rather than being closed up -- closing them is
@@ -87,7 +88,8 @@ def render(name: str, fields: list[tuple[int, int, str]]) -> str:
             out.append(f"    char pad{cursor:02x}[{off - cursor:#x}];")
         elif off < cursor:
             continue                      # overlapping access, already covered
-        out.append(f"    {ctype} field_{off:02x};")
+        fname = (keep or {}).get(off, f"field_{off:02x}")
+        out.append(f"    {ctype} {fname};")
         cursor = off + width
     out.append(f"}} {name};")
     return "\n".join(out)
@@ -101,6 +103,56 @@ def _struct_pattern(struct_name: str) -> re.Pattern:
                       + re.escape(struct_name) + r"\s*;", re.S)
 
 
+# The declared name is the identifier immediately before the (optional) array
+# subscript and the semicolon. An earlier line-anchored pattern that tried to
+# skip the type prefix matched nothing at all and silently returned {}, which
+# looked like "no names to preserve" rather than "the regex is wrong".
+EXISTING_FIELD = re.compile(r"\b(\w+)\s*(?:\[[^\]]*\])?\s*;")
+
+
+def preserve_names(old_body: str, fields: list[tuple[int, int, str]]
+                   ) -> dict[int, str]:
+    """Map observed offsets onto the candidate's OWN field names.
+
+    Renaming fields breaks the function body, which still refers to the old
+    names -- and the resulting compile failure is easy to misread. On
+    updateTimeTrialRecordDeltaPopupSlideOut the rewrite renamed field28 to
+    field_28, the candidate stopped compiling, and the harness reported it as
+    "no improvement" rather than "broken", hiding a fix that was one padding
+    byte away from byte-exact.
+
+    Names that already encode their offset (field1C, unk_28, field_0x18) are
+    matched to that offset; anything else is left to the generated name.
+    """
+    observed = {o for o, _, _ in fields}
+    names: dict[int, str] = {}
+    for m in EXISTING_FIELD.finditer(old_body):
+        ident = m.group(1)
+        if ident.lstrip("_").lower().startswith("pad"):
+            continue          # padding is regenerated, never preserved
+
+        # Splitting a name into prefix+offset is ambiguous, because letters
+        # a-f are hex digits: "field1C" has trailing hex runs C, 1C, d1C,
+        # ed1C. A word-boundary anchor cannot help -- there is no boundary
+        # inside an identifier. So generate every trailing-hex reading and let
+        # the OBSERVED offsets disambiguate; exactly one will normally match.
+        tail = ""
+        for ch in reversed(ident):
+            if ch in "0123456789abcdefABCDEF":
+                tail = ch + tail
+            else:
+                break
+        for i in range(len(tail)):
+            try:
+                off = int(tail[i:], 16)
+            except ValueError:
+                continue
+            if off in observed and off not in names:
+                names[off] = ident
+                break
+    return names
+
+
 def rewrite(code: str, struct_name: str, fields: list[tuple[int, int, str]]
             ) -> tuple[str, bool]:
     """Replace one struct definition in `code` with the synthesised layout.
@@ -110,9 +162,11 @@ def rewrite(code: str, struct_name: str, fields: list[tuple[int, int, str]]
     detectable -- this project has shipped "patched" edits that never applied.
     """
     pat = _struct_pattern(struct_name)
-    if not pat.search(code):
+    m = pat.search(code)
+    if not m:
         return code, False
-    return pat.sub(render(struct_name, fields), code, count=1), True
+    keep = preserve_names(m.group(0), fields)
+    return pat.sub(render(struct_name, fields, keep), code, count=1), True
 
 
 def struct_names(code: str) -> list[str]:

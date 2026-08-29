@@ -867,5 +867,21 @@
       "99percent",
       "evidence"
     ]
+  },
+  {
+    "id": "score-100-not-exact-was-a-rounding-artifact",
+    "claim": "updateTimeTrialRecordDeltaPopupSlideOut scored 100.00 while not being exact, i.e. the documented relocation-mismatch case.",
+    "source": "my own reporting",
+    "status": "REFUTED",
+    "evidence": "It scored 99.999, not 100.00. My harness formatted scores with f'{score:.2f}', which rounds 99.999 to 100.00 -- and I then diagnosed a relocation mismatch from my own display rounding and wrote it up twice as a known failure class. The real cause was ordinary struct padding: the candidate had u8 _pad0[0x1C]; s32 field1C; u8 _pad1[0x4]; s32 field28; which places field28 at 0x24, while the evidence tier says param0+0x28. Widening _pad1 from 4 to 8 bytes made it BYTE-EXACT. Two further self-inflicted errors found on the way, both of the same family -- the artifact on disk not being the one the number refers to: (1) my relocation diff compared the LAST candidate scored rather than the best, because workspace.score overwrites the same .c file every iteration; (2) the earlier structgen rewrite DID apply but renamed field28 to field_28, breaking the function body, and the harness reported the resulting compile failure as 'no improvement'. The build itself never lied: it reported 'Score: 99.999% (0 differences)' and 'Verified exact match: no' throughout. Every wrong turn here came from my own formatting and harness bookkeeping, not from the oracle.",
+    "tested_on": "updateTimeTrialRecordDeltaPopupSlideOut, now byte-exact (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "rounding",
+      "relocation",
+      "struct",
+      "padding",
+      "harness"
+    ]
   }
 ]

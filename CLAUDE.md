@@ -141,7 +141,7 @@ Target is SBK1 (N64, IDO 5.3 `-O2`). Last generated 2026-08-28:
 
 | | |
 |---|---|
-| functions byte-exact | **33** of 91 attempted |
+| functions byte-exact | **34** of 91 attempted |
 | attempts logged | 1,939 |
 | evidence rows | 72,845 |
 | **inference rows** | **0** |

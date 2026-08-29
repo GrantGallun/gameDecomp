@@ -104,3 +104,36 @@ def test_unknown_signedness_defaults_to_signed(conn):
     compiler assumes absent evidence."""
     assert structgen.field_type(2, None) == "s16"
     assert structgen.field_type(2, 0) == "u16"
+
+
+def test_rewrite_preserves_existing_field_names():
+    """Renaming fields breaks the body, which still uses the old names.
+
+    On updateTimeTrialRecordDeltaPopupSlideOut the rewrite renamed field28 to
+    field_28, the candidate stopped compiling, and the harness reported that as
+    "no improvement" -- hiding a fix one padding byte from byte-exact.
+    """
+    code = ("typedef struct Actor\n{\n  u8 _pad0[0x1C];\n  s32 field1C;\n"
+            "  u8 _pad1[0x4];\n  s32 field28;\n} Actor;\n"
+            "void f(Actor *a){ a->field28 = a->field1C; }")
+    new, changed = structgen.rewrite(code, "Actor",
+                                     [(0x1C, 4, "s32"), (0x28, 4, "s32")])
+    assert changed
+    assert "field1C" in new and "field28" in new, \
+        "original field names must survive or the body stops compiling"
+    assert "field_1c" not in new and "field_28" not in new
+    # and the padding must be corrected to place field28 at 0x28
+    assert "char pad20[0x8];" in new, new
+
+
+def test_padding_places_fields_at_the_observed_offsets():
+    """The SlideOut bug exactly: 0x1C + 4 + pad(4) lands field28 at 0x24."""
+    out = structgen.render("A", [(0x1C, 4, "s32"), (0x28, 4, "s32")])
+    assert "char pad00[0x1c];" in out
+    assert "char pad20[0x8];" in out, "gap 0x20..0x27 must be 8 bytes, not 4"
+
+
+def test_pad_fields_are_not_treated_as_named_fields():
+    body = "{ u8 _pad0[0x1C]; s32 field1C; }"
+    keep = structgen.preserve_names(body, [(0x1C, 4, "s32")])
+    assert keep == {0x1C: "field1C"}, keep
