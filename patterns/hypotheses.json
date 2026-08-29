@@ -1008,5 +1008,21 @@
       "api-chat",
       "denominator"
     ]
+  },
+  {
+    "id": "prefill-makes-the-model-terser-and-it-drops-struct-padding",
+    "claim": "Prefill lifts scores broadly but causes a specific regression: the model writes structs WITHOUT padding, so fields land at 0, 4, 8 instead of their observed offsets.",
+    "source": "diffing the lost exact match against its prefilled replacement",
+    "status": "CONFIRMED",
+    "evidence": "isRacePlayerRespawnSurfaceValid went 100.00 EXACT -> 91.75 under prefill. Diffing the two stored candidates shows exactly one substantive difference. The exact version padded: 'u8 _pad0[0x1C]; int field1; u8 _pad1[0x24-0x20]; int field2; u8 _pad2[0x502-0x28]; s16 surfaceId;'. The prefilled version wrote 's32 field1C; s32 field24; s16 field502;' with NO padding at all, so those fields sit at 0, 4 and 8 instead of 0x1C, 0x24 and 0x502. Likely mechanism: the exact candidate is 1643 chars with explanatory comments reasoning about each padding gap; the prefilled one is 946 chars and terse. Starting the reply mid-code appears to skip the deliberation that produced the padding, not just the preamble. That is a real cost of prefill and it is invisible in aggregate scores. DIRECTLY FIXABLE: structgen.repad() exists for exactly this, and the field names encode their own offsets (field1C, field24, field502), which is the signal repad uses to place them. Prefill for reach plus repad for correctness is the obvious pairing. Also noted: prefill supplies '#include \"common.h\"' and the model writes it again, so every prefilled candidate carries a duplicate include. Harmless under include guards, but sloppy and worth trimming.",
+    "tested_on": "diff of two stored candidates, read-only (2026-08-29)",
+    "date": "2026-08-29",
+    "keywords": [
+      "prefill",
+      "padding",
+      "regression",
+      "repad",
+      "terseness"
+    ]
   }
 ]
