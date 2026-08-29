@@ -275,6 +275,28 @@ unknown, not absent -- CLAUDE.md invariant 5.
 
 ---
 
+## T2b. Re-run struct repair with names preserved  [INSERTED AHEAD OF S1]
+
+**Why:** T2 was inconclusive because of two harness bugs, not because the idea
+failed. structgen renamed field28 to field_28, breaking every function body,
+and the resulting COMPILE FAILURE was reported as "no improvement". Separately
+struct_names() matched "} break;" so structless functions looked like tested
+ones. Both fixed.
+
+**Mechanism now proven twice, by padding alone:**
+SlideIn 99.61 -> 100.00, SlideOut 99.999 -> 100.00.
+
+**Change:** none to the idea. Re-run with names preserved and a harness that
+counts applied / broke / improved / closed separately.
+
+**Prediction:** at least one more function closes byte-exact.
+
+**Kill condition:** rewrites apply, compile cleanly, and nothing closes or
+improves -> padding is not the remaining issue there; re-diagnose rather than
+iterate.
+
+---
+
 ## S1. Kill the reasoning trace on slice calls
 
 **Why now:** measured today -- ~2,500-4,000 generated tokens per slice for

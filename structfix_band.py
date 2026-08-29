@@ -1,12 +1,20 @@
-"""T2: mechanically repair struct layouts across the >=90% band.
+"""T2b: mechanically repair struct layouts across the >=90% band.
 
-For each function, take its best candidate on disk, rewrite every struct it
-declares to the layout the evidence tier observed, and re-score. Deterministic,
-LLM-free, no GPU.
+Re-run of T2 after two fixes that made the first run uninterpretable:
+  - structgen preserved no field names, so every rewrite renamed field28 to
+    field_28 and broke the function body. The resulting COMPILE FAILURE was
+    reported as "no improvement", hiding a fix one padding byte from exact.
+  - struct_names() matched "} break;" and returned ['break'], so functions with
+    no structs looked like "rewrite applied and did not help".
 
-Tries each struct name against each observed base, because the candidate's
-naming gives no reliable mapping from struct to base register. Cheap enough to
-brute force, and the oracle is the arbiter.
+This harness therefore counts four distinct outcomes and never conflates them:
+  applied      the rewrite changed the source
+  broke        it applied and the result stopped compiling
+  improved     it applied, compiled, and scored higher
+  closed       byte-exact
+
+Mechanism proven twice: updateTimeTrialRecordDeltaPopupSlideIn 99.61 -> 100.00
+and SlideOut 99.999 -> 100.00, both by padding alone.
 """
 import sqlite3
 import sys
@@ -16,6 +24,8 @@ from solver import structgen, workspace
 
 repo = Path.home() / "decomp/sbk1"
 conn = sqlite3.connect(str(Path.home()) + "/decomp/kb-sbk1.sqlite")
+out_dir = Path("matched_recovered")
+out_dir.mkdir(exist_ok=True)
 
 rows = conn.execute("""
     select f.name, round(max(a.score),1) best
@@ -28,7 +38,8 @@ if sys.argv[1:]:
 print(f"{len(targets)} functions in the 90-100 band\n")
 
 closed, improved, flat, skipped = [], [], [], []
-n_layouts = []
+n_applied = n_broke = 0
+layouts_seen = []
 
 for func in targets:
     try:
@@ -37,81 +48,83 @@ for func in targets:
         skipped.append((func, "no workspace"))
         continue
 
-    best, code = 0.0, ""
+    base, code = 0.0, ""
+    already = False
     for cand in sorted((repo / "nonmatchings").glob(f"{func}-*/output-*/source.c")):
         try:
             t = cand.read_text(errors="replace")
-            a = workspace.score(ws, repo, "b", t, conn=conn, func=func,
-                                strategy="structfix-baseline")
+            a = workspace.score(ws, repo, "t2b_base", t, conn=conn, func=func,
+                                strategy="t2b-baseline")
         except Exception:
             continue
         if a.exact:
-            best, code = a.score, t
+            base, code, already = 100.0, t, True
             break
-        if a.score > best:
-            best, code = a.score, t
+        if a.score > base:
+            base, code = a.score, t
     if not code:
         skipped.append((func, "no candidate on disk"))
         continue
-    if best >= 100:
-        closed.append((func, 100.0))
-        Path("matched_recovered").mkdir(exist_ok=True)
-        Path(f"matched_recovered/{func}.c").write_text(code, encoding="utf-8")
-        print(f"  {func[:40]:42} already exact on disk")
+    if already:
+        closed.append(func)
+        (out_dir / f"{func}.c").write_text(code, encoding="utf-8")
+        print(f"  {func[:40]:42} already exact")
         continue
 
     lay = structgen.layout(conn, func)
     names = structgen.struct_names(code)
-    # A layout of 0 for EVERY function means a broken query, not absent data --
-    # that happened on the first run (kind='access' vs 'mem_access') and read
-    # as "no struct data" rather than "the filter matches nothing".
-    n_layouts.append(len(lay))
+    layouts_seen.append(len(lay))
     if not lay or not names:
         skipped.append((func, f"layout={len(lay)} structs={len(names)}"))
         continue
 
-    top, top_att = best, None
-    best_code = code
-    for base, fields in lay.items():
+    top, top_code, top_exact, broke_here = base, code, False, 0
+    for fields in lay.values():
         for nm in names:
             new, changed = structgen.rewrite(code, nm, fields)
             if not changed:
                 continue
+            n_applied += 1
             try:
-                att = workspace.score(ws, repo, "sfix", new, conn=conn,
-                                      func=func, strategy="structfix")
+                att = workspace.score(ws, repo, "t2b_fix", new, conn=conn,
+                                      func=func, strategy="t2b-structfix")
             except Exception:
                 continue
+            if not att.compiled:
+                broke_here += 1
+                n_broke += 1
+                continue
             if att.exact:
-                top, best_code, top_att = 100.0, new, att
+                top, top_code, top_exact = 100.0, new, True
                 break
             if att.score > top:
-                top, best_code, top_att = att.score, new, att
-        if top_att is not None and top_att.exact:
+                top, top_code = att.score, new
+        if top_exact:
             break
 
-    delta = top - best
-    tag = "EXACT" if (top_att and top_att.exact) else f"{top:.2f}%"
-    print(f"  {func[:40]:42} {best:6.2f} -> {tag:>9}  ({delta:+.2f})",
+    tag = "EXACT" if top_exact else f"{top:.3f}%"
+    note = f"  [{broke_here} broke]" if broke_here else ""
+    print(f"  {func[:40]:42} {base:7.3f} -> {tag:>9}  ({top-base:+.3f}){note}",
           flush=True)
-    if top_att is not None and top_att.exact:
-        closed.append((func, 100.0))
-        Path("matched_recovered").mkdir(exist_ok=True)
-        Path(f"matched_recovered/{func}.c").write_text(best_code,
-                                                       encoding="utf-8")
-    elif delta > 0.01:
-        improved.append((func, best, top))
+    if top_exact:
+        closed.append(func)
+        (out_dir / f"{func}.c").write_text(top_code, encoding="utf-8")
+    elif top - base > 0.0005:
+        improved.append((func, base, top))
     else:
         flat.append(func)
 
-print(f"\n===== T2 STRUCT REPAIR =====")
+assert any(layouts_seen), ("every layout was EMPTY -- the evidence query is "
+                           "broken, not the data. Not a null result.")
+print(f"\n===== T2b STRUCT REPAIR =====")
+print(f"rewrites applied     : {n_applied}   (of which broke the build: {n_broke})")
 print(f"CLOSED to byte-exact : {len(closed)}")
-for f, _ in closed:
+for f in closed:
     print(f"    {f}")
 print(f"improved             : {len(improved)}")
 for f, a, b in improved:
-    print(f"    {f}  {a:.2f} -> {b:.2f}")
+    print(f"    {f}  {a:.3f} -> {b:.3f}")
 print(f"no movement          : {len(flat)}")
 print(f"skipped              : {len(skipped)}")
-for f, why in skipped[:6]:
+for f, why in skipped[:8]:
     print(f"    {f}: {why}")
