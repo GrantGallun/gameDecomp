@@ -993,5 +993,20 @@
       "template",
       "invalid-arm"
     ]
+  },
+  {
+    "id": "assistant-prefill-eliminates-refusals",
+    "claim": "A partial ASSISTANT message via /api/chat prevents refusals entirely, because a reply that has already started with code cannot begin with an apology.",
+    "source": "over-refusal literature; retried after my own arm C tested nothing",
+    "status": "CONFIRMED",
+    "evidence": "9 of 9 refused without prefill, 0 of 9 with it, on three functions that refuse every single draw. Complete elimination, on a 100% baseline, with no ambiguity about the effect size. The prefill is a partial assistant turn containing '```c\n#include \"common.h\"\n' -- the model continues it rather than composing a fresh reply. This also vindicates the earlier disqualification: arm C append -ed the same fence to /api/generate, where the chat template put it inside the USER message, and 18/18 still refused. Same idea, same text, opposite result, purely because of which turn it landed in. Reporting that arm as 'prefill refuted' would have closed off the one mitigation that works. SCOPE, and it matters: this test measured REFUSALS ONLY. Whether the forced answers compile or score anything is UNMEASURED. Entry 2 already removed 100% of refusals via region splitting and gained zero matches, so the expected value here is a clean DENOMINATOR, not new capability -- tonight's run reported a 15% compile rate that was really 33% once 54% non-attempts were removed. Do not quote this as a capability gain until scores are measured. Implementation note: the solver uses /api/generate throughout, so adopting this means routing generation through /api/chat.",
+    "tested_on": "3 functions x 3 draws x 2 arms (2026-08-29)",
+    "date": "2026-08-29",
+    "keywords": [
+      "prefill",
+      "refusal",
+      "api-chat",
+      "denominator"
+    ]
   }
 ]
