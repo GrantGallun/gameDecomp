@@ -229,3 +229,31 @@ def test_ratchet_commits_a_neutral_change(kb):
     committed, before, after = tms.ratchet(
         kb, lambda c: c.execute("UPDATE functions SET size=8 WHERE addr=1") and [])
     assert committed is True and before == after == 1
+
+
+def test_every_prompt_template_actually_formats():
+    """A .format() template containing literal braces raises at runtime.
+
+    The do-while guidance inserted `for (;;) { body; if (!cond) break; }` into
+    FIRST_PROMPT, and .format() parsed those braces as a field, so
+    build_prompt raised ValueError for EVERY function. Unit tests did not catch
+    it because none of them called build_prompt -- the pipeline was broken and
+    "all tests pass" was true the whole time.
+    """
+    from solver import escalate, refine, shifts
+
+    for mod, attr in [(refine, "FIRST_PROMPT"),
+                      (shifts, "REGION_PROMPT"), (shifts, "COMPOSE_PROMPT"),
+                      (shifts, "COMPRESSED_PROMPT"), (shifts, "SLICE_PROMPT"),
+                      (shifts, "FINAL_PROMPT")]:
+        tmpl = getattr(mod, attr, None)
+        if tmpl is None:
+            continue
+        import string
+        fields = {f for _, f, _, _ in string.Formatter().parse(tmpl) if f}
+        try:
+            tmpl.format(**{f: "X" for f in fields})
+        except (ValueError, KeyError, IndexError) as exc:
+            raise AssertionError(
+                f"{mod.__name__}.{attr} does not format: {exc}. "
+                f"Literal braces must be doubled.") from exc

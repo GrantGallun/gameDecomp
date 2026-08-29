@@ -899,5 +899,21 @@
       "exhausted",
       "near-miss"
     ]
+  },
+  {
+    "id": "pipeline-tracing-beats-experiments",
+    "claim": "End-to-end pipeline inspection finds more than running experiments does, because experiments only observe the number at the end.",
+    "source": "user: look at the full pipeline input->middleware->output",
+    "status": "CONFIRMED",
+    "evidence": "tools/trace.py found a CRITICAL bug on its first run: build_prompt raised ValueError for EVERY function, because the do-while guidance I had added inserted literal braces -- 'for (;;) { body; if (!cond) break; }' -- into a .format() template, where they parse as a field. The entire solver pipeline was broken from the moment that patch landed. It went unnoticed because 68 unit tests passed and NONE of them called build_prompt. 'All tests pass' was true and meaningless. Had any run been launched in that window it would have crashed immediately, and had it crashed subtly instead, the result would have been recorded as a model failure. This corroborates the day's pattern completely. All five matches gained came from DEBUGGING, none from an experiment: a dist.py cost read as a score (hid 4 finished matches), a 99.999 formatted as '100.00' (invented a relocation diagnosis), a padding byte, an extract_c fallback that handed the compiler its own opening fence, and a rewrite whose compile failure was reported as 'no improvement'. Seven experiments produced five nulls and zero matches. The tracer checks every boundary -- input, context, prompt, generation, extraction, compile, score, diagnose, route -- and flags impossible values where they occur rather than three stages later. It carries the specific traps already paid for: score displaying as 100.00 while not exact, truncation as a config failure, extraction returning a non-answer, and routing to the permuter on score alone. Also fixed one false positive in the tracer itself: counting lines rather than instructions flagged a healthy function. A checker that cries wolf is worse than no checker.",
+    "tested_on": "tools/trace.py on isRacePlayerRespawnSurfaceValid (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "tracing",
+      "pipeline",
+      "debugging",
+      "format",
+      "build_prompt"
+    ]
   }
 ]

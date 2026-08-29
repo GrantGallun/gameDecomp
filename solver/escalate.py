@@ -76,7 +76,7 @@ Constraints the harness enforces:
 - `common.h` already defines u8/s8/u16/s16/u32/s32/u64/s64/f32/f64
 - C89: declarations at the start of a block
 - never write `do` (the build rejects the token); a post-tested loop is
-  for (;;) { body; if (!cond) break; }, NOT while (cond) { body }
+  for (;;) {{ body; if (!cond) break; }}, NOT while (cond) { body }
 - no inline asm, no GLOBAL_ASM/INCLUDE_ASM
 
 Verify with `./build.sh <file>.c` in `nonmatchings/{func}/`.
