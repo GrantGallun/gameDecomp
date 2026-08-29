@@ -1121,5 +1121,22 @@
       "evidence",
       "inference"
     ]
+  },
+  {
+    "id": "symbolic-value-trace-as-a-reading-aid",
+    "claim": "A debugger-style symbolic trace -- what each register HOLDS rather than what each instruction does -- states outright the facts that take hours to reconstruct from raw assembly.",
+    "source": "user: what if we made our own debugger with visible register values",
+    "status": "CONFIRMED",
+    "evidence": "solver/symtrace.py walks a function maintaining a symbolic expression per register. Deterministic, evidence-only, no model, safe on held-out functions. THE VALIDATION IS DIRECT. The first line of the trace for isRacePlayerRespawnSurfaceValid is 'CALL getRaceCourseSurfaceType(param0->f502, param0->f1c, param0->f24)'. That is the exact fact I failed to find with THREE wrong hypotheses -- struct padding, callee signature, argument order -- each moving the score by a fraction of a point because the real answer was a conjunction. The trace prints it. On updateTimeTrialRecordDeltaPopupSlideIn it produces 'param0->f1c = subu(param0->f1c, param0->f28)', 'param0->f18 = 0x5A', and 'CALL addRenderCallback(&gRaceOverlayRenderCallbackList, &drawTimeTrialRecordDeltaPopup, stack[0x18])' -- matching the real source line for line. THREE BUGS FOUND BY CHECKING RATHER THAN TRUSTING: sp was rewritten as a struct base so frame stores read as field accesses; an untouched a3 printed as a real fourth argument; and `lui` stashed a pending %hi that was never committed, so a global address passed via lui alone -- which happens whenever the symbol's low half is zero -- was reported as param0. That last one made addRenderCallback's first argument silently wrong. SCOPE: straight-line symbolic execution. Branches are noted, not explored; arithmetic is not evaluated to concrete values; trailing argument registers are dropped rather than guessed, because a scratch copy like `move a3,a0` is indistinguishable from a fourth argument from inside the function. A reading aid, not an emulator.",
+    "tested_on": "2 functions, checked against real source (2026-08-29)",
+    "date": "2026-08-29",
+    "keywords": [
+      "symbolic",
+      "trace",
+      "debugger",
+      "register",
+      "provenance",
+      "glasses"
+    ]
   }
 ]
