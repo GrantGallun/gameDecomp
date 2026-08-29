@@ -1040,5 +1040,21 @@
       "instruction-count",
       "reframing"
     ]
+  },
+  {
+    "id": "diff-refinement-needs-the-target-and-only-works-on-small-diffs",
+    "claim": "Showing the model its own instruction diff lets it correct a near-miss -- the 'glasses' hypothesis, that this is a guiding problem rather than a capability one.",
+    "source": "user: llms read massive programs; maybe it just needs glasses",
+    "status": "INCONCLUSIVE",
+    "evidence": "TWO FINDINGS, one a bug and one a bound. (1) DIFF_PROMPT never contained the TARGET ASSEMBLY. It showed the candidate, the diff, history and hints, and asked for a correction toward something the model could not see. So it rewrote from scratch and the rewrite was worse: 24 attempts averaged 50.17 against baselines averaging 82.44, one 91.75% candidate returning at 9.5%. Adding the target asm is a single variable and moved the refinement mean 50.17 -> 57.55. That also explains the fix-diff anomaly in the audit: it had the highest mean of any strategy on only 29 attempts, which read as underused when it was actually broken. (2) With the target present, refinement helps ONLY on small diffs. isRacePlayerRespawnSurfaceValid (52 instructions, 8 diff lines) went 91.75 -> 99.46, twice, a real +7.7. The other seven returned the IDENTICAL score three times running -- checkMainMenuSecretCode 88.79/88.79/88.77, compressRaceRecordReplayData 87.62 three times. The model is handed a diff and gives back the same code. One function broke entirely (85.82 -> 0.0 x3). So the guiding hypothesis is SUPPORTED IN THE SMALL and unproven at scale. A 200-instruction function with 158 differing lines does not get corrected; a 52-instruction one with 8 does. That is consistent with the model having read the structure correctly and being unable to localise a fix in a large diff. NOT YET A MATCH: 0 closed. 99.46 is the closest a refinement has reached.",
+    "tested_on": "8 functions x 3 iterations, before and after the fix (2026-08-29)",
+    "date": "2026-08-29",
+    "keywords": [
+      "refinement",
+      "diff",
+      "glasses",
+      "guiding",
+      "target-asm"
+    ]
   }
 ]
