@@ -931,5 +931,21 @@
       "aggregate",
       "ranking"
     ]
+  },
+  {
+    "id": "harness-fixes-did-not-move-the-hard-set",
+    "claim": "Fixing the harness bugs (extraction, do-while, truncation, broken build_prompt) would materially improve results on the hard set.",
+    "source": "36 of 91 functions were hit by a harness bug, all fixed 2026-08-28",
+    "status": "REFUTED",
+    "evidence": "First full run through the REAL eval runner since it broke: 39 hard dev functions, 2 draws, pipeline route, 24.1 min. TOTAL 1 of 39 exact (2.6%), mean best 16.69%. And the single exact match is NOT NEW. isRacePlayerRespawnSurfaceValid first reached 100 on 2026-08-27 21:08, more than a day before this run -- it was reproduced, not discovered. Net new matches: ZERO. Match count stays 34. By stratum: medium leaf 0/10 (24.4% mean), medium non-leaf 1/8 (21.1%), large leaf 0/6 (18.4%), large non-leaf 0/9 (3.7%), huge leaf 0/5 (19.1%), huge non-leaf 0/1. Large non-leaf at 3.67% mean is far worse than any other stratum. HONEST LIMITATION: I predicted 'compile rate rises materially' and CANNOT VERIFY IT. The eval runner had been broken for weeks, so no comparable prior run on this set exists. The before/after I promised is not available, and constructing one now would mean re-running the old code, which no longer exists unmodified. So the fixes were real -- five genuine breakages, including a build_prompt that raised on every function -- but they bought correctness and observability, not matches. The dominant failure family (types, 58 of 91) was untouched, and the result is exactly what the audit predicted. Value retained: this is now a clean baseline measured with the real instrument, which is what every future comparison needs.",
+    "tested_on": "hard_v1 dev, 39 functions, n=2, pipeline (2026-08-28)",
+    "date": "2026-08-29",
+    "keywords": [
+      "eval",
+      "baseline",
+      "harness",
+      "null",
+      "hard-set"
+    ]
   }
 ]
