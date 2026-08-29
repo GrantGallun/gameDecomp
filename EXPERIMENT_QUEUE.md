@@ -229,6 +229,38 @@ name is a claim; workspace.score is the verdict.
 
 ---
 
+## T2. Synthesise structs from evidence  [INSERTED AHEAD OF S1]
+
+**Why it preempts everything else:** proven by construction.
+updateTimeTrialRecordDeltaPopupSlideIn went 99.61 -> 100.00 BYTE-EXACT by
+changing only struct padding, every other line identical.
+
+All four functions stuck at 99%+ have the same bug: wrong struct field offsets.
+The permuter closed zero of five in 500s each and produced no output at all for
+three, because struct layout is not in its mutation space -- so the router's
+">=95% means register allocation" rule misclassifies this whole band.
+
+The KB already states the correct offsets. The model uses them as field NAMES
+and then lays the fields out at 0, 4, 8. It reads the facts and ignores them --
+the same failure as T1, where only 4 of 36 candidates used Gfx after being told
+it existed.
+
+**Change:** generate the struct mechanically from the evidence tier and rewrite
+the candidate's definition. Deterministic, LLM-free, no GPU. Seven prompt-level
+nulls say restating facts does not work; this enforces them instead.
+
+**Prediction:** at least one more function closes to byte-exact. Three are known
+to have this exact bug.
+
+**Kill condition:** zero closed AND no score movement means offsets are not the
+whole story on those functions -- re-diagnose rather than iterate.
+
+**Note:** unobserved bytes become explicit padding, never closed-up fields.
+Closing gaps is precisely the bug being fixed, and an unobserved byte is
+unknown, not absent -- CLAUDE.md invariant 5.
+
+---
+
 ## S1. Kill the reasoning trace on slice calls
 
 **Why now:** measured today -- ~2,500-4,000 generated tokens per slice for
