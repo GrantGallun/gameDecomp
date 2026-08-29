@@ -161,6 +161,30 @@ def _looks_like_asm(block: str) -> bool:
     return len(ASM_LINE.findall(block)) >= max(3, len(lines) // 3)
 
 
+REFUSAL_RE = re.compile(
+    r"\b(i'm sorry|i’m sorry|i am sorry|i cannot|i can't|i can’t|"
+    r"cannot provide|can't provide|can’t provide|cannot assist|"
+    r"can't help with|unable to provide)\b", re.I)
+
+
+def is_refusal(text: str) -> bool:
+    """True when the text is an abstention rather than a candidate.
+
+    Measured 2026-08-28 on a real eval run: 84 of 157 attempts (54%) stored
+    refusal prose as their "source", and ALL 84 were handed to the compiler.
+    "I'm sorry, but I can't provide that." became a syntax error, which became
+    a model failure with score 0, which dragged the reported mean down.
+
+    CLAUDE.md already requires refusals to be excluded from failure statistics.
+    Nothing implemented it, so every aggregate reported so far is computed over
+    a denominator that is mostly non-attempts.
+
+    Checked against the head of the text only: real C can legitimately contain
+    the word "cannot" in a comment further down.
+    """
+    return bool(REFUSAL_RE.search((text or "")[:300]))
+
+
 def classify_extraction(text: str, extracted: str) -> str:
     """Why extraction produced what it did -- stored so failures stay legible.
 

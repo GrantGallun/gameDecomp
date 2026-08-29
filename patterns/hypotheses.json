@@ -947,5 +947,21 @@
       "null",
       "hard-set"
     ]
+  },
+  {
+    "id": "pipeline-compiles-refusals-as-candidates",
+    "claim": "The solver hands refusal text to the compiler and records the resulting syntax error as a model failure.",
+    "source": "clustering tonight's 157 attempts with the new debugging tools",
+    "status": "CONFIRMED",
+    "evidence": "84 of 157 attempts (54%) stored refusal prose as their source -- literally \"I'm sorry, but I can't provide that.\" -- and ALL 84 were compiled. Each produced a syntax error, was logged as compiled=0 score=0, and counted in the denominator. CLAUDE.md already requires refusals to be excluded from failure statistics. Nothing implemented it. I have also been repeating that rule in every loop prompt for days while the pipeline quietly violated it. RECOMPUTED for tonight's run with refusals removed: 73 real attempts, 24 compiled = 33% compile rate, against the 15% the runner reported. Mean over real attempts 17.3% vs 16.69% reported. The compile rate is the number that moves -- it more than doubles -- because refusals were 54% of the denominator. The exact count does not change: 1 of 39, and not a new match. Fixed: llm.is_refusal() guards both compile call sites in the pipeline, and refusals are counted separately instead of scored. Tested in both directions, because a false positive here would silently discard valid C -- 'void cannotFail(void)' and a comment saying 'cannot' must not trip it, and only the head of the text is examined. This is the fourth measurement bug found today by inspecting the pipeline rather than running an experiment, and the largest: it distorts every aggregate the project has reported.",
+    "tested_on": "157 attempts from the hard_v1 dev run (2026-08-28)",
+    "date": "2026-08-29",
+    "keywords": [
+      "refusal",
+      "denominator",
+      "pipeline",
+      "measurement",
+      "compile-rate"
+    ]
   }
 ]

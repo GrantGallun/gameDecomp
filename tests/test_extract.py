@@ -105,3 +105,30 @@ def test_classify_extraction_names_the_failure_mode():
     trunc = "```c\nvoid f(void) {\n  int x = 1;"
     assert llm.classify_extraction(trunc, llm.extract_c(trunc)) in (
         "unterminated", "ok")
+
+
+def test_refusals_are_recognised_before_they_reach_the_compiler():
+    """84 of 157 attempts in a real eval run stored refusal prose as their
+    "source", and every one was compiled. The syntax error then counted as a
+    model failure and pulled the reported mean down."""
+    for txt in ["I'm sorry, but I can't provide that.",
+                "I’m sorry, but I can’t provide that.",
+                "I cannot assist with that request.",
+                "Sorry -- I am unable to provide this."]:
+        assert llm.is_refusal(txt), txt
+
+
+def test_real_c_is_not_mistaken_for_a_refusal():
+    """A false positive here silently discards valid work, which is worse than
+    the bug being fixed."""
+    c = ('#include "common.h"\n'
+         "/* the caller cannot pass NULL here */\n"
+         "void f(void) { gX = 1; }\n")
+    assert not llm.is_refusal(c)
+    assert not llm.is_refusal("void cannotFail(void) { }")
+
+
+def test_refusal_check_only_looks_at_the_head():
+    """Real C may say "cannot" in a comment far down; that is not a refusal."""
+    body = "void f(void){ gX=1; }\n" * 40 + "/* this cannot be reached */\n"
+    assert not llm.is_refusal(body)

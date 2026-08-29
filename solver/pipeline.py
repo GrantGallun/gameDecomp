@@ -208,6 +208,12 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
                                   temperature=SAMPLE_TEMP)
         wall_ms = int((time.time() - t_gen) * 1000)
         code = llm.extract_c(text)
+        if llm.is_refusal(code) or llm.is_refusal(text):
+            # An abstention is not an attempt. Compiling it produces a syntax
+            # error that then reads as a model failure and drags every mean
+            # down -- 54% of a real eval run, measured 2026-08-28.
+            out.refusals = getattr(out, "refusals", 0) + 1
+            continue
         out.tokens += meta.get("eval_count", 0)
         out.generations += 1
         att = workspace.score(ws, repo, f"pipe_{i}", code)
@@ -284,6 +290,9 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
                                       temperature=SAMPLE_TEMP)
             wall_ms = int((time.time() - t_gen) * 1000)
             code = llm.extract_c(text)
+            if llm.is_refusal(code) or llm.is_refusal(text):
+                out.refusals = getattr(out, "refusals", 0) + 1
+                continue
             out.tokens += meta.get("eval_count", 0)
             out.generations += 1
             att = workspace.score(ws, repo, f"pipe_{route}_{i}", code)
