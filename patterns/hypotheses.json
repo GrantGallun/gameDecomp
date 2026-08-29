@@ -834,5 +834,21 @@
       "harness",
       "stderr"
     ]
+  },
+  {
+    "id": "permuter-directory-names-hid-completed-matches",
+    "claim": "The old run_permuter did not only FABRICATE exact matches from directory names -- it also HID real ones. Four byte-exact solutions sat unverified on disk for a day.",
+    "source": "P1: two functions 'closed' in 1-3s, which was too fast to be search",
+    "status": "CONFIRMED",
+    "evidence": "P1 reported two closures at 1s and 3s. Search cannot finish that fast, so the attribution was checked instead of claimed. Both functions had permuter output from the PREVIOUS DAY as well as from P1, and the glob sorts func-2 before func-3, so the stale directory was scored first and `break` fired. Sweeping ALL 78 permuter output files through the oracle found FOUR byte-exact solutions already on disk: initCharacterSelectCoursePreviewPanel4, initEndingCreditsCharacterLoopingSparkle, initEndingCreditsIdleSparkle, updateEndingLindaTumbleToPhase3C. Each independently re-confirmed at score 100.00, exact=True. THE MECHANISM IS AN INVERTED METRIC. Those directories are named `output-0-1`. The number is a dist.py COST, where 0 means a PERFECT match. The old code read it as a SCORE, where 0 means the worst possible result. So the single best output the permuter can produce was systematically discarded as its worst. That is the same root cause as the already-fixed false-EXACT bug (which declared exact at cost >= 100) but in the opposite direction, and it was not caught then because the fix addressed the false positives and never asked what the false NEGATIVES looked like. P1 also under-reported: it recorded updateEndingLindaTumbleToPhase3C as 99.79 -> 99.04, a REGRESSION, for a function that has a byte-exact solution on disk. Also found: updateTimeTrialRecordDeltaPopupSlideOut scores 100.00 but is NOT exact -- zero instruction diffs with a byte difference, i.e. the documented relocation-mismatch case. Close, and a different fix.",
+    "tested_on": "all 78 permuter output files, oracle-verified (2026-08-28)",
+    "date": "2026-08-28",
+    "keywords": [
+      "permuter",
+      "directory",
+      "cost",
+      "false-negative",
+      "recovered"
+    ]
   }
 ]

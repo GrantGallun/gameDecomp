@@ -191,7 +191,21 @@ hypothesis. It does not need GPU time to verify.
 
 ---
 
-## P1. Permuter on the >=95% band  [INSERTED AHEAD OF S1]
+## ~~P1. Permuter on the >=95% band~~ DONE - 4 MATCHES RECOVERED
+
+> Prediction held, but not by the predicted mechanism. Two functions
+> 'closed' in 1-3s, too fast for search. Checking rather than claiming
+> found the real story: sweeping all 78 permuter output files through
+> the oracle recovered FOUR byte-exact solutions already on disk.
+>
+> Cause: directories are named output-0-1, where the number is a dist.py
+> COST and 0 means PERFECT. The old code read it as a SCORE where 0 is
+> worst -- so the permuter's best output was discarded as its worst.
+> Same root cause as the false-EXACT bug, opposite direction, missed
+> because that fix never asked what the false NEGATIVES looked like.
+>
+> Match count 29 -> 33.
+
 
 **Why now:** nine functions sit at >=95%, four of them at 99.3-99.8%. At 99.8%
 the candidate is one or two instructions from exact -- the register-allocation
