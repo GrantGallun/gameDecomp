@@ -233,6 +233,24 @@ def classify_extraction(text: str, extracted: str) -> str:
     return "ok"
 
 
+# Includes the build cannot resolve. Measured on a real run: 20 of 38
+# unclassified compile failures were "Cannot open file X for #include" --
+# stddef.h, common_structs.h, gbi.h, stdint.h, global.h, menu.h, Gfx.h. The
+# prompt already forbids them and the model ignores it; stripping needs no
+# cooperation. Anything those headers would define is unavailable regardless,
+# which is precisely why the include fails, so nothing is lost by removing it.
+BAD_INCLUDE = re.compile(r'^[ \t]*#\s*include\s*[<"]([^>"]+)[>"][^\n]*\n?',
+                         re.M)
+
+
+def strip_unresolvable_includes(code: str) -> str:
+    """Keep common.h; drop every other #include."""
+    def keep(m: "re.Match[str]") -> str:
+        name = m.group(1).strip().lower()
+        return m.group(0) if name.endswith("common.h") else ""
+    return BAD_INCLUDE.sub(keep, code)
+
+
 def extract_c(text: str) -> str:
     """Pull the C file out of a model response, or return "" if there is none.
 
@@ -265,6 +283,7 @@ def extract_c(text: str) -> str:
     best = real[-1] if real else max(candidates, key=len)
 
     # Belt and braces: never hand a stray fence marker to the compiler.
+    best = strip_unresolvable_includes(best)
     best = re.sub(r"^```(?:c|cpp)?[ \t]*\n?", "", best)
     best = re.sub(r"\n?```\s*$", "", best)
     return best.strip()
