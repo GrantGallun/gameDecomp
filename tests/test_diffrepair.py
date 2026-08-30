@@ -152,3 +152,74 @@ def test_reordering_constraints_are_detected_not_applied():
     _out, changed, info = diffrepair.repair(
         body, "-lbu v1,0x26(a0)\n+lbu v1,1(a0)\n-lbu v1,0x25(a0)\n+lbu v1,2(a0)")
     assert not changed and info["needs_reorder"]
+
+
+# --------------------------------------------------- field reordering
+
+def test_reorders_fields_onto_their_stated_offsets():
+    """The exact shape from updateRaceSplitscreenSelectPlayerCountIcons."""
+    body = ("struct T {\n"
+            "  u8 state;\n"
+            "  u8 playerCount;\n"
+            "  u8 spawnTimer;\n"
+            "  s16 iconX[5];\n"
+            "};\n")
+    out, changed = diffrepair.reorder_fields(
+        body, {0: 0x24, 1: 0x26, 2: 0x25, 4: 0x18})
+    assert changed
+    # iconX first at 0x18, then state, spawnTimer, playerCount
+    order = [l.strip() for l in out.splitlines()
+             if ";" in l and not l.strip().startswith("}")]
+    names = [l for l in order if "rpad" not in l]
+    assert names == ["s16 iconX[5];", "u8 state;", "u8 spawnTimer;",
+                     "u8 playerCount;"]
+    assert "rpad00[0x18]" in out
+
+
+def test_reordering_declines_when_a_field_is_unconstrained():
+    """An unplaced field could belong anywhere; guessing invents layout."""
+    body = ("struct T {\n"
+            "  u8 a;\n"
+            "  u8 b;\n"
+            "};\n")
+    out, changed = diffrepair.reorder_fields(body, {0: 0x24})
+    assert not changed and out == body
+
+
+def test_reordering_declines_on_overlapping_placements():
+    """Two fields cannot occupy the same bytes."""
+    body = ("struct T {\n"
+            "  s32 a;\n"
+            "  s32 b;\n"
+            "};\n")
+    out, changed = diffrepair.reorder_fields(body, {0: 0x10, 4: 0x12})
+    assert not changed and out == body
+
+
+def test_reordering_preserves_names_and_types():
+    """Only layout changes -- every p->field in the body still resolves."""
+    body = ("struct T {\n"
+            "  u8 alpha;\n"
+            "  s16 beta;\n"
+            "};\n")
+    out, _changed = diffrepair.reorder_fields(body, {0: 0x8, 2: 0x4})
+    assert "u8 alpha;" in out and "s16 beta;" in out
+
+
+def test_function_body_is_not_a_struct_region():
+    """`void f(struct X *row) {` must not be parsed as a struct definition.
+
+    It was, because the pattern allowed a ')' between `struct` and '{', so the
+    function's LOCALS were counted as fields at offsets 0, 4, 8 on
+    updateRaceSplitscreenSelectPlayerCountIcons.
+    """
+    body = ("struct T {\n"
+            "  u8 a;\n"
+            "};\n"
+            "void f(struct T *row)\n"
+            "{\n"
+            "  s32 local;\n"
+            "  s32 other;\n"
+            "}\n")
+    got = [m.group("name") for m, _o, _s in diffrepair._fields(body)]
+    assert got == ["a"]

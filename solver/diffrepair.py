@@ -121,8 +121,12 @@ def constraints(diff: str) -> tuple[dict[int, int], list[int]]:
     return mapping, dropped
 
 
+# Excluding parentheses matters: without it, `void f(struct X *row)\n{` matched
+# and the FUNCTION BODY was parsed as a struct, so its locals -- new_var, i,
+# moved -- were counted as fields at offsets 0, 4, 8. A struct's opening brace
+# never follows a ')'.
 STRUCT_BODY = re.compile(
-    r"\b(?:typedef\s+)?(?:struct|union)\b[^{;]*\{", re.M)
+    r"\b(?:typedef\s+)?(?:struct|union)\b[^{;()]*\{", re.M)
 
 
 def _struct_regions(body: str) -> list:
@@ -223,6 +227,69 @@ def order_violation(mapping: dict[int, int]) -> bool:
     return vals != sorted(vals)
 
 
+def reorder_fields(body: str, mapping: dict[int, int]) -> tuple[str, bool]:
+    """Rewrite a struct so every field sits on its diff-stated offset.
+
+    Padding alone cannot satisfy a non-monotonic constraint set -- it only
+    moves fields later and preserves their order. On
+    updateRaceSplitscreenSelectPlayerCountIcons the diff asks for
+    {0 -> 0x24, 1 -> 0x26, 2 -> 0x25, 4 -> 0x18}, which reads as:
+
+        iconX   0x18      state   0x24      spawnTimer 0x25      playerCount 0x26
+
+    a permutation of the declared order. Reordering declarations inside a
+    struct is a pure LAYOUT change: names and types stay attached to each
+    other, so every `p->field` in the body still refers to the same field. That
+    is what makes this safe to do mechanically.
+
+    Requires EVERY field to be constrained. A struct with unplaced fields has
+    no determined order -- they could belong anywhere -- and guessing where to
+    put them would be inventing layout, which is the failure mode this project
+    exists to avoid. Declines instead.
+    """
+    regions = _struct_regions(body)
+    if not regions or not mapping:
+        return body, False
+
+    out = body
+    changed = False
+    for start, end in reversed(regions):
+        decls = []
+        cursor = 0
+        for m in DECL.finditer(body, start, end):
+            ctype = m.group("type").strip().split()[-1]
+            n = int(m.group("count"), 0) if m.group("count") else 1
+            unit = 4 if m.group("ptr") else SIZEOF.get(ctype, 0)
+            if not unit:
+                continue
+            cursor = _align(cursor, unit)
+            decls.append((m, cursor, unit * n))
+            cursor += unit * n
+        if len(decls) < 2 or not all(off in mapping for _m, off, _s in decls):
+            continue
+
+        placed = sorted(((mapping[off], m, size) for m, off, size in decls),
+                        key=lambda t: t[0])
+        # overlapping placements describe no struct at all
+        pos = 0
+        lines = []
+        ok = True
+        for want, m, size in placed:
+            if want < pos:
+                ok = False
+                break
+            if want > pos:
+                lines.append(f"    char rpad{pos:02x}[{want - pos:#x}];")
+            lines.append("    " + m.group(0).strip())
+            pos = want + size
+        if not ok:
+            continue
+
+        out = out[:start] + "\n" + "\n".join(lines) + "\n" + out[end:]
+        changed = True
+    return out, changed
+
+
 def repair(code: str, diff: str) -> tuple[str, bool, dict]:
     """Full pass: read the diff's constraints and apply them. (code, changed, info).
 
@@ -234,10 +301,10 @@ def repair(code: str, diff: str) -> tuple[str, bool, dict]:
     info = {"constraints": len(mapping), "dropped": len(dropped),
             "needs_reorder": any(r == "non-monotonic"
                                  for r in dropped.values())}
-    if info["needs_reorder"] and not mapping:
-        return code, False, info
     if order_violation(mapping):
         info["needs_reorder"] = True
-        return code, False, info
+        out, changed = reorder_fields(code, mapping)
+        info["reordered"] = changed
+        return out, changed, info
     out, changed = apply_constraints(code, mapping)
     return out, changed, info
