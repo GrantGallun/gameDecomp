@@ -1293,5 +1293,25 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "pareto-portfolio-selection",
+    "claim": "Keeping a Pareto set of structurally different candidates, instead of anchoring on the highest byte score, finds matches the scalar anchor misses",
+    "source": "external methodology review; Decaf-style portfolio + compiled-feedback rerank",
+    "status": "REFUTED",
+    "evidence": "Prediction stated before the run (3-8 functions get a different anchor, 0 new matches) and held exactly: Pareto chose a different anchor on 7 of 31 functions, and repairing that anchor produced 0 matches the scalar anchor did not. Both arms used the SAME stored candidates, so there is no sampling variance -- the only variable was which candidate the repair passes targeted. Portfolio selection changes WHICH candidate you repair; it does not supply a repair capable of closing the gap, and with layout repair exhausted there was nothing for the better anchor to feed. KEPT ANYWAY, for its diagnostic value: solver/signals.py classifies a residual into layout / structural / relocation / regalloc, and ranking by KIND rather than amount is what revealed three functions with ZERO structural faults -- which led directly to diff-directed repair. The measurement was worth more as an instrument than as an intervention.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "diff-directed-layout-repair",
+    "claim": "The oracle's own instruction diff states where each mislaid field belongs, so layout can be repaired from the counterexample instead of from the evidence tier",
+    "source": "the residual census plus an external review's CEGIS framing",
+    "status": "INCONCLUSIVE",
+    "evidence": "FIRST layout intervention to move anything. Over 31 near misses: 0 matches, 3 improved -- updateEndingLindaExitUntilPhase3C 99.545 to 99.773, updateEndingSlashSlideRightToMarker 92.258 to 93.226, zoomTrainingCourseRaceViewport 70.388 to 70.554. Every previous layout attempt (per-function accesses, whole-program global objects, positional and subsequence alignment) moved NOTHING, and the difference is the source of the mapping: the KB knows which offsets the binary touches but nothing maps a DECLARATION to an offset, whereas the diff states it outright -- the field you put at 0 belongs at 0x24. All three deltas are under the significance floor, so this is inconclusive rather than confirmed. THE REAL FINDING IS A DIAGNOSIS. On updateRaceSplitscreenSelectPlayerCountIcons the constraints come out {0 to 0x24, 1 to 0x26, 2 to 0x25} -- non-monotonic. An earlier field must land after a later one, and inserting padding only moves fields later while preserving their order. That function needs field REORDERING, which no padding pass can perform. The pass now detects and reports this rather than emitting a struct satisfying half a contradictory constraint set, which would compile, score differently, and hide the diagnosis. Field reordering is the untested next step and is a different tool. THREE BUGS FOUND BY VERIFYING THE ARM FIRED: _fields() walked every declaration in the file so a typedef counted as a field at offset 0; constraints merged different base registers, which are different objects; and a backslash-b went through a shell heredoc as a literal backspace so the struct pattern matched nothing while the pass reported success. That last one is the EIGHTH heredoc escape corruption in this project and it happened against my own standing rule.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]
