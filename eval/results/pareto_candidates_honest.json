@@ -1,0 +1,203 @@
+{
+ "differs": 2,
+ "same": 11,
+ "rows": [
+  {
+   "function": "updateEndingLindaExitUntilPhase3C",
+   "scalar": {
+    "score": 99.545,
+    "structural": 0,
+    "layout": 2
+   },
+   "pareto_top": {
+    "score": 99.545,
+    "structural": 0,
+    "layout": 2
+   },
+   "front": 4,
+   "differs": false
+  },
+  {
+   "function": "updateRaceSplitscreenSelectPlayerCountIcons",
+   "scalar": {
+    "score": 99.436,
+    "structural": 0,
+    "layout": 27
+   },
+   "pareto_top": {
+    "score": 99.436,
+    "structural": 0,
+    "layout": 27
+   },
+   "front": 4,
+   "differs": false
+  },
+  {
+   "function": "checkMainMenuSecretCode",
+   "scalar": {
+    "score": 98.561,
+    "structural": 3,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 98.561,
+    "structural": 3,
+    "layout": 0
+   },
+   "front": 4,
+   "differs": false
+  },
+  {
+   "function": "bootThreadMain",
+   "scalar": {
+    "score": 97.222,
+    "structural": 1,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 97.222,
+    "structural": 1,
+    "layout": 0
+   },
+   "front": 4,
+   "differs": false
+  },
+  {
+   "function": "updateRaceSetupFourPlayerOption",
+   "scalar": {
+    "score": 96.441,
+    "structural": 0,
+    "layout": 3
+   },
+   "pareto_top": {
+    "score": 96.441,
+    "structural": 0,
+    "layout": 3
+   },
+   "front": 1,
+   "differs": false
+  },
+  {
+   "function": "initRacePlayerLandingSnowSpray",
+   "scalar": {
+    "score": 95.989,
+    "structural": 9,
+    "layout": 35
+   },
+   "pareto_top": {
+    "score": 91.739,
+    "structural": 3,
+    "layout": 38
+   },
+   "front": 6,
+   "differs": true
+  },
+  {
+   "function": "getRacePlayerRankingProgress",
+   "scalar": {
+    "score": 95.346,
+    "structural": 48,
+    "layout": 1
+   },
+   "pareto_top": {
+    "score": 94.761,
+    "structural": 48,
+    "layout": 0
+   },
+   "front": 6,
+   "differs": true
+  },
+  {
+   "function": "calculateRaceTimerDelta",
+   "scalar": {
+    "score": 94.324,
+    "structural": 16,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 94.324,
+    "structural": 16,
+    "layout": 0
+   },
+   "front": 2,
+   "differs": false
+  },
+  {
+   "function": "updateRacePlayerMode53AerialTrick",
+   "scalar": {
+    "score": 94.099,
+    "structural": 5,
+    "layout": 39
+   },
+   "pareto_top": {
+    "score": 94.099,
+    "structural": 5,
+    "layout": 39
+   },
+   "front": 3,
+   "differs": false
+  },
+  {
+   "function": "requestRumbleMotorStart",
+   "scalar": {
+    "score": 93.778,
+    "structural": 5,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 93.778,
+    "structural": 5,
+    "layout": 0
+   },
+   "front": 2,
+   "differs": false
+  },
+  {
+   "function": "updateEndingSlashSlideRightToMarker",
+   "scalar": {
+    "score": 92.258,
+    "structural": 1,
+    "layout": 6
+   },
+   "pareto_top": {
+    "score": 92.258,
+    "structural": 1,
+    "layout": 6
+   },
+   "front": 6,
+   "differs": false
+  },
+  {
+   "function": "renderRaceUiSingleTrailEffect",
+   "scalar": {
+    "score": 91.519,
+    "structural": 0,
+    "layout": 6
+   },
+   "pareto_top": {
+    "score": 91.519,
+    "structural": 0,
+    "layout": 6
+   },
+   "front": 3,
+   "differs": false
+  },
+  {
+   "function": "initTimeTrialRecordDeltaPopup",
+   "scalar": {
+    "score": 90.484,
+    "structural": 2,
+    "layout": 4
+   },
+   "pareto_top": {
+    "score": 90.484,
+    "structural": 2,
+    "layout": 4
+   },
+   "front": 3,
+   "differs": false
+  }
+ ],
+ "wins_best": [],
+ "wins_pareto": []
+}

@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import time
 from pathlib import Path
 
 from eval import matched as matched_mod
@@ -41,6 +42,8 @@ def main() -> int:
                     help="also run the deterministic repair passes on each "
                          "arm's anchor and compare what they reach")
     ap.add_argument("--out", default="")
+    ap.add_argument("--only", default="",
+                    help="comma-separated functions for a focused replay")
     args = ap.parse_args()
 
     repo = Path(args.repo).expanduser()
@@ -54,11 +57,15 @@ def main() -> int:
         " group by f.addr having best >= ?"
         " order by best desc", (args.floor,)).fetchall()
         if r[0] not in done]
+    if args.only:
+        wanted = {name.strip() for name in args.only.split(",") if name.strip()}
+        funcs = [row for row in funcs if row[0] in wanted]
 
     print(f"{len(funcs)} unmatched functions above {args.floor}\n")
     differs = same = 0
     rows_out = []
     wins_best, wins_pareto = [], []
+    run_id = f"pareto-repair-{int(time.time())}"
 
     for name, best in funcs:
         cands = conn.execute(
@@ -94,7 +101,7 @@ def main() -> int:
               f" (struct {top[1].structural:3}, layout {top[1].layout:3})"
               f"{'   DIFFERENT' if picked_differently else ''}")
 
-        rows_out.append({
+        row_out = {
             "function": name,
             "scalar": {"score": scalar[1].score,
                        "structural": scalar[1].structural,
@@ -102,27 +109,39 @@ def main() -> int:
             "pareto_top": {"score": top[1].score,
                            "structural": top[1].structural,
                            "layout": top[1].layout},
-            "front": len(front), "differs": picked_differently})
+            "front": len(front), "differs": picked_differently}
+        rows_out.append(row_out)
 
         if not args.repair:
             continue
 
         # Point the SAME repair passes at each arm's anchor and compare.
-        def best_reachable(src):
+        def best_reachable(src, arm):
             hit = (False, 0.0)
+            attempted = compiled = 0
             for label, code in passes(src, conn=conn, func=name, repo=repo,
                                       ws=ws, objs=objs):
                 if label == "baseline":
                     continue
-                a = workspace.score(ws, repo, name, code)
+                attempted += 1
+                a = workspace.score(
+                    ws, repo, f"{name}_pareto_{arm}_{attempted}", code,
+                    conn=conn, func=name, strategy=f"pareto-repair:{arm}",
+                    run_id=run_id, extra={"repair": label})
+                compiled += int(a.compiled)
                 if a.exact:
-                    return True, a.score
+                    return True, a.score, attempted, compiled
                 if a.compiled and a.score > hit[1]:
                     hit = (False, a.score)
-            return hit
+            return *hit, attempted, compiled
 
-        ex_b, sc_b = best_reachable(scalar[0][1])
-        ex_p, sc_p = best_reachable(top[0][1])
+        ex_b, sc_b, tried_b, comp_b = best_reachable(scalar[0][1], "scalar")
+        ex_p, sc_p, tried_p, comp_p = best_reachable(top[0][1], "pareto")
+        row_out["repair"] = {
+            "scalar": {"exact": ex_b, "score": sc_b,
+                       "attempted": tried_b, "compiled": comp_b},
+            "pareto": {"exact": ex_p, "score": sc_p,
+                       "attempted": tried_p, "compiled": comp_p}}
         if ex_b:
             wins_best.append(name)
         if ex_p:
