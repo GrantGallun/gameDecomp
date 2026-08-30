@@ -1379,5 +1379,15 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "pre-as1-layer-isolates-allocation-decisions",
+    "claim": "Diffing two candidates at IDO's pre-as1 layer isolates one changed allocation decision where diffing their objects shows dozens of shifted rows",
+    "source": "imported from the reference project's DECOMPILATION_LEARNINGS.md; the tool exists in our toolchain",
+    "status": "INCONCLUSIVE",
+    "evidence": "THE CAPABILITY IS REAL AND NOW BUILT (solver/asmlayer.py). cc -S with the workspace's own flags emits final register numbers, .loc records, unexpanded pseudo-ops and .livereg masks -- 87 instructions and 70 decisions on renderRaceUiSingleTrailEffect. One implementation trap worth recording: IDO's cc IGNORES -o under -S and writes <basename>.s into the working directory, so passing -o produced nothing at all and read as a compile failure. THE CONTROLS ARE THE STRONGEST PART. A blank-line insertion and a local RENAME both produced dS=0 and dO=0 -- no movement at either layer. That validates the harness (it is not measuring noise) and independently reproduces two imported claims in OUR setup: the project builds without -g so layout is inert, and IDO colors by internal temp numbering rather than source variable identity. THE DIRECTION HOLDS BUT THE MAGNITUDE DOES NOT. Two catalogued allocation nudges each gave dS=5 against dO=8, with 2 isolated register changes. So the object diff IS larger than the -S diff in 2 of 2 cases, but 8-versus-5 is not the 'one decision versus dozens of rows' the source claims. Either our nudges were too small to trigger the amplification, or that description does not generalise. INCONCLUSIVE on the headline claim. WHAT IS GENUINELY NEW is register_changes(): it reports (opcode, before, after) per moved register, which is a direct read on allocation decisions that no object diff gives. Register choice is our largest untouched fault class -- 36 of the 45 residual faults on this function, with ZERO structural -- and every pass built so far moves or retypes a field and cannot move a value between registers. NEXT: use register_changes as the ranking signal for a nudge search, rather than the byte score, since the imported notes warn that dist.py's reordering penalty hides the statement-order lever entirely.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]
