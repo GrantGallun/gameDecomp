@@ -1323,5 +1323,15 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "diff-directed-field-reordering",
+    "claim": "Aligning the two instruction streams makes diff constraints trustworthy, which unblocks field reordering",
+    "source": "follow-through on the pairing limit found in the previous iteration",
+    "status": "CONFIRMED",
+    "evidence": "UPGRADED from INCONCLUSIVE. The blocker was pairing, not reordering. Constraints came from zip(minus, plus) -- positional pairing, not alignment -- so one unpaired instruction made every later pair drift. The oracle's diff carries context (61 context lines against 30 changed on the reference case), so both instruction streams reconstruct in full; normalising each instruction by blanking its OFFSET makes two instructions differing only in position become identical, difflib pairs them as equal, and their real offsets are then comparable. 27 clean pairs where zip drifted. THE GUARD THEN HAD TO GO, and this is the part worth remembering: the non-monotonic drop rule was correct under zip pairing and WRONG under alignment -- it was discarding exactly the signal the alignment existed to recover. Removed, all four fields of RaceSplitscreenSelectRowActor become constrained and reorder_fields fires: updateRaceSplitscreenSelectPlayerCountIcons 99.436 -> 99.925, oracle-verified, no model. NOT exact. Sweep over 31 near misses: 0 matches, 4 improved (99.436->99.925, 95.989->96.211, 92.258->93.226, 70.388->70.554). ONE IMPROVEMENT WAS LOST and it is not a regression in the fix: updateEndingLindaExitUntilPhase3C reached 99.773 under the OLD drifted constraints; the correct constraints give 99.205, below its 99.545 baseline, so the score guard keeps the original. The old gain was an artefact of a wrong pairing that happened to score better. NEXT LIMITATION, precisely stated: padding shifts EVERY field after the insertion point, including unconstrained fields the diff said nothing about. On that function three constrained fields need +2 while the untouched fields between them were already correct. Fixing it means reorder_fields accepting partially-constrained regions and holding unconstrained fields at their current offsets -- which is a judgement about what 'the diff did not complain' means, and is not obviously safe: a field the function never accesses generates no evidence either way.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]
