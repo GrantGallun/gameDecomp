@@ -59,13 +59,21 @@ def test_different_base_registers_are_kept_apart():
     assert m == {0: 0x24, 4: 0x18}
 
 
-def test_drifted_pairing_is_rejected():
-    """Non-monotonic constraints from one base mean the diff lines drifted."""
-    m, dropped = diffrepair.constraints(_d([
-        ("lw v0,0x20(a0)", "lw v0,0(a0)"),
-        ("lw v1,0x10(a0)", "lw v1,4(a0)"),
+def test_non_monotonic_constraints_are_kept_as_reordering_signal():
+    """Once pairs come from a real alignment, non-monotonic means REORDER.
+
+    It used to be dropped as probable line drift, which was correct under
+    positional zip() pairing and discards real signal under alignment.
+    """
+    m, dropped = diffrepair.constraints(_udiff([
+        "-lw v0,0x20(a0)",
+        "+lw v0,0(a0)",
+        "-lw v1,0x10(a0)",
+        "+lw v1,4(a0)",
     ]))
-    assert m == {} and dropped == {"a0": "non-monotonic"}
+    assert m == {0: 0x20, 4: 0x10}
+    assert dropped == {}
+    assert diffrepair.order_violation(m)
 
 
 def test_fields_are_scoped_to_struct_bodies():
@@ -223,3 +231,62 @@ def test_function_body_is_not_a_struct_region():
             "}\n")
     got = [m.group("name") for m, _o, _s in diffrepair._fields(body)]
     assert got == ["a"]
+
+
+# ----------------------------------------------- stream alignment
+
+def _udiff(lines):
+    """A unified diff body with context, as the oracle emits."""
+    return "--- target\n+++ candidate\n@@ -1,5 +1,5 @@\n" + "\n".join(lines)
+
+
+def test_streams_are_reconstructed_from_context():
+    t, c = diffrepair._streams(_udiff([
+        " addiu sp,sp,-0x18",
+        "-lbu v1,0x24(a0)",
+        "+lbu v1,0(a0)",
+        " move a3,a0",
+    ]))
+    assert t == ["addiu sp,sp,-0x18", "lbu v1,0x24(a0)", "move a3,a0"]
+    assert c == ["addiu sp,sp,-0x18", "lbu v1,0(a0)", "move a3,a0"]
+
+
+def test_offset_is_blanked_for_alignment():
+    assert diffrepair._blank_offset("lbu v1,0x24(a0)") == "lbu v1,OFF(a0)"
+    assert diffrepair._blank_offset("move a3,a0") == "move a3,a0"
+
+
+def test_alignment_pairs_only_offset_differences():
+    pairs = diffrepair.aligned_pairs(_udiff([
+        " move a3,a0",
+        "-lbu v1,0x24(a0)",
+        "+lbu v1,0(a0)",
+    ]))
+    assert pairs == [("lbu v1,0x24(a0)", "lbu v1,0(a0)")]
+
+
+def test_alignment_survives_an_unpaired_instruction():
+    """The whole reason for this: positional zip drifts after an odd line.
+
+    The target has an extra `nop`. Under zip(minus, plus) every later pair is
+    shifted by one and the constraints become nonsense; alignment pairs them
+    correctly.
+    """
+    pairs = diffrepair.aligned_pairs(_udiff([
+        "-nop",
+        "-lbu v1,0x24(a0)",
+        "+lbu v1,0(a0)",
+        "-lh t8,0x18(v0)",
+        "+lh t8,4(v0)",
+    ]))
+    assert ("lbu v1,0x24(a0)", "lbu v1,0(a0)") in pairs
+    assert ("lh t8,0x18(v0)", "lh t8,4(v0)") in pairs
+
+
+def test_structural_difference_is_not_paired():
+    """A different opcode is not a moved field."""
+    pairs = diffrepair.aligned_pairs(_udiff([
+        "-b 390",
+        "+beqz v1,390",
+    ]))
+    assert pairs == []

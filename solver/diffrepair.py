@@ -58,6 +58,75 @@ class Constraint:
     expected: int
 
 
+OFFSET_HOLE = re.compile(r"(-?(?:0x)?[0-9a-f]+)(\()")
+
+
+def _streams(diff: str) -> tuple[list[str], list[str]]:
+    """Reconstruct the target and candidate instruction streams from the diff.
+
+    The oracle emits a unified diff WITH context (61 context lines against 30
+    changed on the reference case), so both sides can be rebuilt in full:
+    a context line belongs to both, a '-' line to the target, a '+' line to the
+    candidate. Regions the diff skips between hunks are identical on both sides
+    and can be concatenated away without disturbing the alignment.
+    """
+    target: list[str] = []
+    cand: list[str] = []
+    for line in diff.splitlines():
+        if line.startswith(("---", "+++", "@@")) or not line:
+            continue
+        body = line[1:].strip()
+        if not body:
+            continue
+        if line[0] == " ":
+            target.append(body)
+            cand.append(body)
+        elif line[0] == "-":
+            target.append(body)
+        elif line[0] == "+":
+            cand.append(body)
+    return target, cand
+
+
+def _blank_offset(instr: str) -> str:
+    """`lbu v1,0x24(a0)` -> `lbu v1,OFF(a0)`.
+
+    The point of the whole alignment: two instructions that differ ONLY in
+    their offset become identical here, so the matcher pairs them as equal and
+    their real offsets can then be compared. Anything still unequal is a
+    genuine structural difference, not a moved field.
+    """
+    return OFFSET_HOLE.sub(r"OFF\2", instr)
+
+
+def aligned_pairs(diff: str) -> list[tuple[str, str]]:
+    """(target, candidate) instruction pairs that differ only in an offset.
+
+    Replaces positional zip(minus, plus), which is not an alignment: a single
+    unpaired instruction on either side made every later pair drift, and a
+    drifted pair is indistinguishable from a genuine field reordering. Aligning
+    the normalized streams removes that failure mode entirely -- the matcher
+    knows which instruction corresponds to which.
+    """
+    import difflib
+
+    target, cand = _streams(diff)
+    if not target or not cand:
+        return []
+    tn = [_blank_offset(x) for x in target]
+    cn = [_blank_offset(x) for x in cand]
+
+    out: list[tuple[str, str]] = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(
+            None, tn, cn, autojunk=False).get_opcodes():
+        if tag != "equal":
+            continue                    # structural difference, not a move
+        for t, c in zip(target[i1:i2], cand[j1:j2]):
+            if t != c:                  # same shape, different offset
+                out.append((t, c))
+    return out
+
+
 def constraints(diff: str) -> tuple[dict[int, int], list[int]]:
     """{produced offset -> expected offset}, PER BASE REGISTER then merged.
 
@@ -77,13 +146,8 @@ def constraints(diff: str) -> tuple[dict[int, int], list[int]]:
 
     Returns (mapping, dropped_bases).
     """
-    minus = [l[1:].strip() for l in diff.splitlines()
-             if l.startswith("-") and not l.startswith("---")]
-    plus = [l[1:].strip() for l in diff.splitlines()
-            if l.startswith("+") and not l.startswith("+++")]
-
     per_base: dict[str, dict[int, set]] = {}
-    for a, b in zip(minus, plus):
+    for a, b in aligned_pairs(diff):
         ma, mb = MEM.match(a), MEM.match(b)
         if not (ma and mb):
             continue
@@ -103,15 +167,14 @@ def constraints(diff: str) -> tuple[dict[int, int], list[int]]:
             dropped[base] = "contradictory"
             continue
         m = {g: next(iter(w)) for g, w in seen.items()}
-        got_order = sorted(m)
-        if [m[g] for g in got_order] != sorted(m[g] for g in got_order):
-            # An earlier field must land AFTER a later one. Padding only moves
-            # fields later and preserves their order, so this is unfixable
-            # here. Two causes are indistinguishable from the diff alone --
-            # the fields genuinely need reordering, or the line pairing
-            # drifted -- and both mean "do not pad", so they share a label.
-            dropped[base] = "non-monotonic"
-            continue
+        # A non-monotonic mapping is KEPT. It used to be dropped, because with
+        # positional zip() pairing it was indistinguishable from line drift --
+        # but pairs now come from a real alignment of the two instruction
+        # streams, so "an earlier field must land after a later one" is a
+        # statement about the struct rather than an artefact of the diff. It
+        # means the fields need REORDERING, which reorder_fields() handles and
+        # padding cannot. Dropping it here discarded the very signal the
+        # alignment work existed to recover.
         for g, w in m.items():
             if mapping.get(g, w) != w:
                 dropped[base] = "conflicts with another base"
@@ -265,6 +328,13 @@ def reorder_fields(body: str, mapping: dict[int, int]) -> tuple[str, bool]:
             cursor = _align(cursor, unit)
             decls.append((m, cursor, unit * n))
             cursor += unit * n
+        # A single-field region is skipped deliberately. The mapping is merged
+        # across base registers and therefore across STRUCTS, so offset 0
+        # carrying a constraint from one struct must not relocate a lone field
+        # belonging to a different one -- `u8 menuState;` in RacePlayer would
+        # be dragged to 0x24 by a constraint about RaceSplitscreenSelectRowActor.
+        # Requiring several mutually-consistent fields is what ties a region to
+        # the constraints that actually describe it.
         if len(decls) < 2 or not all(off in mapping for _m, off, _s in decls):
             continue
 
