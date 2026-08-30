@@ -1389,5 +1389,25 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "catalogued-nudges-move-register-residuals",
+    "claim": "Enumerating catalogued semantics-preserving source nudges reduces register-choice faults",
+    "source": "imported IDO notes; renderRaceUiSingleTrailEffect has 36 register faults and zero structural, the cleanest target we have",
+    "status": "REFUTED",
+    "evidence": "0 of 4 nudges reduced register faults from a baseline of 36. Ranked on register-fault count rather than byte score, because the imported notes warn dist.py's reordering penalty hides this lever. Control (blank line) moved nothing at either layer, so the harness is clean. Two nudges made it WORSE -- 36 to 39 register faults AND structural 0 to 2, meaning they changed program shape rather than only allocation, which is the opposite of semantics-preserving. One arm was an INVALID TEST and must not be read against its entry: ido-redundant-mask-advances-the-temp-fifo is stated for a narrow u16 FIELD read and I applied it to an array index, outside its precondition; it produced zero change and remains untested. One failed to build. CONSEQUENCE: blind source perturbation is a poor instrument for this fault class. We possess uopt's actual algorithm, so predicting the allocation is better posed than shaking the source until it rattles.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "uopt-ordering-law-reproduces",
+    "claim": "uopt's stated ordering law -- webs by descending save, ties on construction order -- predicts which register a value receives",
+    "source": "the reference project's instrumented measurements of uopt 5.3",
+    "status": "CONFIRMED",
+    "evidence": "79.1% concordance (102/129 comparable pairs) against our OWN byte-exact functions, which is the only contamination-free ground truth available. Chance is 50%. Only the ORDER is tested, which survives an inexact totalsave -- the notes give save = totalsave / nocs but not the numerator, so it is modelled as occurrence weight with 10x per loop level and flagged as assumption. The pool, nocs = ((n-2)>>2)+2 and the ordering rule are quoted exactly. THE DIAGNOSTIC MATTERED MORE THAN THE NUMBER. The first run scored 67.8% with a BIMODAL distribution: two functions near 96% and isRacePlayerRespawnSurfaceValid at exactly 0.0% over 14 pairs. A perfect inversion is a sign error, not noise, since noise sits at 50%. Its top-ranked web held a3 -- index 5 in the pool -- so every comparison against it was wrong. a3 was not a colouring decision but the fourth argument to a call. uopt CAN colour into a0-a3 and v0/v1, but a value feeding a jal or taken from its return is precoloured by the ABI and never competed on save; counting those webs measures the calling convention and calls it allocation. Excluding them gives 79.1%. That correction is derived from the ABI rather than tuned to the number, which is the difference between a model and a fitted constant. REMAINING GAP: updateEndingLindaTumbleToPhase3C still scores 12.5% over 8 pairs, so at least one regime is unmodelled. Do not treat 79% as a specification.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]
