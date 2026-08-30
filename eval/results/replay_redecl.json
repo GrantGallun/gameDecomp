@@ -1,0 +1,28 @@
+{
+ "transform": "redecl",
+ "changed": 7,
+ "fixed": [
+  {
+   "function": "clampRacePlayerVectorXZHalfSpeed",
+   "score": 7.289,
+   "exact": false
+  },
+  {
+   "function": "clampRacePlayerVectorXZHalfSpeed",
+   "score": 35.678,
+   "exact": false
+  },
+  {
+   "function": "drawMenuPanelBackdrop",
+   "score": 1.014,
+   "exact": false
+  }
+ ],
+ "still_failing": [
+  "clampRacePlayerVectorXZHalfSpeed",
+  "clampRacePlayerVectorXZHalfSpeed",
+  "drawMenuSolidRect",
+  "drawMenuSpriteClipped"
+ ],
+ "broke": []
+}

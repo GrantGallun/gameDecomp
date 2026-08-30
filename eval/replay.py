@@ -30,7 +30,19 @@ import sqlite3
 import time
 from pathlib import Path
 
-from solver import c89, llm, tracefix, workspace
+from solver import buildtypes, c89, llm, tracefix, workspace
+
+
+_KNOWN_TYPES: set = set()
+
+
+def _redecl(src: str, *, repo: Path, func: str, ws: Path) -> str:
+    """Strip redeclarations of types the build already provides."""
+    global _KNOWN_TYPES
+    if not _KNOWN_TYPES:
+        _KNOWN_TYPES = buildtypes.type_names(repo)
+    out, _removed = buildtypes.strip_redeclarations(src, _KNOWN_TYPES)
+    return out
 
 
 def _tracefix(src: str, *, repo: Path, func: str, ws: Path) -> str:
@@ -47,10 +59,12 @@ TRANSFORMS = {
     "c89": c89.to_c89,
     "includes": llm.strip_unresolvable_includes,
     "tracefix": _tracefix,
+    "redecl": _redecl,
+    "c89+redecl": lambda s, **kw: _redecl(c89.to_c89(s), **kw),
     "c89+tracefix": lambda s, **kw: _tracefix(c89.to_c89(s), **kw),
     "none": lambda s: s,
 }
-NEEDS_CONTEXT = {"tracefix", "c89+tracefix"}
+NEEDS_CONTEXT = {"tracefix", "c89+tracefix", "redecl", "c89+redecl"}
 
 
 def window_of(results: str) -> tuple[float, float]:
