@@ -290,3 +290,88 @@ def test_structural_difference_is_not_paired():
         "+beqz v1,390",
     ]))
     assert pairs == []
+
+
+# ------------------------------------------------- field width (retyping)
+
+def test_width_constraint_read_from_opcode():
+    """`sw` writes four bytes; `sb` one. The pair states the field's TYPE."""
+    w = diffrepair.width_constraints(_udiff([
+        "-sw t1,0x1c(t2)",
+        "+sb t1,0x1c(t2)",
+    ]))
+    assert w == {0x1c: (4, None)}      # a store says nothing about signedness
+
+
+def test_unsigned_load_carries_signedness():
+    w = diffrepair.width_constraints(_udiff([
+        "-lbu v0,0x10(a0)",
+        "+lw v0,0x10(a0)",
+    ]))
+    assert w == {0x10: (1, True)}
+
+
+def test_signed_load_carries_signedness():
+    w = diffrepair.width_constraints(_udiff([
+        "-lh v0,0x10(a0)",
+        "+lw v0,0x10(a0)",
+    ]))
+    assert w == {0x10: (2, False)}
+
+
+def test_offset_difference_is_not_a_width_constraint():
+    w = diffrepair.width_constraints(_udiff([
+        "-lw v0,0x24(a0)",
+        "+lw v0,0(a0)",
+    ]))
+    assert w == {}
+
+
+def test_conflicting_widths_are_dropped():
+    w = diffrepair.width_constraints(_udiff([
+        "-sw t1,0x10(a0)",
+        "+sb t1,0x10(a0)",
+        "-sh t2,0x10(a0)",
+        "+sb t2,0x10(a0)",
+    ]))
+    assert w == {}
+
+
+def test_apply_widths_retypes_a_scalar():
+    body = "struct T {\n    u8 a;\n    u8 b;\n};\n"
+    out, changed = diffrepair.apply_widths(body, {1: (4, False)})
+    assert changed and "s32 b;" in out and "u8 a;" in out
+
+
+def test_apply_widths_leaves_arrays_alone():
+    """An array accessed at a different width is ambiguous -- element type or
+    index arithmetic -- and retyping it would guess between them."""
+    body = "struct T {\n    s16 icons[5];\n};\n"
+    out, changed = diffrepair.apply_widths(body, {0: (4, False)})
+    assert not changed and out == body
+
+
+def test_apply_widths_no_op_when_already_right():
+    body = "struct T {\n    s32 a;\n};\n"
+    out, changed = diffrepair.apply_widths(body, {0: (4, False)})
+    assert not changed
+
+
+def test_declaration_behind_an_inline_comment_is_counted():
+    """`/* 0x00 .. 0x17 */ char pad0[0x18];` is a field, not a comment.
+
+    Anchoring the declaration pattern at the line start made every
+    comment-prefixed padding declaration invisible, so the pads were not
+    counted and every later field got the wrong running offset. On
+    updateRaceSetupFourPlayerOption that placed `state` at 0x02 instead of
+    0x1C and the diff's constraint matched nothing.
+    """
+    body = ("struct T {\n"
+            "/* 0x00 .. 0x17 */ char pad0[0x18];\n"
+            "    s16 x;                     /* offset 0x18 */\n"
+            "    /* 0x1A */               char pad1[0x1];\n"
+            "    u8 state;                  /* offset 0x1C */\n"
+            "};\n")
+    got = [(m.group("name"), off) for m, off, _s in diffrepair._fields(body)]
+    assert got == [("pad0", 0x00), ("x", 0x18), ("pad1", 0x1A),
+                   ("state", 0x1B)]

@@ -1,0 +1,568 @@
+{
+ "matches": [
+  {
+   "function": "updateRaceSetupFourPlayerOption",
+   "was": 96.441
+  }
+ ],
+ "improved": [
+  {
+   "function": "updateRacePlayerMode37AerialTrick",
+   "was": 59.225,
+   "now": 59.656
+  },
+  {
+   "function": "updateRacePlayerLeanAngle",
+   "was": 51.719,
+   "now": 51.797
+  },
+  {
+   "function": "tryStartRacePlayerCourseObjectMode",
+   "was": 44.328,
+   "now": 46.992
+  }
+ ],
+ "unchanged": [
+  "updateEndingLindaExitUntilPhase3C",
+  "packFixedTransformMatrix",
+  "getRaceCourseSurfaceSpawnTransform"
+ ],
+ "not_applicable": [
+  "updateRaceSplitscreenSelectPlayerCountIcons",
+  "checkMainMenuSecretCode",
+  "bootThreadMain",
+  "initRacePlayerLandingSnowSpray",
+  "getRacePlayerRankingProgress",
+  "calculateRaceTimerDelta",
+  "updateRacePlayerMode53AerialTrick",
+  "requestRumbleMotorStart",
+  "updateEndingSlashSlideRightToMarker",
+  "renderRaceUiSingleTrailEffect",
+  "initTimeTrialRecordDeltaPopup",
+  "createCallbackTaskPreservingArgs",
+  "updateRacePlayerMode16AerialTrick",
+  "updateCourseSelectCourseDescription",
+  "hasPendingRaceReplayCourseGridEntry",
+  "compressRaceRecordReplayData",
+  "initMainMenuSceneModel",
+  "allocMenuRenderScratch",
+  "gameThreadMain",
+  "initMenuAssetHandles",
+  "initControllerPakRaceRecordSaveFlow",
+  "tryQueueRacePlayerHitCueNudge",
+  "resetRenderCallbackQueues",
+  "getRacePlayerPathOffset",
+  "zoomTrainingCourseRaceViewport",
+  "func_8005804C",
+  "resetAllViewports",
+  "drawMenuSolidRect",
+  "updateRacePlayerSmoothedPathOffset",
+  "drawMenuPanelBackdrop",
+  "approachRaceIntroFlyoverPitchVelocity"
+ ],
+ "invalid": [],
+ "health": {
+  "activations": 7,
+  "compiled_candidates": 7
+ },
+ "runs": [
+  {
+   "function": "updateRaceSplitscreenSelectPlayerCountIcons",
+   "was": 99.925,
+   "now": 99.925,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "updateEndingLindaExitUntilPhase3C",
+   "was": 99.545,
+   "now": 99.545,
+   "exact": false,
+   "activated": 1,
+   "compiled_candidates": 1,
+   "broken_candidates": 0,
+   "terminal": "regressed",
+   "log": [
+    "round 1: 3 constraints (0 dropped) -> 99.205 [struct 0 off 4 wid 0]"
+   ]
+  },
+  {
+   "function": "checkMainMenuSecretCode",
+   "was": 98.561,
+   "now": 98.561,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "bootThreadMain",
+   "was": 97.222,
+   "now": 97.222,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "updateRaceSetupFourPlayerOption",
+   "was": 96.441,
+   "now": 100.0,
+   "exact": true,
+   "activated": 1,
+   "compiled_candidates": 1,
+   "broken_candidates": 0,
+   "terminal": "exact",
+   "log": [
+    "round 1: 1 constraints (0 dropped) -> EXACT [struct 0 off 0 wid 0]"
+   ]
+  },
+  {
+   "function": "initRacePlayerLandingSnowSpray",
+   "was": 96.211,
+   "now": 96.211,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "getRacePlayerRankingProgress",
+   "was": 95.346,
+   "now": 95.346,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "calculateRaceTimerDelta",
+   "was": 94.324,
+   "now": 94.324,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "updateRacePlayerMode53AerialTrick",
+   "was": 94.099,
+   "now": 94.099,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "requestRumbleMotorStart",
+   "was": 93.778,
+   "now": 93.778,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "updateEndingSlashSlideRightToMarker",
+   "was": 93.226,
+   "now": 93.226,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "renderRaceUiSingleTrailEffect",
+   "was": 91.519,
+   "now": 91.519,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "initTimeTrialRecordDeltaPopup",
+   "was": 90.484,
+   "now": 90.484,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "createCallbackTaskPreservingArgs",
+   "was": 89.723,
+   "now": 89.723,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "updateRacePlayerMode16AerialTrick",
+   "was": 89.644,
+   "now": 89.644,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "updateCourseSelectCourseDescription",
+   "was": 89.2,
+   "now": 89.2,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "hasPendingRaceReplayCourseGridEntry",
+   "was": 88.25,
+   "now": 88.25,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "compressRaceRecordReplayData",
+   "was": 87.623,
+   "now": 87.623,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "initMainMenuSceneModel",
+   "was": 87.614,
+   "now": 87.614,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "allocMenuRenderScratch",
+   "was": 87.0,
+   "now": 87.0,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "gameThreadMain",
+   "was": 83.514,
+   "now": 83.514,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "initMenuAssetHandles",
+   "was": 83.385,
+   "now": 83.385,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "initControllerPakRaceRecordSaveFlow",
+   "was": 82.991,
+   "now": 82.991,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "tryQueueRacePlayerHitCueNudge",
+   "was": 79.356,
+   "now": 79.356,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "resetRenderCallbackQueues",
+   "was": 78.462,
+   "now": 78.462,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "getRacePlayerPathOffset",
+   "was": 72.875,
+   "now": 72.875,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "zoomTrainingCourseRaceViewport",
+   "was": 70.554,
+   "now": 70.554,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "func_8005804C",
+   "was": 68.536,
+   "now": 68.536,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "packFixedTransformMatrix",
+   "was": 66.509,
+   "now": 66.509,
+   "exact": false,
+   "activated": 1,
+   "compiled_candidates": 1,
+   "broken_candidates": 0,
+   "terminal": "stable",
+   "log": [
+    "round 1: 3 constraints (0 dropped) -> 66.509 [struct 70 off 5 wid 7]",
+    "round 2: no constraints to apply"
+   ]
+  },
+  {
+   "function": "getRaceCourseSurfaceSpawnTransform",
+   "was": 63.137,
+   "now": 63.137,
+   "exact": false,
+   "activated": 1,
+   "compiled_candidates": 1,
+   "broken_candidates": 0,
+   "terminal": "regressed",
+   "log": [
+    "round 1: 1 constraints (0 dropped) -> 62.941 [struct 23 off 1 wid 2]"
+   ]
+  },
+  {
+   "function": "resetAllViewports",
+   "was": 62.788,
+   "now": 62.788,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "drawMenuSolidRect",
+   "was": 59.67,
+   "now": 59.67,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "updateRacePlayerSmoothedPathOffset",
+   "was": 59.508,
+   "now": 59.508,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "updateRacePlayerMode37AerialTrick",
+   "was": 59.225,
+   "now": 59.656,
+   "exact": false,
+   "activated": 1,
+   "compiled_candidates": 1,
+   "broken_candidates": 0,
+   "terminal": "stable",
+   "log": [
+    "round 1: 1 constraints (1 dropped) -> 59.656 [struct 56 off 8 wid 13]",
+    "round 2: no constraints to apply"
+   ]
+  },
+  {
+   "function": "drawMenuPanelBackdrop",
+   "was": 55.372,
+   "now": 55.372,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "approachRaceIntroFlyoverPitchVelocity",
+   "was": 53.56,
+   "now": 53.56,
+   "exact": false,
+   "activated": 0,
+   "compiled_candidates": 0,
+   "broken_candidates": 0,
+   "terminal": "not_applicable",
+   "log": [
+    "round 1: no constraints to apply"
+   ]
+  },
+  {
+   "function": "updateRacePlayerLeanAngle",
+   "was": 51.719,
+   "now": 51.797,
+   "exact": false,
+   "activated": 1,
+   "compiled_candidates": 1,
+   "broken_candidates": 0,
+   "terminal": "stable",
+   "log": [
+    "round 1: 1 constraints (0 dropped) -> 51.797 [struct 32 off 1 wid 1]",
+    "round 2: no constraints to apply"
+   ]
+  },
+  {
+   "function": "tryStartRacePlayerCourseObjectMode",
+   "was": 44.328,
+   "now": 46.992,
+   "exact": false,
+   "activated": 1,
+   "compiled_candidates": 1,
+   "broken_candidates": 0,
+   "terminal": "stable",
+   "log": [
+    "round 1: 1 constraints (0 dropped) -> 46.992 [struct 53 off 0 wid 1]",
+    "round 2: no constraints to apply"
+   ]
+  }
+ ]
+}

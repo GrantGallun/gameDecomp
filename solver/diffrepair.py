@@ -35,7 +35,17 @@ from dataclasses import dataclass
 # `lbu v1,0x24(a0)` -- opcode, destination, offset, base
 MEM = re.compile(
     r"^([a-z][a-z0-9.]*)\s+(\$?\w+),\s*(-?(?:0x)?[0-9a-f]+)\((\$?\w+)\)$")
-DECL = re.compile(r"^(?P<indent>[ \t]*)(?P<type>[A-Za-z_][\w ]*?)\s+"
+# The optional leading comment is load bearing. Candidates routinely annotate
+# padding inline:
+#
+#     /* 0x00 .. 0x17 */ char pad0[0x18];
+#
+# and anchoring at `^[ \t]*` made every such declaration invisible, so the pads
+# were not counted and every field after one got the wrong running offset. On
+# updateRaceSetupFourPlayerOption that put `state` at 0x02 instead of 0x1C, and
+# the diff's constraint (0x1b -> 0x1c) then matched no field at all.
+DECL = re.compile(r"^(?P<indent>[ \t]*)(?:/\*[^*]*(?:\*(?!/)[^*]*)*\*/[ \t]*)?"
+                  r"(?P<type>[A-Za-z_][\w ]*?)\s+"
                   r"(?P<ptr>\**)\s*(?P<name>[A-Za-z_]\w*)\s*"
                   r"(?:\[\s*(?P<count>0[xX][0-9A-Fa-f]+|\d+)\s*\])?\s*;",
                   re.M)
@@ -123,6 +133,42 @@ def aligned_pairs(diff: str) -> list[tuple[str, str]]:
             continue                    # structural difference, not a move
         for t, c in zip(target[i1:i2], cand[j1:j2]):
             if t != c:                  # same shape, different offset
+                out.append((t, c))
+    return out
+
+
+MEM_OP = re.compile(r"^(l|s)(b|h|w)(u?)(c1)?\b")
+
+
+def _blank_memop(instr: str) -> str:
+    """`sw t1,0x1c(t2)` and `sb t1,0x1c(t2)` both -> `S t1,OFF(t2)`.
+
+    aligned_pairs() blanks only the offset, so a pair differing in OPCODE never
+    lands in an equal block and width faults were invisible to it -- the width
+    constraints could never fire. Collapsing a memory op to its direction
+    (load/store) makes those pairs align, and the real opcodes are then
+    compared to recover the intended width.
+    """
+    return _blank_offset(MEM_OP.sub(lambda m: m.group(1).upper(), instr))
+
+
+def aligned_pairs_loose(diff: str) -> list[tuple[str, str]]:
+    """Pairs that differ only in offset OR in access width."""
+    import difflib
+
+    target, cand = _streams(diff)
+    if not target or not cand:
+        return []
+    tn = [_blank_memop(x) for x in target]
+    cn = [_blank_memop(x) for x in cand]
+
+    out: list[tuple[str, str]] = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(
+            None, tn, cn, autojunk=False).get_opcodes():
+        if tag != "equal":
+            continue
+        for t, c in zip(target[i1:i2], cand[j1:j2]):
+            if t != c:
                 out.append((t, c))
     return out
 
@@ -290,6 +336,101 @@ def order_violation(mapping: dict[int, int]) -> bool:
     return vals != sorted(vals)
 
 
+# Access width implied by the opcode. `sw` writes four bytes, `sb` one, so a
+# target/candidate pair that agrees on offset and base but differs in opcode is
+# stating the field's TYPE, not its position.
+OPCODE_WIDTH = {
+    "lb": 1, "lbu": 1, "sb": 1,
+    "lh": 2, "lhu": 2, "sh": 2,
+    "lw": 4, "sw": 4, "lwc1": 4, "swc1": 4,
+}
+# Unsigned loads tell us the field is unsigned; signed loads say signed. A
+# STORE says nothing about signedness, so it only constrains the width.
+UNSIGNED_OPS = {"lbu", "lhu"}
+SIGNED_OPS = {"lb", "lh", "lw"}
+WIDTH_TYPE = {(1, True): "u8", (1, False): "s8",
+              (2, True): "u16", (2, False): "s16",
+              (4, True): "u32", (4, False): "s32"}
+
+
+def width_constraints(diff: str) -> dict[int, tuple[int, bool | None]]:
+    """{offset -> (width, unsigned)} from pairs differing only in opcode.
+
+        -sw t1,0x1c(t2)      the target writes FOUR bytes at 0x1c
+        +sb t1,0x1c(t2)      the candidate declared a one-byte field
+
+    repad and reorder_fields can move a field; neither can retype one, so this
+    fault class had no repair at all despite appearing in roughly fifteen
+    functions. As with offsets, the diff states the answer rather than merely
+    hinting at it.
+
+    `unsigned` is None when only stores were seen, because a store carries no
+    signedness information and guessing one would change the declared type on
+    no evidence.
+    """
+    out: dict[int, tuple[int, bool | None]] = {}
+    conflict: set[int] = set()
+    for a, b in aligned_pairs_loose(diff):
+        ma, mb = MEM.match(a), MEM.match(b)
+        if not (ma and mb):
+            continue
+        if ma.group(3) != mb.group(3) or ma.group(4) != mb.group(4):
+            continue                      # different slot, not a retype
+        want = OPCODE_WIDTH.get(ma.group(1))
+        got = OPCODE_WIDTH.get(mb.group(1))
+        if want is None or got is None or want == got:
+            continue
+        off = _num(ma.group(3))
+        if off is None:
+            continue
+        sign = (True if ma.group(1) in UNSIGNED_OPS
+                else False if ma.group(1) in SIGNED_OPS else None)
+        prev = out.get(off)
+        if prev is not None and prev[0] != want:
+            conflict.add(off)             # two widths for one field
+            continue
+        if prev is not None and prev[1] is not None and sign is None:
+            sign = prev[1]                # keep a load's signedness over a store
+        out[off] = (want, sign)
+    for off in conflict:
+        out.pop(off, None)
+    return out
+
+
+def apply_widths(body: str, widths: dict[int, tuple[int, bool | None]]
+                 ) -> tuple[str, bool]:
+    """Retype fields whose declared width contradicts the target's access.
+
+    Only scalar declarations are touched, and only when the size actually
+    changes. Arrays are left alone: `s16 iconX[5]` accessed as a word is a
+    different question -- possibly the element type, possibly the index
+    arithmetic -- and retyping it would be guessing between them.
+    """
+    changed = False
+    out = body
+    for m, off, size in reversed(_fields(body)):
+        want = widths.get(off)
+        if want is None or m.group("count"):
+            continue
+        width, unsigned = want
+        if size == width:
+            continue
+        ctype = m.group("type").strip().split()[-1]
+        if ctype not in SIZEOF:
+            continue                      # a named struct type, not a scalar
+        if unsigned is None:
+            unsigned = ctype.startswith("u")
+        new_type = WIDTH_TYPE.get((width, unsigned))
+        if not new_type:
+            continue
+        decl = m.group(0)
+        fixed = decl.replace(ctype, new_type, 1)
+        if fixed != decl:
+            out = out[:m.start()] + fixed + out[m.end():]
+            changed = True
+    return out, changed
+
+
 def reorder_fields(body: str, mapping: dict[int, int]) -> tuple[str, bool]:
     """Rewrite a struct so every field sits on its diff-stated offset.
 
@@ -368,13 +509,24 @@ def repair(code: str, diff: str) -> tuple[str, bool, dict]:
     nothing: it compiles, scores differently, and hides the real diagnosis.
     """
     mapping, dropped = constraints(diff)
+    widths = width_constraints(diff)
     info = {"constraints": len(mapping), "dropped": len(dropped),
+            "widths": len(widths),
             "needs_reorder": any(r == "non-monotonic"
                                  for r in dropped.values())}
+
+    # Retype first. A width fix changes a field's SIZE, which moves everything
+    # after it, so applying it before any positional repair means the offsets
+    # those passes then work from are the corrected ones rather than stale.
+    code, retyped = apply_widths(code, widths)
+    if retyped:
+        info["retyped"] = True
+        if not mapping:
+            return code, True, info
     if order_violation(mapping):
         info["needs_reorder"] = True
         out, changed = reorder_fields(code, mapping)
         info["reordered"] = changed
-        return out, changed, info
+        return out, changed or retyped, info
     out, changed = apply_constraints(code, mapping)
-    return out, changed, info
+    return out, changed or retyped, info
