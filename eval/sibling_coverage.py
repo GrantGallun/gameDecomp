@@ -23,11 +23,21 @@ tool reports both, because the gap between them IS the optimism.
 from __future__ import annotations
 
 import argparse
+import json
 import sqlite3
 from pathlib import Path
 
 from eval import matched as matched_mod
 from solver import siblings
+
+
+BAND_ORDER = ("0.90+", "0.75-0.90", "0.45-0.75", "<0.45", "none")
+
+
+def similarity_band(score: float) -> str:
+    return ("0.90+" if score >= 0.90 else
+            "0.75-0.90" if score >= 0.75 else
+            "0.45-0.75" if score >= 0.45 else "<0.45")
 
 
 def main() -> int:
@@ -50,11 +60,13 @@ def main() -> int:
                          "the reference project's own history -- the honest "
                          "setting, since the reference repo is 100%% complete "
                          "and a mid-project solver would not have all of it")
+    ap.add_argument("--out", type=Path)
     args = ap.parse_args()
 
     repo = Path(args.repo).expanduser()
     conn = sqlite3.connect(str(Path(args.db).expanduser()))
     done = matched_mod.already_matched(conn)
+    own_sources = siblings.verified_sources(conn) if args.ours else None
 
     rows = [r for r in conn.execute(
         "select f.name, max(a.score) as best from functions f"
@@ -67,7 +79,8 @@ def main() -> int:
 
     print(f"{len(rows)} unmatched functions with a logged attempt\n")
     print(f"{'function':44} {'best':>7} {'top sib':>8}  name")
-    bands = {"0.90+": 0, "0.75-0.90": 0, "0.45-0.75": 0, "none": 0}
+    bands = {name: 0 for name in BAND_ORDER}
+    results, errors = [], 0
     for name, best in rows:
         try:
             # An external review caught a real design error here: asking for
@@ -75,34 +88,47 @@ def main() -> int:
             # legitimate sibling ranked below N unavailable reference functions
             # is reported as absent. The allowed pool has to constrain the
             # ranking, so rank everything and then restrict.
-            top = 2500 if args.ours else 1
-            got = siblings.find(repo, name, top=top,
+            got = siblings.find(repo, name, top=1,
                                 min_score=0.0 if args.ours else 0.45,
-                                timeout=600, historical=args.historical)
-            if args.ours:
-                got = [g for g in got if g[0] in done]
-                got.sort(key=lambda g: -g[1])
+                                timeout=600, historical=args.historical,
+                                allowed=set(own_sources) if own_sources is not None
+                                else None)
             got = got[:1]
         except Exception as exc:
             print(f"{name[:44]:44} {best:7.3f}  ERROR {type(exc).__name__}")
+            errors += 1
+            results.append({"function": name, "best": best,
+                            "error": type(exc).__name__})
             continue
         if not got:
             bands["none"] += 1
             print(f"{name[:44]:44} {best:7.3f} {'--':>8}")
+            results.append({"function": name, "best": best, "sibling": None})
             continue
         sname, score, _p = got[0]
-        band = ("0.90+" if score >= 0.90 else
-                "0.75-0.90" if score >= 0.75 else "0.45-0.75")
+        band = similarity_band(score)
         bands[band] += 1
         print(f"{name[:44]:44} {best:7.3f} {score:8.2f}  {sname[:34]}")
+        results.append({"function": name, "best": best, "sibling": sname,
+                        "similarity": score, "band": band})
 
     tot = sum(bands.values()) or 1
     print("\ntop-sibling similarity, over unmatched functions:")
-    for k in ("0.90+", "0.75-0.90", "0.45-0.75", "none"):
+    for k in BAND_ORDER:
         print(f"  {bands[k]:4}  ({100*bands[k]/tot:4.1f}%)  {k}")
     usable = bands["0.90+"] + bands["0.75-0.90"]
     print(f"\nfunctions with a twin at 0.75 or better: {usable} "
           f"({100*usable/tot:.1f}%)")
+    if args.out:
+        args.out.write_text(json.dumps({
+            "pool": "ours" if args.ours else
+                    "reference-history" if args.historical else "finished-reference",
+            "bands": bands, "usable": usable, "errors": errors,
+            "rows": results}, indent=1))
+        print(f"wrote {args.out}")
+    if rows and errors == len(rows):
+        print("EXPERIMENT INVALID: every retrieval failed")
+        return 2
     return 0
 
 

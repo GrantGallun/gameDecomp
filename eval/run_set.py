@@ -25,7 +25,7 @@ from pathlib import Path
 
 from eval import experiment
 from kb import provenance
-from solver import llm, pipeline, refine
+from solver import llm, pipeline, refine, siblings
 
 
 def load_done(path: Path) -> dict:
@@ -158,9 +158,14 @@ def main() -> None:
     # the prompt hints, the routing and num_ctx all changed; resuming an older
     # results file with newer code yields a number describing no system that
     # ever existed.
+    use_siblings = args.siblings or args.historical_siblings
+    sibling_pool = ""
+    if use_siblings:
+        sibling_pool = ("reference-history" if args.historical_siblings else
+                        siblings.source_digest(siblings.verified_sources(conn)))
     fp = experiment.build(args.set, args.split, args.model, args.samples,
-                          args.temp, args.think, args.pipeline, args.siblings,
-                          args.permute_seconds, kb_taint)
+                          args.temp, args.think, args.pipeline, use_siblings,
+                          args.permute_seconds, kb_taint, sibling_pool)
     may_resume, msg = experiment.check_or_claim(out, fp)
     print(msg, flush=True)
     if not may_resume:
@@ -182,7 +187,7 @@ def main() -> None:
             if args.pipeline:
                 r = pipeline.solve(repo, conn, func, args.model, endpoint,
                                    args.samples, args.permute_seconds,
-                                   args.siblings, args.timeout, args.think,
+                                   use_siblings, args.timeout, args.think,
                                    args.num_thread,
                                    historical_siblings=args.historical_siblings)
                 row = {**entry, "exact": r.exact, "best_score": r.best_score,

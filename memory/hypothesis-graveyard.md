@@ -34,3 +34,11 @@ Created: 2026-08-29
 - Evidence: Pareto selected a different anchor on 2/13 functions. Neither arm produced an exact match. On getRacePlayerRankingProgress Pareto reached 96.019 versus scalar 95.330; on initRacePlayerLandingSnowSpray neither improved beyond its anchor. Applicable pass counts differed (3 versus 2 or 1), so this is signal but not clean causal proof.
 - Decision: Keep Pareto selection in the evaluator only. Do not integrate into the production pipeline until it produces closures or wins under a budget-matched larger replay.
 - Linked ideas: IDEA-20260829-03
+
+### HYP-20260829-04: The current independently matched library contains whole-function siblings similar enough to help the unresolved >=90 percent near-miss set.
+- Status: Refuted
+- Tested: 2026-08-29
+- Test: After reverifying 34 exact sources, rank assembly similarity for all 13 unresolved functions at or above 90 while restricting both eligibility and prompt source to those recovered exact candidates.
+- Evidence: 0/13 targets had a sibling at similarity 0.75 or better. Four were in 0.45-0.75 and nine were below 0.45. Retrieval completed without errors. The audit also found the old path ranked names from our pool but copied C from the finished reference repo; that contamination path is now barred and the sibling-pool source digest is fingerprinted.
+- Decision: Do not spend GPU budget on whole-function sibling prompting with the current 34-source pool. Re-run the prevalence gate as the pool grows; test basic-block or partial-structure retrieval separately.
+- Linked ideas: IDEA-20260829-03, IDEA-20260829-04

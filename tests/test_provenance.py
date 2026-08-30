@@ -162,6 +162,7 @@ def test_old_fingerprint_sidecars_still_load():
            "permute_seconds": 90, "source_hash": "s"}
     fp = experiment.Fingerprint(**old)
     assert fp.kb_taint == ""
+    assert fp.sibling_pool == ""
     assert fp.digest() == experiment.Fingerprint(**old, kb_taint="").digest()
 
 

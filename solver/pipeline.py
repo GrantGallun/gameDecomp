@@ -138,9 +138,11 @@ def build_prompt(repo: Path, conn, func: str, asm: str, draft: str,
 
     sib = ""
     if use_siblings and route in ("retype", "reshape"):
+        sources = None if historical_siblings else siblings.verified_sources(conn)
         sib = siblings.context_block(repo, func,
                                      top=2 if route == "reshape" else 1,
-                                     historical=historical_siblings)
+                                     historical=historical_siblings,
+                                     sources=sources)
 
     return refine.FIRST_PROMPT.format(asm=asm, draft=draft, kb=kb,
                                       hints=hints + sib)

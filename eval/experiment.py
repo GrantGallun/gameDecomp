@@ -61,6 +61,9 @@ class Fingerprint:
     # therefore cannot resume into a clean results file: the digests differ and
     # check_or_claim already refuses a mismatch.
     kb_taint: str = ""
+    # Exact recovered source changes sibling prompts even when code and flags
+    # do not. Empty when sibling retrieval is disabled.
+    sibling_pool: str = ""
 
     def digest(self) -> str:
         blob = json.dumps(asdict(self), sort_keys=True).encode()
@@ -86,7 +89,8 @@ def _source_hash() -> str:
 
 def build(set_path: Path, split: str, model: str, samples: int,
           temperature: float, think: str, pipeline: bool, siblings: bool,
-          permute_seconds: int, kb_taint: str = "") -> Fingerprint:
+          permute_seconds: int, kb_taint: str = "",
+          sibling_pool: str = "") -> Fingerprint:
     return Fingerprint(
         git_rev=_git("rev-parse", "--short", "HEAD") or "no-git",
         git_dirty=bool(_git("status", "--porcelain")),
@@ -101,6 +105,7 @@ def build(set_path: Path, split: str, model: str, samples: int,
         permute_seconds=permute_seconds,
         source_hash=_source_hash(),
         kb_taint=kb_taint,
+        sibling_pool=sibling_pool,
     )
 
 

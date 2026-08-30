@@ -23,9 +23,13 @@ outright.
 
 from __future__ import annotations
 
+import hashlib
 import re
+import sqlite3
 import subprocess
 from pathlib import Path
+
+from kb import attempts as attempt_receipts
 
 SIM_RE = re.compile(r"^\s*\d+\.\s+(\w+)\s+\(score:\s*([\d.]+)\)")
 CSRC_RE = re.compile(r"^\s*C source:\s*(\S+)")
@@ -68,7 +72,8 @@ def historical_filter(repo: Path, target: str):
 
 
 def find(repo: Path, func: str, top: int = 3, min_score: float = 0.45,
-         timeout: int = 300, historical: bool = False
+         timeout: int = 300, historical: bool = False,
+         allowed: set[str] | None = None,
          ) -> list[tuple[str, float, Path]]:
     """(name, score, source_path) for matched functions resembling `func`.
 
@@ -79,7 +84,7 @@ def find(repo: Path, func: str, top: int = 3, min_score: float = 0.45,
         proc = subprocess.run(
             ["bash", "-lc",
              f". .venv/bin/activate && python3 tools/find_similar_functions.py "
-             f"{func} --top {top + 2}"],
+             f"{func} --top {2500 if allowed is not None else top + 2}"],
             cwd=repo, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return []
@@ -97,6 +102,7 @@ def find(repo: Path, func: str, top: int = 3, min_score: float = 0.45,
         if m:
             name, score = m.group(1), float(m.group(2))
             eligible = (name != func and score >= min_score
+                        and (allowed is None or name in allowed)
                         and (keep is None or keep(name)))
             pending = (name, score) if eligible else None
             continue
@@ -133,10 +139,36 @@ def extract_source(path: Path, func: str, max_lines: int = 70) -> str:
     return "\n".join(body)
 
 
+def verified_sources(conn: sqlite3.Connection) -> dict[str, str]:
+    """Latest source carrying an explicit positive verifier receipt per function."""
+    attempt_receipts.ensure_exact_receipt(conn)
+    out = {}
+    for name, source in conn.execute(
+            "SELECT f.name, a.source_code FROM attempts a "
+            "JOIN functions f ON f.addr = a.func_addr "
+            "WHERE a.exact = 1 AND a.source_code IS NOT NULL "
+            "ORDER BY a.id DESC"):
+        out.setdefault(name, source)
+    return out
+
+
+def source_digest(sources: dict[str, str]) -> str:
+    """Stable run-fingerprint component for the exact sibling pool."""
+    h = hashlib.sha256()
+    for name, source in sorted(sources.items()):
+        h.update(name.encode())
+        h.update(b"\0")
+        h.update(source.encode())
+        h.update(b"\0")
+    return h.hexdigest()[:16] if sources else ""
+
+
 def context_block(repo: Path, func: str, top: int = 2,
-                  historical: bool = False) -> str:
+                  historical: bool = False,
+                  sources: dict[str, str] | None = None) -> str:
     """A prompt block of matched sibling sources, or "" if none are close."""
-    found = find(repo, func, top=top, historical=historical)
+    found = find(repo, func, top=top, historical=historical,
+                 allowed=set(sources) if sources is not None else None)
     if not found:
         return ""
 
@@ -145,7 +177,10 @@ def context_block(repo: Path, func: str, top: int = 2,
              "byte-exact; mirror their structure, struct layouts and field "
              "signedness):"]
     for name, score, path in found:
-        src = extract_source(path, name)
+        # In cold-start evaluation, use the solver's recovered exact source.
+        # The path returned by the reference similarity index is ranking
+        # metadata, not permission to read that project's finished C.
+        src = sources.get(name, "") if sources is not None else extract_source(path, name)
         if not src:
             continue
         parts.append(f"\n/* {name} -- similarity {score:.2f}, VERIFIED MATCH */")
