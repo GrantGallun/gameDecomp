@@ -25,7 +25,7 @@ typedef struct {
     s16  rotY;         /* 0x26 */
     s16  field28;      /* 0x28 */
     s16  field2A;      /* 0x2A */
-    u8   _pad2C[2];    /* 0x2C */
+    char dpad2c[0x2];
     u16  textureId;    /* 0x2E */
     u16  paletteId;    /* 0x30 */
 } EndingCreditsLinda;

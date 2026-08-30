@@ -19,15 +19,22 @@ publishes "these 9,504 statement orderings were all identical".
 
 Run:
     python3 -m patterns.mine_commits --repo ~/decomp/sbk1 --top 25
+    python3 -m patterns.mine_commits --repo ~/decomp/sbk1 --provenance \
+        --output /tmp/sbk1-provenance.json
+    python3 -m patterns.mine_commits --repo ~/decomp/sbk1 --provenance \
+        --function func_8002E32C --include-source
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 from collections import Counter
 from pathlib import Path
+
+from patterns.commit_provenance import GitHistoryError, build_report
 
 # Vocabulary of source-level levers, drawn from reading the commit corpus.
 LEVERS = {
@@ -119,8 +126,45 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--repo", required=True, type=Path)
     ap.add_argument("--top", type=int, default=12)
+    ap.add_argument(
+        "--provenance", action="store_true",
+        help="emit deterministic per-function history instead of technique counts")
+    ap.add_argument(
+        "--output", type=Path,
+        help="write provenance JSON here (stdout when omitted)")
+    ap.add_argument(
+        "--function", action="append", default=[],
+        help="limit provenance to one function; repeat for more")
+    ap.add_argument(
+        "--include-source", action="store_true",
+        help="include before/after source and diffs (requires --function)")
     args = ap.parse_args()
-    analyse(args.repo.expanduser(), args.top)
+    if args.function:
+        args.provenance = True
+    if args.include_source and not args.function:
+        ap.error("--include-source requires at least one --function")
+    if not args.provenance:
+        if args.output:
+            ap.error("--output is only valid with --provenance")
+        analyse(args.repo.expanduser(), args.top)
+        return
+
+    try:
+        report = build_report(
+            args.repo, functions=args.function, include_source=args.include_source)
+    except (GitHistoryError, OSError, ValueError) as exc:
+        ap.error(str(exc))
+    rendered = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(rendered, encoding="utf-8")
+        summary = report["summary"]
+        print(f"wrote {summary['functions']} functions to {args.output}")
+        print(f"first C commit resolved: {summary['first_c_resolved']}")
+        print(f"component counts: {summary['component_counts']}")
+        print(f"origin counts: {summary['origin_counts']}")
+    else:
+        print(rendered, end="")
 
 
 if __name__ == "__main__":
