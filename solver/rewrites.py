@@ -155,6 +155,59 @@ def _split_args(text: str) -> list[str]:
     return out
 
 
+RELOC_ADDEND = re.compile(r"%(?:hi|lo)\(\s*(\w+)\s*(?:\+\s*(-?(?:0x)?[0-9a-fA-F]+))?\s*\)")
+
+
+def reloc_padding_rewrites(code: str, diff: str) -> list[Rewrite]:
+    """Padding derived from a relocation ADDEND, which diffrepair cannot see.
+
+        -lbu t7,%lo(gRacePlayers+8)(t7)     target reads 8 bytes into the entry
+        +lbu t7,%lo(gRacePlayers)(t7)       we read it at 0
+
+    The difference is carried in the relocation's addend rather than in an
+    instruction offset operand, so the offset machinery finds nothing at all --
+    diffrepair derives zero constraints from this residual. It is nevertheless
+    a plain statement that the field accessed at addend M belongs at addend N,
+    so N - M bytes are missing ahead of it in the element struct.
+
+    This was the last gap blocking updateRaceSplitscreenSelectPlayerCountIcons,
+    whose entire residual is one such line.
+    """
+    out: list[Rewrite] = []
+    seen: set[tuple[str, int]] = set()
+    pairs, _n, _m = signals._pairs(diff)
+    for a, b in pairs:
+        ma, mb = RELOC_ADDEND.search(a), RELOC_ADDEND.search(b)
+        if not (ma and mb) or ma.group(1) != mb.group(1):
+            continue
+        want = _num(ma.group(2)) if ma.group(2) else 0
+        got = _num(mb.group(2)) if mb.group(2) else 0
+        if want is None or got is None or want == got or want < got:
+            continue
+        sym, delta = ma.group(1), want - got
+        if (sym, delta) in seen:
+            continue
+        seen.add((sym, delta))
+
+        # the struct body declaring this symbol, e.g. `} gRacePlayers[8];`
+        decl = re.search(r"\{([^{}]*)\}\s*" + re.escape(sym) + r"\s*[\[;]", code)
+        if not decl:
+            continue
+        body = decl.group(1)
+        fields = diffrepair._fields("struct S {" + body + "};")
+        target_field = next((m for m, off, _s in fields if off == got), None)
+        if target_field is None:
+            continue
+        old_line = target_field.group(0)
+        pad = (f"{target_field.group('indent')}"
+               f"char rpad{got:02x}[{delta:#x}];\n")
+        out.append(Rewrite(
+            f"{delta} bytes before {sym}.{target_field.group('name')}",
+            "layout",
+            lambda s, _o=old_line, _p=pad: s.replace(_o, _p + _o, 1)))
+    return out
+
+
 def layout_rewrites(code: str, diff: str) -> list[Rewrite]:
     """Offset, width and ordering repairs, from the existing diffrepair pass."""
     out: list[Rewrite] = []
@@ -168,5 +221,6 @@ def layout_rewrites(code: str, diff: str) -> list[Rewrite]:
 def propose(code: str, diff: str) -> list[Rewrite]:
     """Every applicable rewrite for this residual, cheapest kind first."""
     return (layout_rewrites(code, diff)
+            + reloc_padding_rewrites(code, diff)
             + immediate_rewrites(code, diff)
             + argswap_rewrites(code, diff))
