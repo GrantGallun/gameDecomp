@@ -1,0 +1,23 @@
+[
+ {
+  "function": "updateRaceSplitscreenSelectPlayerCountIcons",
+  "before": 99.925,
+  "after": 99.925,
+  "exact": false,
+  "removed": [
+   "s16",
+   "s32",
+   "u8"
+  ]
+ },
+ {
+  "function": "checkMainMenuSecretCode",
+  "before": 98.561,
+  "after": 98.561,
+  "exact": false,
+  "removed": [
+   "s32",
+   "u8"
+  ]
+ }
+]

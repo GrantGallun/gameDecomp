@@ -1359,5 +1359,25 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "scratch-prelude-models-wrong-translation-unit",
+    "claim": "Our candidates' own typedef preludes model a different translation unit, so replacing them with the real project header changes the score",
+    "source": "DECOMPILATION_LEARNINGS.md in the reference repo: the same body scored 95.749% against a decomp.me-style prelude and 98.851% against the real project headers",
+    "status": "REFUTED",
+    "evidence": "Does not transfer to our setup. PREVALENCE FIRST: only 2 of 37 unmatched candidates carry a redundant prelude at all. On both, replacing it with #include common.h left the score EXACTLY unchanged. A first attempt stripped the prelude without adding the header and broke both builds, which was itself informative: those candidates do not include common.h at all, so the prelude is their only type source. WHY IT DOES NOT TRANSFER: our preludes declare only scalar typedefs -- unsigned char, short, long -- which are exactly correct for this ABI, so the program they model is identical to the one the headers give. The reference project's gap must have come from a prelude that differed substantively, most likely in struct definitions rather than scalars. METHOD NOTE: an external methodology document is a source of hypotheses, not of conclusions. This one was measured and did not hold here; adopt nothing from that file without testing it in our harness.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "workspace-alignment-nops-are-not-candidate-defects",
+    "claim": "A residual consisting only of trailing nops is a defect in the candidate that some C spelling can fix",
+    "source": "bootThreadMain sat one nop from exact and resisted every C variant",
+    "status": "REFUTED",
+    "evidence": "The reference project's DECOMPILATION_LEARNINGS.md states it directly: object-relative alignment nops are padding, not logic. IDO emits an alignment directive before an unreachable epilogue, and a single-function workspace starts at a different section offset than the real multi-function object, so the same directive yields a different number of trailing nops EVEN WHEN THE LIVE INSTRUCTIONS MATCH. For this exact shape it adds that a terminal backward goto can align an unreachable epilogue with the nop count depending on the function's offset in the translation unit. That explains 16 oracle-verified variants moving bootThreadMain not at all: there is nothing in C to find. The candidate may already be correct and our isolated workspace cannot deliver a verdict on it. eval/alignment_nops.py measures the reach: exactly ONE function is purely alignment-blocked, 21 more carry nop noise inside residuals otherwise dominated by real faults. CONSEQUENCE: a function whose residual is only trailing nops should be reported as HARNESS-LIMITED rather than counted as a near miss, and verified in the real translation unit. Also worth remembering as a sourcing lesson: there was no commit explaining the match -- only 777 of ~2113 functions carry one -- and the answer lived in a methodology document we had never read.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]
