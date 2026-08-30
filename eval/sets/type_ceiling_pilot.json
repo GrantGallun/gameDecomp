@@ -1,0 +1,42 @@
+{
+  "note": "Pre-registered dev-only arm-health pilot for oracle-types-ceiling. Every function was selected before generation because DECLARED TYPES reaches its ceiling prompt. Continue to hard_v1 only if the ceiling arm improves compile/score without infrastructure failures; exact matches remain the decisive metric.",
+  "dev": [
+    {
+      "function": "updateRaceSplitscreenSelectPlayerCountIcons",
+      "tier": "large",
+      "leaf": false,
+      "prior_score": 96.323
+    },
+    {
+      "function": "isRacePlayerRespawnSurfaceValid",
+      "tier": "medium",
+      "leaf": false,
+      "prior_score": 95.769
+    },
+    {
+      "function": "renderRaceUiSingleTrailEffect",
+      "tier": "medium",
+      "leaf": false,
+      "prior_score": 89.052
+    },
+    {
+      "function": "initRacePlayerLandingSnowSpray",
+      "tier": "medium",
+      "leaf": false,
+      "prior_score": 41.267
+    },
+    {
+      "function": "drawPulsingAssetTableSprite",
+      "tier": "huge",
+      "leaf": true,
+      "prior_score": 0.874
+    },
+    {
+      "function": "updateRacePlayerMode53AerialTrick",
+      "tier": "large",
+      "leaf": false,
+      "prior_score": 0.0
+    }
+  ],
+  "heldout": []
+}
