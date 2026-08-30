@@ -137,26 +137,45 @@ functions matched — an external review caught it. Any agent reading a stale st
 reasons from a false premise, so a generated number is worth more than a careful
 sentence.
 
-Target is SBK1 (N64, IDO 5.3 `-O2`). Last generated 2026-08-28:
+Target is SBK1 (N64, IDO 5.3 `-O2`). Last generated 2026-08-30:
 
 | | |
 |---|---|
-| functions byte-exact | **34** of 91 attempted |
-| attempts logged | 1,939 |
+| functions byte-exact | **35** of 91 attempted |
+| attempts logged | 2,999 |
 | evidence rows | 72,845 |
 | **inference rows** | **0** |
-| tests | 65 |
+| tests | 240 |
 
-**The inference tier being empty is the headline, not the match count.** The thesis is
-"the model proposes, the database remembers why", and the database has never remembered
-anything. Every function is reconstructed from an address and a width, with no
-accumulated type knowledge — which is why matching collapses at exactly the tier where
-types start to matter (tiny/small 100%, medium 10%, large 6%).
+**The empty inference tier is no longer the headline — it was tested and the premise
+failed.** A paired A/B on hard_v1 dev gave one arm a KB deliberately loaded with the
+reference decomp's own types and left the other clean. Exact was 0 in both arms, and the
+typed functions got *worse*: mean best 26.5 → 11.2 against 35.3 → 31.5 for untyped
+controls, a difference-in-differences of −11.5. Perfect type knowledge, handed over for
+free, harmed generation. Do not build a broad type-inference tier on the old reasoning;
+diagnose why declared-type context hurts before spending anything else on it.
 
-Known-dead directions, so they are not retried: prompt enrichment (7 nulls), telling the
-model a type exists without binding it to a symbol, whole-function context/length
-management (region splitting, compression, sequential composition — all null, and
-removing 100% of refusals produced 0 extra matches). See `patterns/hypotheses.py`.
+**What does work is deterministic repair driven by the oracle's own diff.** The KB knows
+which offsets the binary touches but nothing maps a *declaration* to an offset; the diff
+states it outright (`-lbu v1,0x24(a0)` / `+lbu v1,0(a0)` means the field you put at 0
+belongs at 0x24). `solver/diffrepair.py` reads offset, width and ordering constraints
+from that and repairs the struct with no model involved. It produced the only new match
+since the corpus was built.
 
-Next action: bind real prototypes and types to symbols (`miner/import_existing.py`,
-still unwritten) so the inference tier stops being empty.
+Known-dead directions, so they are not retried: prompt enrichment (7 nulls); oracle-grade
+types (above); layout repair driven by the KB rather than the diff (three interventions,
+0 matches); whole-function sibling mirroring at the current pool size (0% in-pool
+coverage — it is a flywheel, revisit as the matched set grows); the permuter on
+structural residuals; whole-function context management. See `patterns/hypotheses.py`
+and `memory/hypothesis-graveyard.md`.
+
+**Rank work by tractability, not score** (`python3 -m eval.triage`). A function at 70%
+whose residual is two offset faults is closer to done than one at 96% whose residual is
+thirty branch faults. The match above was the smallest tractable residual, not the
+highest-scoring candidate — and `bootThreadMain` sits one instruction from exact and is
+unreachable, because that instruction is compiler padding rather than code.
+
+Next action: the structural wall. 0 matches of 41 in medium/large/huge, and the residuals
+there are branch shape, missing instructions and jump tables — see SAILR (USENIX Sec '24)
+on inverting compiler goto-inducing transformations, and consider cataloguing IDO switch
+shapes in `patterns/catalog.py`.

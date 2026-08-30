@@ -1339,5 +1339,25 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "diff-directed-width-repair",
+    "claim": "Reading the intended field WIDTH from the opcode in the oracle's diff repairs a fault class no existing pass could touch",
+    "source": "triage by tractability: updateRaceSetupFourPlayerOption had 3 faults, zero structural, and one of them was sw-vs-sb",
+    "status": "CONFIRMED",
+    "evidence": "FIRST NEW BYTE-EXACT MATCH since the corpus was built. updateRaceSetupFourPlayerOption 96.441 -> 100.000, oracle exact=True, no model. Match count 34 -> 35. repad and reorder_fields can MOVE a field; neither can RETYPE one, so width faults had no repair at all despite appearing in roughly fifteen functions. width_constraints() reads the width from the opcode exactly as offsets are read from the operand. A store carries no signedness, so it constrains width only rather than guessing a type; arrays are left alone because a wider access could mean the element type or the index arithmetic. TWO BUGS HAD TO BE FIXED FOR IT TO FIRE AT ALL. (1) aligned_pairs blanks only the offset, so a pair differing in OPCODE never lands in an equal block -- width constraints could never have fired; aligned_pairs_loose collapses a memory op to its direction so those pairs align. (2) THE ACTUAL BLOCKER: DECL anchored at start-of-line, so a declaration behind an inline comment -- /* 0x00 .. 0x17 */ char pad0[0x18]; -- was invisible. The pads were not counted, a field computed at offset 0x02 instead of 0x1C, and the diff's constraint matched nothing. That is the THIRD parser defect of this shape (function bodies read as structs, typedefs counted as fields, now commented pads skipped) and each one silently produced WRONG OFFSETS while every pass reported success. Sweep: 1 match, 3 further improvements. Earlier gains compounded rather than reverting -- updateRaceSplitscreenSelectPlayerCountIcons now STARTS at 99.925.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "bootthreadmain-nop-is-reachable-from-c",
+    "claim": "bootThreadMain's single missing nop can be produced by some C spelling of its empty infinite loop",
+    "source": "it is the smallest residual in the project: one instruction at 97.222",
+    "status": "REFUTED",
+    "evidence": "16 oracle-verified variants, all byte-identical at 97.222: nine infinite-loop spellings (for/while/do-while/goto, statement and block bodies) and seven dead-code variants around the loop. Two variants that moved a call into the loop scored WORSE (83.605). IDO normalises every spelling, so the loop's C form is not the source of the nop. The target ends with a self-branch, its delay-slot nop, then three more nops before an UNREACHABLE epilogue; we emit two. That is compiler padding after dead code, not a code difference, and nothing at the C level reaches it. No other matched function in the corpus uses the idiom, so there is no sibling to copy either. GENERAL LESSON, and it corrects how the work queue should be read: a one-instruction residual is NOT necessarily easy. Fault COUNT does not predict tractability -- fault KIND does. eval/triage.py ranks by kind for this reason.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]
