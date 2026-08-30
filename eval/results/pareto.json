@@ -1,0 +1,473 @@
+{
+ "differs": 7,
+ "same": 24,
+ "rows": [
+  {
+   "function": "updateEndingLindaExitUntilPhase3C",
+   "scalar": {
+    "score": 99.545,
+    "structural": 0,
+    "layout": 2
+   },
+   "pareto_top": {
+    "score": 99.545,
+    "structural": 0,
+    "layout": 2
+   },
+   "front": 4,
+   "differs": false
+  },
+  {
+   "function": "updateRaceSplitscreenSelectPlayerCountIcons",
+   "scalar": {
+    "score": 99.436,
+    "structural": 0,
+    "layout": 27
+   },
+   "pareto_top": {
+    "score": 99.436,
+    "structural": 0,
+    "layout": 27
+   },
+   "front": 4,
+   "differs": false
+  },
+  {
+   "function": "checkMainMenuSecretCode",
+   "scalar": {
+    "score": 98.561,
+    "structural": 3,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 98.561,
+    "structural": 3,
+    "layout": 0
+   },
+   "front": 4,
+   "differs": false
+  },
+  {
+   "function": "bootThreadMain",
+   "scalar": {
+    "score": 97.222,
+    "structural": 1,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 97.222,
+    "structural": 1,
+    "layout": 0
+   },
+   "front": 4,
+   "differs": false
+  },
+  {
+   "function": "updateRaceSetupFourPlayerOption",
+   "scalar": {
+    "score": 96.441,
+    "structural": 0,
+    "layout": 3
+   },
+   "pareto_top": {
+    "score": 96.441,
+    "structural": 0,
+    "layout": 3
+   },
+   "front": 1,
+   "differs": false
+  },
+  {
+   "function": "initRacePlayerLandingSnowSpray",
+   "scalar": {
+    "score": 95.989,
+    "structural": 9,
+    "layout": 35
+   },
+   "pareto_top": {
+    "score": 91.739,
+    "structural": 3,
+    "layout": 38
+   },
+   "front": 6,
+   "differs": true
+  },
+  {
+   "function": "getRacePlayerRankingProgress",
+   "scalar": {
+    "score": 95.346,
+    "structural": 48,
+    "layout": 1
+   },
+   "pareto_top": {
+    "score": 94.761,
+    "structural": 48,
+    "layout": 0
+   },
+   "front": 6,
+   "differs": true
+  },
+  {
+   "function": "calculateRaceTimerDelta",
+   "scalar": {
+    "score": 94.324,
+    "structural": 16,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 94.324,
+    "structural": 16,
+    "layout": 0
+   },
+   "front": 2,
+   "differs": false
+  },
+  {
+   "function": "updateRacePlayerMode53AerialTrick",
+   "scalar": {
+    "score": 94.099,
+    "structural": 5,
+    "layout": 39
+   },
+   "pareto_top": {
+    "score": 94.099,
+    "structural": 5,
+    "layout": 39
+   },
+   "front": 3,
+   "differs": false
+  },
+  {
+   "function": "requestRumbleMotorStart",
+   "scalar": {
+    "score": 93.778,
+    "structural": 5,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 93.778,
+    "structural": 5,
+    "layout": 0
+   },
+   "front": 2,
+   "differs": false
+  },
+  {
+   "function": "updateEndingSlashSlideRightToMarker",
+   "scalar": {
+    "score": 92.258,
+    "structural": 1,
+    "layout": 6
+   },
+   "pareto_top": {
+    "score": 92.258,
+    "structural": 1,
+    "layout": 6
+   },
+   "front": 6,
+   "differs": false
+  },
+  {
+   "function": "renderRaceUiSingleTrailEffect",
+   "scalar": {
+    "score": 91.519,
+    "structural": 0,
+    "layout": 6
+   },
+   "pareto_top": {
+    "score": 91.519,
+    "structural": 0,
+    "layout": 6
+   },
+   "front": 3,
+   "differs": false
+  },
+  {
+   "function": "initTimeTrialRecordDeltaPopup",
+   "scalar": {
+    "score": 90.484,
+    "structural": 2,
+    "layout": 4
+   },
+   "pareto_top": {
+    "score": 90.484,
+    "structural": 2,
+    "layout": 4
+   },
+   "front": 3,
+   "differs": false
+  },
+  {
+   "function": "createCallbackTaskPreservingArgs",
+   "scalar": {
+    "score": 89.723,
+    "structural": 27,
+    "layout": 5
+   },
+   "pareto_top": {
+    "score": 89.723,
+    "structural": 27,
+    "layout": 5
+   },
+   "front": 6,
+   "differs": false
+  },
+  {
+   "function": "updateRacePlayerMode16AerialTrick",
+   "scalar": {
+    "score": 89.644,
+    "structural": 31,
+    "layout": 7
+   },
+   "pareto_top": {
+    "score": 89.644,
+    "structural": 31,
+    "layout": 7
+   },
+   "front": 1,
+   "differs": false
+  },
+  {
+   "function": "updateCourseSelectCourseDescription",
+   "scalar": {
+    "score": 89.2,
+    "structural": 11,
+    "layout": 26
+   },
+   "pareto_top": {
+    "score": 89.2,
+    "structural": 11,
+    "layout": 26
+   },
+   "front": 3,
+   "differs": false
+  },
+  {
+   "function": "hasPendingRaceReplayCourseGridEntry",
+   "scalar": {
+    "score": 88.25,
+    "structural": 2,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 88.25,
+    "structural": 2,
+    "layout": 0
+   },
+   "front": 5,
+   "differs": false
+  },
+  {
+   "function": "compressRaceRecordReplayData",
+   "scalar": {
+    "score": 87.623,
+    "structural": 29,
+    "layout": 3
+   },
+   "pareto_top": {
+    "score": 87.623,
+    "structural": 29,
+    "layout": 3
+   },
+   "front": 6,
+   "differs": false
+  },
+  {
+   "function": "initMainMenuSceneModel",
+   "scalar": {
+    "score": 87.614,
+    "structural": 6,
+    "layout": 10
+   },
+   "pareto_top": {
+    "score": 87.614,
+    "structural": 6,
+    "layout": 10
+   },
+   "front": 4,
+   "differs": false
+  },
+  {
+   "function": "allocMenuRenderScratch",
+   "scalar": {
+    "score": 87.0,
+    "structural": 3,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 81.5,
+    "structural": 1,
+    "layout": 0
+   },
+   "front": 3,
+   "differs": true
+  },
+  {
+   "function": "gameThreadMain",
+   "scalar": {
+    "score": 83.514,
+    "structural": 19,
+    "layout": 3
+   },
+   "pareto_top": {
+    "score": 83.514,
+    "structural": 19,
+    "layout": 3
+   },
+   "front": 6,
+   "differs": false
+  },
+  {
+   "function": "initMenuAssetHandles",
+   "scalar": {
+    "score": 83.385,
+    "structural": 6,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 83.385,
+    "structural": 6,
+    "layout": 0
+   },
+   "front": 1,
+   "differs": false
+  },
+  {
+   "function": "initControllerPakRaceRecordSaveFlow",
+   "scalar": {
+    "score": 81.282,
+    "structural": 8,
+    "layout": 7
+   },
+   "pareto_top": {
+    "score": 69.829,
+    "structural": 6,
+    "layout": 4
+   },
+   "front": 6,
+   "differs": true
+  },
+  {
+   "function": "tryQueueRacePlayerHitCueNudge",
+   "scalar": {
+    "score": 79.356,
+    "structural": 18,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 65.289,
+    "structural": 15,
+    "layout": 1
+   },
+   "front": 2,
+   "differs": true
+  },
+  {
+   "function": "resetRenderCallbackQueues",
+   "scalar": {
+    "score": 78.462,
+    "structural": 4,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 78.462,
+    "structural": 4,
+    "layout": 0
+   },
+   "front": 2,
+   "differs": false
+  },
+  {
+   "function": "getRacePlayerPathOffset",
+   "scalar": {
+    "score": 72.875,
+    "structural": 9,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 72.875,
+    "structural": 9,
+    "layout": 0
+   },
+   "front": 2,
+   "differs": false
+  },
+  {
+   "function": "zoomTrainingCourseRaceViewport",
+   "scalar": {
+    "score": 70.388,
+    "structural": 38,
+    "layout": 5
+   },
+   "pareto_top": {
+    "score": 70.388,
+    "structural": 38,
+    "layout": 5
+   },
+   "front": 5,
+   "differs": false
+  },
+  {
+   "function": "func_8005804C",
+   "scalar": {
+    "score": 68.536,
+    "structural": 21,
+    "layout": 8
+   },
+   "pareto_top": {
+    "score": 49.536,
+    "structural": 13,
+    "layout": 0
+   },
+   "front": 6,
+   "differs": true
+  },
+  {
+   "function": "packFixedTransformMatrix",
+   "scalar": {
+    "score": 66.509,
+    "structural": 70,
+    "layout": 12
+   },
+   "pareto_top": {
+    "score": 66.509,
+    "structural": 70,
+    "layout": 12
+   },
+   "front": 5,
+   "differs": false
+  },
+  {
+   "function": "getRaceCourseSurfaceSpawnTransform",
+   "scalar": {
+    "score": 63.137,
+    "structural": 24,
+    "layout": 5
+   },
+   "pareto_top": {
+    "score": 63.137,
+    "structural": 24,
+    "layout": 5
+   },
+   "front": 3,
+   "differs": false
+  },
+  {
+   "function": "resetAllViewports",
+   "scalar": {
+    "score": 62.788,
+    "structural": 40,
+    "layout": 0
+   },
+   "pareto_top": {
+    "score": 45.0,
+    "structural": 26,
+    "layout": 0
+   },
+   "front": 6,
+   "differs": true
+  }
+ ],
+ "wins_best": [],
+ "wins_pareto": []
+}
