@@ -256,6 +256,119 @@ def drop_mask_rewrites(code: str, diff: str) -> list[Rewrite]:
     return out
 
 
+BRANCH_POLARITY = {"beq": "bne", "bne": "beq",
+                   "beqz": "bnez", "bnez": "beqz"}
+WHILE_HEAD = re.compile(r"\bwhile\s*\(([^;{}]*)\)\s*\{")
+
+
+def _matching_brace(code: str, open_at: int) -> int:
+    """Index of the '}' closing the '{' at open_at, or -1."""
+    depth = 0
+    for i in range(open_at, len(code)):
+        if code[i] == "{":
+            depth += 1
+        elif code[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+    return -1
+
+
+def loop_shape_rewrites(code: str, diff: str) -> list[Rewrite]:
+    """Move a loop's test from the top to the bottom, as for(;;) + break.
+
+    NEVER emits a `do` token. The per-function build.sh rejects one outright,
+    and this project has already established why that is not the obstacle it
+    looks like: the guard bans the TOKEN, not the control-flow shape, and
+    build.sh's own error says to use `while` or `for` instead. So
+    `for (;;) { body; if (!cond) break; }` is the SANCTIONED form, not a
+    workaround -- it compiles to a loop with no entry guard, which is exactly
+    the shape a bottom-tested loop needs.
+
+    Recorded in the bank as do-while-functions-are-unmatchable (REFUTED) and
+    for-break-rewrite-generalises-across-do-while-sites (CONFIRMED across 389
+    of 390 sites). A first version of this generator emitted `do`/`while`
+    anyway and was rejected by the build in one compile.
+
+        -bne v1,a0,14      the target closes the loop with a bottom test
+        +beq v1,v0,30      we guard it at the top instead
+
+    A top-tested `while` emits an entry guard and a backward jump; a
+    bottom-tested `do` emits neither, so the two differ in instruction count
+    and in every later branch target. On initMenuAssetHandles -- 13
+    instructions, stuck at 83.385 -- that is the whole residual, and it is the
+    same fault class that dominates the medium and large tiers where nothing
+    has ever matched.
+
+    NOT SEMANTICS-PRESERVING, unlike the padding and mask rewrites: a
+    bottom-tested loop runs its body at least once, so this changes behaviour
+    when the loop could execute zero times. It is proposed because the original
+    source frequently DID know the loop runs at least once, and the oracle
+    rejects it when that is wrong. Flagged here because the other generators
+    can claim safety and this one cannot.
+    """
+    # The signal is a SURPLUS conditional branch on our side, not an inverted
+    # one. Reading the raw diff suggested `-bne` against `+beq`, but the two
+    # streams actually pair bne with bne: the `beq` is an EXTRA line with no
+    # counterpart, which is exactly the entry guard a top-tested `while` emits
+    # and a `do` does not. Counting branches per side sees that; comparing
+    # paired opcodes never can, because the surplus line is unpaired by
+    # definition.
+    def branches(prefix: str) -> int:
+        n = 0
+        for line in diff.splitlines():
+            if not line.startswith(prefix) or line.startswith(prefix * 3):
+                continue
+            m = OPCODE.match(line[1:].strip())
+            if m and m.group(1) in BRANCH_POLARITY:
+                n += 1
+        return n
+
+    if branches("+") <= branches("-"):
+        return []                       # no surplus guard to remove
+
+    out: list[Rewrite] = []
+    for m in WHILE_HEAD.finditer(code):
+        open_at = code.index("{", m.start())
+        close_at = _matching_brace(code, open_at)
+        if close_at < 0:
+            continue
+        cond = m.group(1).strip()
+        body = code[open_at + 1:close_at]
+
+        # A `continue` at THIS loop's level makes the rewrite incorrect, not
+        # merely unmatching: in a bottom-tested loop it jumps to the condition
+        # test, but in for(;;) it jumps to the top and skips the trailing
+        # break, turning a terminating loop into an infinite one. The project
+        # measured this across all 390 do-while sites in the game and found
+        # exactly one such hazard, so it is rare and real.
+        if _has_own_level_continue(body):
+            continue
+
+        indent = re.match(r"[ \t]*", code[m.start():]).group(0)
+        replacement = (f"for (;;)\n{indent}{{{body}"
+                       f"{indent}    if (!({cond})) break;\n{indent}}}")
+        old = code[m.start():close_at + 1]
+        out.append(Rewrite(f"bottom-test loop on ({cond[:30]})", "loopshape",
+                           lambda s, _o=old, _n2=replacement:
+                           s.replace(_o, _n2, 1)))
+    return out
+
+
+def _has_own_level_continue(body: str) -> bool:
+    """True when `continue` belongs to this loop rather than a nested one."""
+    depth = 0
+    for m in re.finditer(r"\bfor\b|\bwhile\b|\bcontinue\b|\{|\}", body):
+        tok = m.group(0)
+        if tok in ("for", "while"):
+            depth += 1                  # a nested loop claims the next continue
+        elif tok == "}" and depth:
+            depth -= 1
+        elif tok == "continue" and depth == 0:
+            return True
+    return False
+
+
 def layout_rewrites(code: str, diff: str) -> list[Rewrite]:
     """Offset, width and ordering repairs, from the existing diffrepair pass."""
     out: list[Rewrite] = []
@@ -271,5 +384,6 @@ def propose(code: str, diff: str) -> list[Rewrite]:
     return (layout_rewrites(code, diff)
             + reloc_padding_rewrites(code, diff)
             + drop_mask_rewrites(code, diff)
+            + loop_shape_rewrites(code, diff)
             + immediate_rewrites(code, diff)
             + argswap_rewrites(code, diff))

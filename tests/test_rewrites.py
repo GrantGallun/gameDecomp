@@ -4,6 +4,8 @@ These propose source edits, so the tests are mostly about refusing to propose
 when the residual does not actually say what the rewrite would assert.
 """
 
+import re
+
 from solver import rewrites
 
 
@@ -133,3 +135,54 @@ def test_drop_mask_only_touches_true_width_masks():
     assert rewrites.drop_mask_rewrites("a = x & 0xFFFFF;\n", diff) == []
     assert rewrites.drop_mask_rewrites("a = x & 0xFF;\n", diff)
     assert rewrites.drop_mask_rewrites("a = x & 0xFFFF;\n", diff)
+
+
+# ------------------------------------------------------- loop shape
+
+def _loop_diff():
+    """A surplus conditional branch on our side: a top-tested entry guard."""
+    return ("--- target\n+++ candidate\n@@ -1,9 +1,9 @@\n"
+            "-addiu v1,v1,8\n"
+            "-bne v1,a0,14\n"
+            "+beq v1,v0,30\n"
+            "+addiu v0,v0,8\n"
+            "+bne v0,v1,18\n")
+
+
+def test_loop_rewrite_never_emits_a_do_token():
+    """build.sh rejects a bare `do` outright.
+
+    The sanctioned form is for(;;) + break, which compiles to the same
+    entry-guard-free shape. A first version of this generator emitted
+    do/while and was rejected by the build in one compile.
+    """
+    code = "void f(void) {\n    while (p != end)\n    {\n        p += 4;\n    }\n}\n"
+    rws = rewrites.loop_shape_rewrites(code, _loop_diff())
+    assert rws, "a surplus guard should propose a bottom-test rewrite"
+    out = rws[0](code)
+    assert not re.search(r"\bdo\b", out), "must never emit a `do` token"
+    assert "for (;;)" in out and "break;" in out
+
+
+def test_loop_rewrite_declines_on_an_own_level_continue():
+    """`continue` in a bottom-tested loop jumps to the condition test; in
+    for(;;) it skips the trailing break and the loop never terminates. That is
+    a hang, not a low score, so it must be refused rather than measured."""
+    code = ("void f(void) {\n    while (p != end)\n    {\n"
+            "        if (x) continue;\n        p += 4;\n    }\n}\n")
+    assert rewrites.loop_shape_rewrites(code, _loop_diff()) == []
+
+
+def test_loop_rewrite_allows_a_continue_belonging_to_a_nested_loop():
+    code = ("void f(void) {\n    while (p != end)\n    {\n"
+            "        for (i = 0; i < 4; i++) { if (x) continue; }\n"
+            "        p += 4;\n    }\n}\n")
+    assert rewrites.loop_shape_rewrites(code, _loop_diff())
+
+
+def test_loop_rewrite_needs_a_surplus_branch():
+    """Equal branch counts mean no entry guard to remove."""
+    code = "void f(void) {\n    while (p != end)\n    {\n        p += 4;\n    }\n}\n"
+    even = ("--- target\n+++ candidate\n@@ -1,4 +1,4 @@\n"
+            "-bne v1,a0,14\n+bne v0,v1,18\n")
+    assert rewrites.loop_shape_rewrites(code, even) == []
