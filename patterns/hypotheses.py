@@ -27,6 +27,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 BANK = Path(__file__).parent / "hypotheses.json"
+VALID_STATUSES = {"CONFIRMED", "REFUTED", "INCONCLUSIVE", "UNTESTED"}
 
 
 @dataclass
@@ -65,7 +66,25 @@ def load() -> list[Hypothesis]:
     return [Hypothesis(**h) for h in json.loads(BANK.read_text())]
 
 
+def audit(items: list[Hypothesis]) -> list[str]:
+    """Return integrity failures that make the bank ambiguous to consumers."""
+    issues = []
+    seen = set()
+    for h in items:
+        if h.id in seen:
+            issues.append(f"duplicate id: {h.id}")
+        seen.add(h.id)
+        if h.status not in VALID_STATUSES:
+            issues.append(f"{h.id}: invalid status {h.status}")
+        if h.status != "UNTESTED" and not h.evidence.strip():
+            issues.append(f"{h.id}: {h.status} without evidence")
+    return issues
+
+
 def save(items: list[Hypothesis]) -> None:
+    issues = audit(items)
+    if issues:
+        raise ValueError("invalid hypothesis bank: " + "; ".join(issues))
     BANK.write_text(json.dumps([asdict(h) for h in items], indent=2))
 
 
@@ -84,9 +103,21 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--check", help="search before implementing an idea")
     ap.add_argument("--status", help="list by status")
+    ap.add_argument("--audit", action="store_true",
+                    help="check unique IDs, statuses, and evidence receipts")
     ap.add_argument("--add", nargs=4, metavar=("ID", "CLAIM", "SOURCE", "STATUS"))
     ap.add_argument("--evidence", default="")
     args = ap.parse_args()
+
+    if args.audit:
+        issues = audit(load())
+        if issues:
+            print("HYPOTHESIS BANK INVALID")
+            for issue in issues:
+                print(f"  - {issue}")
+            return 2
+        print("hypothesis bank valid")
+        return 0
 
     if args.add:
         items = load()
@@ -95,7 +126,7 @@ def main() -> None:
                                 evidence=args.evidence))
         save(items)
         print(f"recorded {args.add[0]} as {args.add[3]}")
-        return
+        return 0
 
     items = check(args.check) if args.check else load()
     if args.status:
@@ -103,7 +134,7 @@ def main() -> None:
 
     if not items:
         print("no matching hypotheses -- this idea appears untested")
-        return
+        return 0
 
     for h in items:
         print(f"\n[{h.status}] {h.id}")
@@ -118,7 +149,8 @@ def main() -> None:
     for h in load():
         counts[h.status] = counts.get(h.status, 0) + 1
     print("\n" + "  ".join(f"{k}:{v}" for k, v in sorted(counts.items())))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

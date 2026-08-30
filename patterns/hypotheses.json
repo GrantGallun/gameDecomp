@@ -1185,13 +1185,13 @@
     "keywords": []
   },
   {
-    "id": "c89-mechanical-repair",
+    "id": "c89-and-redecl-combined-repair",
     "claim": "Mechanically repairing post-C89 constructs and stripping redeclarations of build-provided types raises compile rate",
     "source": "corpus analysis of 2834 attempts during inc_hard_v1",
-    "status": "UNTESTED",
-    "evidence": "Measured shares of NON-COMPILING attempts: redeclaration of a build-provided type 87/1562 (5.6%; Vec3i 21, Gfx 7, Mtx 2, plus scalar typedefs) -- killed 4/4 attempts on clampRacePlayerVectorXZHalfSpeed; inline 4.9% vs 0.2% of compiling; stdint spellings 3.1% vs 0.0%. Separately, a literal ... in code (comments/strings/varargs excluded) appears in 34/1541 non-compiling and 0/1295 compiling -- perfect separation. That one is an ABSTENTION, not a bug: the model declined to write the body, so it must be classified and dropped like a refusal, never repaired. Patch staged, not applied. NOTE the include-fix precedent: a compile-rate gain of this size did NOT move the mean, because per-function score is best-of-N and the marginal candidates score low. Predict compile rate up, mean unchanged.",
-    "tested_on": "",
-    "date": "",
+    "status": "CONFIRMED",
+    "evidence": "The original corpus prediction was tested by paired replay. C89 repair alone made 19 failing candidates compile; stacking removal of build-provided type redeclarations raised that to 23 of 81, with no compile regressions and 0 exact matches. This confirms a compile-surface gain, not a byte-matching gain. Literal ellipses remain classified as abstentions and are never repaired.",
+    "tested_on": "81 stored failing candidates, paired deterministic replay",
+    "date": "2026-08-29",
     "keywords": []
   },
   {
@@ -1255,8 +1255,8 @@
     "keywords": []
   },
   {
-    "id": "permuter-helps-when-run-unconditionally",
-    "claim": "Running decomp-permuter on every near-miss candidate rather than only on a score band converts some into matches",
+    "id": "permuter-helps-three-structural-near-misses",
+    "claim": "Running decomp-permuter on the three closest structural near misses converts at least one into a match",
     "source": "Macabeus benchmark: decomp-permuter matched 7 of 60 functions by refining Claude-generated code, running on every candidate",
     "status": "REFUTED",
     "evidence": "I raised this because I had over-generalised the earlier finding: the bank correctly refutes 'a >=95% score implies a register-allocation residual', and I turned that into 'the permuter should never run', on the strength of ONE function permuted for 400s. The published benchmark was better evidence than what I had. Retested properly via eval/permute_sweep.py on the three closest near misses -- updateEndingLindaExitUntilPhase3C 99.545, updateRaceSplitscreenSelectPlayerCountIcons 99.436, checkMainMenuSecretCode 98.561 -- at 120s each, oracle-verified. Result: 0 matches, 0 improvements, all three unchanged. That is the band where the permuter should be strongest, so the gate stands, now on three functions instead of one. WHY IT DOES NOT TRANSFER: our residuals are structural, not allocation-shaped. updateRaceSplitscreen has 27 struct OFFSET faults and checkMainMenuSecretCode wants a jump-table symbol (%hi(jtbl_800E08BC)) and emits %hi(.rodata). The permuter reorders statements and introduces temporaries; it cannot invent a jump table or renumber a struct. Corroborating caution from practitioners: the decomp-permuter README warns it optimises match PERCENTAGE rather than correctness (a reordering may delete a call that belonged there), and Chris Lewis reports the permuter creating doom loops and token burn inside an agent loop by introducing spurious patterns the model then optimises around. Our usage is the safe one -- terminal step, oracle-verified, never fed back to the model -- and it still gains nothing here. eval/permute_sweep.py is kept for cheap retesting.",
@@ -1325,7 +1325,7 @@
     "keywords": []
   },
   {
-    "id": "diff-directed-field-reordering",
+    "id": "diff-stream-alignment-unblocks-field-reordering",
     "claim": "Aligning the two instruction streams makes diff constraints trustworthy, which unblocks field reordering",
     "source": "follow-through on the pairing limit found in the previous iteration",
     "status": "CONFIRMED",
