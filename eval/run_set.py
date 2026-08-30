@@ -18,11 +18,13 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import sys
 import time
 from collections import defaultdict
 from pathlib import Path
 
 from eval import experiment
+from kb import provenance
 from solver import llm, pipeline, refine
 
 
@@ -117,11 +119,30 @@ def main() -> None:
 
     sets = json.loads(args.set.read_text())
     entries = sets[args.split]
+
+    # A KB fed the ground-truth oracle measures a ceiling, not a capability.
+    # Read it before naming the output file so a ceiling run can never land in
+    # the same file as a clean one.
+    taint_conn = sqlite3.connect(args.db.expanduser())
+    kb_taint = provenance.digest(taint_conn)
+    ceiling = bool(kb_taint)
+    if ceiling:
+        print(provenance.banner(taint_conn), "\n", flush=True)
+    taint_conn.close()
+
     out = args.out or args.set.with_name(
         f"{args.set.stem}_{args.split}_{args.model.replace(':', '-')}"
         f"{'_pipe' if args.pipeline else ''}"
         f"{'_sibhist' if args.historical_siblings else '_sib' if args.siblings else ''}"
-        f"{'_kb' if args.kb_context else ''}.jsonl")
+        f"{'_kb' if args.kb_context else ''}"
+        f"{'_ceiling' if ceiling else ''}.jsonl")
+
+    if args.split == "heldout" and ceiling:
+        print("refusing: heldout on a tainted KB. The held-out set exists to\n"
+              "produce one honest number, and a KB holding the reference\n"
+              "decomp's own types cannot produce one. Ceiling runs are dev-only.",
+              file=sys.stderr)
+        raise SystemExit(2)
 
     if args.split == "heldout":
         print("*** HELD-OUT SPLIT ***")
@@ -139,7 +160,7 @@ def main() -> None:
     # ever existed.
     fp = experiment.build(args.set, args.split, args.model, args.samples,
                           args.temp, args.think, args.pipeline, args.siblings,
-                          args.permute_seconds)
+                          args.permute_seconds, kb_taint)
     may_resume, msg = experiment.check_or_claim(out, fp)
     print(msg, flush=True)
     if not may_resume:

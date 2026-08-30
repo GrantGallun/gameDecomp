@@ -56,6 +56,11 @@ class Fingerprint:
     siblings: bool
     permute_seconds: int
     source_hash: str
+    # Which oracle data the KB has been fed, from kb/provenance.py. Empty for
+    # a clean KB, so every pre-existing fingerprint is unchanged. A ceiling run
+    # therefore cannot resume into a clean results file: the digests differ and
+    # check_or_claim already refuses a mismatch.
+    kb_taint: str = ""
 
     def digest(self) -> str:
         blob = json.dumps(asdict(self), sort_keys=True).encode()
@@ -81,7 +86,7 @@ def _source_hash() -> str:
 
 def build(set_path: Path, split: str, model: str, samples: int,
           temperature: float, think: str, pipeline: bool, siblings: bool,
-          permute_seconds: int) -> Fingerprint:
+          permute_seconds: int, kb_taint: str = "") -> Fingerprint:
     return Fingerprint(
         git_rev=_git("rev-parse", "--short", "HEAD") or "no-git",
         git_dirty=bool(_git("status", "--porcelain")),
@@ -95,6 +100,7 @@ def build(set_path: Path, split: str, model: str, samples: int,
         siblings=siblings,
         permute_seconds=permute_seconds,
         source_hash=_source_hash(),
+        kb_taint=kb_taint,
     )
 
 

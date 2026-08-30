@@ -36,6 +36,14 @@ Created: 2026-08-29
 - Links: None
 - Last touched: 2026-08-29
 
+### IDEA-20260829-04: Measure cross-function repair transfer
+- Status: Active
+- Source: Current Codex session
+- Summary: Compiler idioms, shared types, and normalized mismatch signatures discovered on one function should improve other functions with the same mechanically detected shape. Measure detector fanout, rewrite applicability, score improvements, exact closures, and regressions instead of assuming source-text similarity implies transfer.
+- Next test: Take five previously closed cases, freeze each detector and repair after the discovery function, shadow-apply them to every other stored candidate, and report a leave-one-function-out transfer coefficient.
+- Links: None
+- Last touched: 2026-08-29
+
 ## Candidate Hypotheses
 
 ## Open Questions

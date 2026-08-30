@@ -11,12 +11,18 @@ functions are non-leaf, and the harder ones touch structs whose layouts m2c
 cannot infer from one function alone. The KB sees every access to those types
 across all 2,113 functions.
 
-Nothing here reads decompiled source. Evidence comes from the binary, so this
-carries no contamination risk on an already-matched target.
+The evidence path reads nothing but the binary, so it carries no contamination
+risk on an already-matched target. The inference path below is different: it
+emits whatever claims the KB holds, and on a ceiling KB those claims came from
+the reference decomp's own headers. That is why the taint lives in the database
+rather than here -- see `kb/provenance.py`. A clean KB has an empty inference
+tier and this module behaves exactly as it did before that path existed.
 """
 
 from __future__ import annotations
 
+import bisect
+import json
 import sqlite3
 from collections import defaultdict
 
@@ -37,6 +43,22 @@ JOIN functions f  ON f.addr = e.func_addr
 JOIN functions tf ON tf.addr = e.target_addr
 WHERE e.kind = 'call' AND f.name = ?
 ORDER BY tf.name
+"""
+
+# --------------------------------------------------------------- inference
+
+# Claims, not observations. On a clean KB both queries return nothing and this
+# whole path is inert, so behaviour is unchanged until something populates the
+# inference tier -- today only the ceiling import does.
+SIGNATURE_SQL = """
+SELECT value FROM inference
+WHERE kind = 'signature' AND subject = ? AND status = 'active'
+ORDER BY confidence DESC, id DESC LIMIT 1
+"""
+
+STRUCT_FIELD_SQL = """
+SELECT subject, value, origin FROM inference
+WHERE kind = 'field' AND subject LIKE ? AND status = 'active'
 """
 
 
@@ -75,12 +97,115 @@ def _describe(rows) -> list[str]:
     return lines
 
 
+def _struct_layout(conn, sname: str, touched: set[int] | None = None,
+                   max_fields: int = 24) -> list[str]:
+    """Declared fields of one struct, from the inference tier.
+
+    Big structs must be cut down -- RacePlayer has 193 fields -- but cutting
+    them at the first 24 is the wrong 24. A function reading `param0+0x2fc`
+    got a layout that stopped at 0x28, omitting the only field it needed. So
+    when the evidence says which offsets this function touches, keep those and
+    elide the rest; fall back to a prefix only when nothing is known.
+    """
+    rows = conn.execute(STRUCT_FIELD_SQL, (f"struct:{sname}@%",)).fetchall()
+    fields = []
+    for subject, value, origin in rows:
+        try:
+            offset = int(subject.rsplit("@", 1)[1], 16)
+            v = json.loads(value)
+        except (IndexError, ValueError):
+            continue
+        decl = f"{v['type']}{' *' if v.get('is_pointer') else ' '}{v['name']}"
+        if v.get("elem_count", 1) > 1:
+            decl += f"[{v['elem_count']}]"
+        fields.append((offset, decl))
+    if not fields:
+        return []
+
+    fields.sort()
+    if touched:
+        # A field covers an access if the access lands at or after it and
+        # before the next field starts.
+        starts = [off for off, _ in fields]
+        keep = set()
+        for off in touched:
+            i = bisect.bisect_right(starts, off) - 1
+            if i >= 0:
+                keep.add(i)
+        # One field either side for context; a lone field with no neighbours
+        # reads as a guess rather than a layout.
+        keep |= {i - 1 for i in keep if i > 0}
+        keep |= {i + 1 for i in keep if i + 1 < len(fields)}
+        chosen = sorted(keep)[:max_fields]
+    else:
+        chosen = list(range(min(len(fields), max_fields)))
+
+    if not chosen:
+        return []
+
+    # Every gap gets a marker, the leading one included. Without it a window
+    # starting at 0x2f8 reads as a struct whose first field is at 0x2f8, which
+    # is a false layout rather than a partial one.
+    out = []
+    if chosen[0] > 0:
+        out.append(f"  /* ... {chosen[0]} fields omitted ... */")
+    prev = None
+    for i in chosen:
+        if prev is not None and i > prev + 1:
+            out.append(f"  /* ... {i - prev - 1} fields omitted ... */")
+        out.append(f"  /* {fields[i][0]:#06x} */ {fields[i][1]};")
+        prev = i
+    if prev < len(fields) - 1:
+        out.append(f"  /* ... {len(fields) - 1 - prev} fields omitted ... */")
+    return out
+
+
+def types_for_function(conn: sqlite3.Connection, func: str,
+                       touched: dict[str, set[int]] | None = None) -> str:
+    """Declared signature and parameter struct layouts, from the inference tier.
+
+    Empty on a clean KB. These are *claims* -- a struct layout is not something
+    the binary states, unlike a load width -- so the block says where they came
+    from and the model is told they may be wrong. An inference presented as
+    evidence is exactly the confusion invariant 3 exists to prevent.
+    """
+    row = conn.execute(SIGNATURE_SQL, (f"func:{func}",)).fetchone()
+    if not row:
+        return ""
+    try:
+        params = json.loads(row[0]).get("params") or []
+    except ValueError:
+        return ""
+
+    # Keep the parameter position: param0's offsets describe params[0]'s type.
+    named = {p: f"param{i}" for i, p in enumerate(params) if p}
+    if not named:
+        return ""
+
+    out = ["\nDECLARED TYPES (from the project's existing headers -- these are "
+           "claims, not binary facts; prefer the observed accesses above where "
+           "they disagree):"]
+    for sname, slot in named.items():
+        layout = _struct_layout(conn, sname, (touched or {}).get(slot))
+        if layout:
+            out.append(f"\ntypedef struct {sname} {{")
+            out.extend(layout)
+            out.append(f"}} {sname};")
+    return "\n".join(out) + "\n" if len(out) > 1 else ""
+
+
 def for_function(conn: sqlite3.Connection, func: str, max_lines: int = 40) -> str:
     """A prompt block of verified facts about this function, or "" if none."""
     conn.row_factory = sqlite3.Row
     rows = conn.execute(ACCESS_SQL, (func,)).fetchall()
+
+    touched: dict[str, set[int]] = defaultdict(set)
+    for r in rows:
+        if r["base"].startswith("param"):
+            touched[r["base"]].add(r["offset"])
+    types = types_for_function(conn, func, touched)
     if not rows:
-        return ""
+        return types
 
     lines = _describe(rows)
     truncated = len(lines) > max_lines
@@ -101,7 +226,7 @@ def for_function(conn: sqlite3.Connection, func: str, max_lines: int = 40) -> st
         out.append("  Declare each callee with the argument and return types its "
                    "use here implies. Wrong arity or types change codegen.")
 
-    return "\n".join(out) + "\n"
+    return "\n".join(out) + "\n" + types
 
 
 if __name__ == "__main__":

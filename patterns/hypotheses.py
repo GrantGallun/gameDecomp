@@ -41,154 +41,27 @@ class Hypothesis:
     keywords: list = field(default_factory=list)
 
 
-SEED: list[Hypothesis] = [
-    Hypothesis(
-        id="sequential-diff-refinement",
-        claim="Feeding the instruction diff back to the model produces a "
-              "targeted fix and converges on a match.",
-        source="own design intuition",
-        status="REFUTED",
-        evidence="Across 8 functions it rescued ZERO. Every match came on the "
-                 "first attempt. Best-of-N on the same budget got 6/8 vs 3/8. "
-                 "The model cannot invert 'this instruction differs' into "
-                 "'this source change fixes it'; shown a diff it rewrites "
-                 "plausible-but-different C rather than converging.",
-        tested_on="8 leaf functions, gpt-oss:20b, budget-matched A/B",
-        date="2026-08-27",
-        keywords=["refine", "diff", "feedback", "iterate", "sequential"],
-    ),
-    Hypothesis(
-        id="best-of-n-sampling",
-        claim="Independent best-of-N sampling beats sequential refinement at "
-              "equal budget, because the answer is already in the model's "
-              "distribution.",
-        source="TRAINING.md Tier 1, then measured",
-        status="CONFIRMED",
-        evidence="6/8 vs 3/8 exact at identical budget. Direct proof of the "
-                 "mechanism: the same function resampled from an identical "
-                 "prompt scored 87.61%, 82.42%, then 100%.",
-        tested_on="8 leaf functions, gpt-oss:20b",
-        date="2026-08-27",
-        keywords=["sampling", "best-of-n", "temperature", "draws"],
-    ),
-    Hypothesis(
-        id="permute-below-95",
-        claim="decomp-permuter can close a near-miss below 95%.",
-        source="own assumption",
-        status="REFUTED",
-        evidence="The permuter moves register allocation and never touches "
-                 "types or control flow. unlockRelocatableHeapBlock sat at "
-                 "99.167% purely because the model declared an 18-byte struct "
-                 "against a real 20-byte one; 300s of permuting moved it "
-                 "nowhere. Confirmed by the repo's own skill docs.",
-        tested_on="unlockRelocatableHeapBlock, 300s",
-        date="2026-08-27",
-        keywords=["permuter", "permute", "register allocation", "near-miss"],
-    ),
-    Hypothesis(
-        id="array-stride-decoding",
-        claim="Struct size can be read arithmetically out of the target's "
-              "index arithmetic and handed to the model as fact.",
-        source="diagnosis of unlockRelocatableHeapBlock",
-        status="CONFIRMED",
-        evidence="`sll 2; addu; sll 2` is unambiguously x20. That function went "
-                 "from stuck-at-99.167% (permuter could not help) to EXACT on "
-                 "the first draw once the stride was stated.",
-        tested_on="unlockRelocatableHeapBlock, lockRelocatableHeapBlock",
-        date="2026-08-27",
-        keywords=["stride", "struct size", "array", "index", "sll"],
-    ),
-    Hypothesis(
-        id="narrow-param-homing",
-        claim="A dead `sw $aN, K($sp)` plus `andi 0xffff` at entry proves "
-              "parameter N is 16-bit.",
-        source="DECOMPILATION_LEARNINGS.md, parameter homing section",
-        status="CONFIRMED",
-        evidence="setRaceCameraMode(u16,u16) shows the pattern twice; the s32 "
-                 "control getRaceItemEffectType shows neither instruction. "
-                 "Detector verified on both, plus a deliberate conservative "
-                 "miss on spawnPatrolCourseObject.",
-        tested_on="3 functions, positive and negative controls",
-        date="2026-08-27",
-        keywords=["parameter", "narrow", "homing", "andi", "u16", "s16"],
-    ),
-    Hypothesis(
-        id="blank-line-reflow",
-        claim="Statement line placement or blank lines change codegen.",
-        source="general decomp folklore",
-        status="REFUTED",
-        evidence="The reference repo ran the control: this project builds "
-                 "without -g, so inserting blank lines anywhere yields a "
-                 "byte-identical object. Guidance suggesting otherwise assumes "
-                 "a debug-bearing build.",
-        tested_on="reference repo's own control experiment",
-        date="2026-08-27",
-        keywords=["blank line", "line number", "reflow", "formatting"],
-    ),
-    Hypothesis(
-        id="ground-truth-in-prompt",
-        claim="Feeding the workspace's generated ctx.c gives useful type context.",
-        source="naive setup",
-        status="REFUTED",
-        evidence="ctx.c contains the preprocessed translation unit INCLUDING "
-                 "the target function's own body -- line 2326 was literally the "
-                 "answer to getRaceItemEffectType. Using it fabricates a 100% "
-                 "and invalidates every downstream number. Harmless upstream "
-                 "where the function is genuinely undone; fatal for evaluation.",
-        tested_on="inspection of the generated ctx.c",
-        date="2026-08-27",
-        keywords=["ctx", "context", "contamination", "ground truth"],
-    ),
-    Hypothesis(
-        id="byte-cast-shift-pair",
-        claim="`sll 24` followed by `srl 24` is a u8 cast; with `sra 24` it is "
-              "an s8 cast -- so the variable should be declared 8-bit.",
-        source="OoT -O2 IDO 5.3 guide",
-        status="UNTESTED",
-        evidence="",
-        keywords=["byte", "u8", "s8", "cast", "sll 24", "shift"],
-    ),
-    Hypothesis(
-        id="void-param-frame-size",
-        claim="`void f(void)` uses 4 more bytes of stack than `void f()`.",
-        source="OoT -O2 IDO 5.3 guide",
-        status="UNTESTED",
-        evidence="",
-        keywords=["frame", "stack", "void", "prototype", "frame size"],
-    ),
-    Hypothesis(
-        id="comparison-normalization",
-        claim="`x > y` is emitted as `x >= y + 1` when y is a constant.",
-        source="OoT -O2 IDO 5.3 guide",
-        status="UNTESTED",
-        evidence="",
-        keywords=["comparison", "slti", "greater", "constant"],
-    ),
-    Hypothesis(
-        id="array-index-loop-form",
-        claim="`&a[i]` inside a loop makes IDO keep an extra loop counter; "
-              "`a + i` uses multiplication instead.",
-        source="OoT -O2 IDO 5.3 guide",
-        status="UNTESTED",
-        evidence="",
-        keywords=["loop", "array", "index", "pointer", "counter"],
-    ),
-    Hypothesis(
-        id="loop-unrolling",
-        claim="IDO unrolls small loops by 2 or 4; `continue;` or `i++; i--;` "
-              "suppresses it.",
-        source="OoT -O2 IDO 5.3 guide",
-        status="UNTESTED",
-        evidence="",
-        keywords=["unroll", "loop", "continue"],
-    ),
-]
 
 
 def load() -> list[Hypothesis]:
+    """The bank as committed. There is deliberately no in-code fallback.
+
+    There used to be a SEED list here that `load()` wrote out whenever the JSON
+    was missing, and it drifted: `array-stride-decoding` and
+    `narrow-param-homing` had been downgraded to UNTESTED in the bank while the
+    seed still called them CONFIRMED, and `byte-cast-shift-pair` disagreed the
+    other way. A rebuild would have resurrected two retired conclusions and
+    handed them back the right to steer the solver -- the precise failure this
+    module exists to prevent, inside the module itself.
+
+    `patterns/hypotheses.json` is tracked in git, so restoring it is a
+    checkout, not a regeneration.
+    """
     if not BANK.exists():
-        save(SEED)
-        return list(SEED)
+        raise FileNotFoundError(
+            f"{BANK} is missing. It is tracked in git -- restore it with "
+            "`git checkout -- patterns/hypotheses.json`. Regenerating it "
+            "would silently discard every result recorded in it.")
     return [Hypothesis(**h) for h in json.loads(BANK.read_text())]
 
 
