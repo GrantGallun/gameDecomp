@@ -1273,5 +1273,15 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "strip-build-provided-type-redeclarations",
+    "claim": "Removing candidate redeclarations of types the build already defines raises compile rate",
+    "source": "87 of 1562 non-compiling attempts die on redeclaration of X",
+    "status": "CONFIRMED",
+    "evidence": "Paired replay, no model, no GPU. redecl alone: 3 of 7 changed candidates now compile, 0 regressions. Stacked with the C89 pass: 23 of 81 failing candidates compile, up from 19 for c89 alone, so it contributes +4 on top. Two SCORE drops, both far under the significance floor and neither a compile break -- renderRaceUiSingleTrailEffect 25.35 to 22.68 and createCallbackTaskPreservingArgs 2.10 to 1.96 -- and they are arguably correct: stripping a candidate's own Gfx makes it compile against the real one, so it had been scoring marginally higher with a wrong struct. DERIVATION MATTERS: the type set comes from walking common.h's include closure (8 headers, 95 names), not from the frequency list of observed redeclarations. RacePlayer is correctly absent because common.h does not reach it, so a candidate declaring RacePlayer keeps it. Hardcoding the popular names would have deleted a type the candidate legitimately owns and turned a clean compile error into wrong code. EXACT REMAINS 0, predicted before the run. This is the FIFTH consecutive compile-rate fix to leave exact untouched (includes strip, C89 pass, for-init, trailing comment, redecl), which is now strong evidence that compile rate and exact are independent axes here. Compile surface is necessary -- a candidate that will not build cannot be refined, permuted or diffed -- but it is not progress toward matching, and should never be reported as such.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]
