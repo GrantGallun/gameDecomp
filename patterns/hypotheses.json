@@ -1263,5 +1263,15 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "sibling-mirroring-is-a-flywheel-not-a-cold-start",
+    "claim": "Retrieving a close already-matched twin gives the model the program SHAPE that layout repair, the permuter and extra evidence all failed to supply",
+    "source": "the bank's own CONFIRMED medium-failures-are-structural names sibling mirroring as one of three remaining levers; ethteck's coddog and Chris Lewis both report function-similarity retrieval as a technique that works",
+    "status": "INCONCLUSIVE",
+    "evidence": "COVERAGE IS REAL BUT UNUSABLE TODAY. Against the FINISHED reference repo, 8 of 23 unmatched functions (34.8%) have a twin at 0.75 or better and 6 at 0.90+, including updateEndingSlashSlideRightToMarker at 1.00 -- an identical opcode sequence to a function that is already byte-exact. Against OUR OWN 34 matches the number is 0 of 23, checked at top=60 with min_score=0 so it is not a cutoff artefact: 60 similar functions found for updateEndingSlashSlideRightToMarker, none of them ours. MECHANISM: our 34 matches are 23 tiny and 11 small; every unmatched near miss is medium or larger, and every useful twin is a function the REFERENCE project matched and we have not. So switching siblings on today means importing the reference decomp's answers for functions we cannot yet solve -- the contamination the bank already flagged in caveat-in-docstring-is-mitigation, where sibling runs drew on a 100%-complete repo and the caveat was written in a docstring instead of changing the experiment. A NOTE ON METHOD: the --historical arm reported 0 of 23 and that number is meaningless, not negative. historical_filter derives matching order from git subjects covering 777 of ~2113 functions and none of the 23 targets, so find() correctly refuses rather than pretending. Reporting it as a null would have killed the lever on an arm that tested nothing. CONSEQUENCE: sibling mirroring is a FLYWHEEL, not a cold-start tool. It is worth nothing at 34 matches concentrated in tiny/small, and gets stronger as medium functions land. Deploy it later, and measure it with --ours so the number stays honest. Do NOT enable siblings against the reference repo and report the result as a capability gain.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]
