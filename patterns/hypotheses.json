@@ -1313,5 +1313,15 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "diff-directed-field-reordering",
+    "claim": "Reordering a struct's fields onto their diff-stated offsets fixes the near misses that padding cannot",
+    "source": "diagnosis from diff-directed-layout-repair: constraints came out non-monotonic, which padding cannot satisfy",
+    "status": "INCONCLUSIVE",
+    "evidence": "Implemented in solver/diffrepair.py::reorder_fields and it DECLINES on the function it was built for, which is the informative outcome. Rewriting declarations inside a struct is a pure layout change -- names and types stay attached, so every p->field in the body still resolves -- so the transform itself is safe. It requires every field in the region to be constrained, because an unplaced field could sit anywhere and placing it would be inventing layout. On updateRaceSplitscreenSelectPlayerCountIcons three of four fields are constrained; spawnTimer is not, because the base register carrying its constraint came out non-monotonic and was dropped. THE BLOCKER IS DIFF PAIRING, NOT REORDERING. Constraints are read from zip(minus, plus), which is positional pairing rather than alignment: one unpaired instruction on either side and every subsequent pair drifts. From the diff alone a drifted pairing is indistinguishable from a genuine field reordering, so the pass refuses both rather than acting on a reading it cannot trust. The principled fix is a real sequence alignment of the two instruction streams (LCS or edit distance -- the same technique coddog uses for function similarity) so pairs are trustworthy. That is the next step and it is real work, not a tweak. A REAL BUG FOUND ON THE WAY: _struct_regions matched a function signature, because the pattern allowed a ')' between the struct keyword and the opening brace, so a FUNCTION BODY was parsed as a struct and its locals counted as fields at offsets 0, 4, 8, 0xc, 0xd. Every offset computed for such a candidate was wrong. Fixed and covered by a test.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]
