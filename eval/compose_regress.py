@@ -21,7 +21,7 @@ import argparse
 import sqlite3
 from pathlib import Path
 
-from eval.compose import search
+from solver.repair import search
 from solver import workspace
 
 # (function, ceiling) -- the best score that existed BEFORE any manual edit.

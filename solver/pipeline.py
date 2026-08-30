@@ -46,7 +46,7 @@ from pathlib import Path
 from patterns.catalog import hints_for_asm
 from solver import context as kb_context
 from solver import diagnose
-from solver import llm, refine, siblings, workspace
+from solver import llm, refine, repair, siblings, workspace
 
 PERMUTE_FLOOR = 95.0   # below this the permuter cannot help
 RETYPE_FLOOR = 80.0    # below this the shape itself is wrong
@@ -292,6 +292,36 @@ def solve(repo: Path, conn, func: str, model: str, endpoint: str,
             verdict = d.verdict
             dx = diagnose.prompt_block(repo, d, asm_len=len(asm))
             out.stages.append((f"verdict:{verdict}", out.best_score))
+
+    # --- deterministic repair, BEFORE any second model call -------------
+    # The compiler-directed path is the default. Every match this project has
+    # gained since the corpus was built came from a deterministic repair driven
+    # by the oracle's own residual, and none of that machinery was reachable
+    # from here: pipeline imported only context, diagnose, llm, refine,
+    # siblings and workspace, so the passes that produced the matches lived in
+    # evaluation scripts and never ran in production.
+    #
+    # The model is for supplying a new SHAPE. It should be asked only once the
+    # deterministic rewrites have reached a fixed point, because a second
+    # sample costs seconds of GPU and a composition costs a few compiles.
+    if out.best_code and not out.exact:
+        try:
+            r_att, r_src, r_log = repair.search(
+                repo, func, out.best_code, ws, conn=conn, verbose=False)
+            if r_att.compiled and r_att.score > out.best_score:
+                out.best_score, out.best_code = r_att.score, r_src
+                out.stages.append(("repair", r_att.score))
+                if verbose:
+                    print(f"    repair -> {r_att.score:.2f}%"
+                          f"{' EXACT' if r_att.exact else ''}", flush=True)
+            if r_att.exact:
+                out.exact = True
+                out.route = "repair"
+                return out
+        except Exception as exc:               # never let repair kill a run
+            if verbose:
+                print(f"    repair -> skipped ({type(exc).__name__})",
+                      flush=True)
 
     route = route_for(verdict, out.best_score)
     out.route = route

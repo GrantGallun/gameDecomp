@@ -1,4 +1,9 @@
-"""Compose independently-scored rewrites. The single-step loop cannot.
+"""Batch harness for deterministic repair across many functions.
+
+The search itself is solver/repair.py -- it belongs to the solver so that
+pipeline.solve can run it, which was the point of an external review's central
+finding: the machinery producing every recent match lived in eval scripts and
+never ran in production.
 
 eval/diffloop.py applies one rewrite per round and stops when a step fails to
 improve, so a fix needing two simultaneous changes is unreachable by
@@ -26,105 +31,19 @@ METHOD
 from __future__ import annotations
 
 import argparse
-import itertools
 import json
 import sqlite3
 from pathlib import Path
 
 from eval import matched as matched_mod
-from solver import rewrites, workspace
+from solver import repair, workspace
 
 
-def search(repo: Path, name: str, src: str, ws: Path, conn=None,
-           max_pairs: int = 250, verbose: bool = True):
-    """Return (best_attempt, best_source, log)."""
-    log: list[str] = []
-    base = workspace.score(ws, repo, name, src)
-    if not base.compiled:
-        return base, src, ["baseline did not compile"]
-
-    proposals = rewrites.propose(src, base.diff)
-    if not proposals:
-        return base, src, ["no applicable rewrite"]
-
-    singles = []
-    best_att, best_src = base, src
-    for rw in proposals:
-        cand = rw(src)
-        if cand == src:
-            continue
-        att = workspace.score(ws, repo, name, cand, conn=conn, func=name,
-                              strategy="compose", run_id="compose")
-        if not att.compiled:
-            continue
-        if att.exact:
-            return att, cand, log + [f"{rw.label}: EXACT alone"]
-        # EVERY compiling rewrite is kept, including ones that score WORSE.
-        # Filtering on single-rewrite score contradicts the whole premise: on
-        # updateEndingLindaExitUntilPhase3C the layout repair scores 99.205
-        # against a 99.545 baseline -- it shifts fields that are still being
-        # read through swapped arguments -- and yet it is half of the pair that
-        # reaches exact. A rewrite that hurts alone can be essential in
-        # combination, which is what "several small interacting errors" means.
-        # Score orders the search; it does not admit or reject.
-        singles.append((rw, cand, att.score))
-        if att.score > best_att.score:
-            best_att, best_src = att, cand
-
-    singles.sort(key=lambda t: -t[2])
-    log.append(f"{len(proposals)} proposed, {len(singles)} compiling")
-    if verbose:
-        for rw, _c, sc in singles[:8]:
-            print(f"      {rw.label[:44]:44} {sc:8.3f}"
-                  f" ({sc - base.score:+.3f})", flush=True)
-
-    # CROSS-KIND PAIRS FIRST. Both known matches are layout + something else
-    # (padding + a constant, padding + an argument swap), and sorting purely by
-    # single-rewrite score let same-kind pairs crowd the winning combination
-    # past the cap: the Linda case spent all 60 tries on pairs of argument
-    # swaps and never reached layout + swap.
-    combos = sorted(
-        itertools.combinations(singles, 2),
-        key=lambda pair: (pair[0][0].kind == pair[1][0].kind,
-                          -(pair[0][2] + pair[1][2])))
-
-    # Composing two PRECOMPUTED rewrites is not enough, and the reason is
-    # instructive. On updateEndingLindaExitUntilPhase3C the argument swap makes
-    # `lh a2,0x26` and `lh a2,0x24` align on their normalised form, so
-    # diffrepair reads a bogus offset constraint 0x24 -> 0x26 out of what is
-    # really a register swap. The layout rewrite built from that stale diff is
-    # wrong, and applying the swap afterwards does not undo it.
-    #
-    # So re-derive after every application: apply one rewrite, recompile, and
-    # propose again from the NEW residual. That is the counterexample-guided
-    # loop, and it is what makes the second rewrite correct rather than stale.
-    tried = 0
-    for rw, cand, _sc in singles:
-        if tried >= max_pairs:
-            break
-        first = workspace.score(ws, repo, name, cand)
-        if not first.compiled:
-            continue
-        for rw2 in rewrites.propose(cand, first.diff):
-            if tried >= max_pairs:
-                break
-            cand2 = rw2(cand)
-            if cand2 == cand:
-                continue
-            tried += 1
-            att = workspace.score(ws, repo, name, cand2, conn=conn, func=name,
-                                  strategy="compose-pair", run_id="compose")
-            if not att.compiled:
-                continue
-            if att.exact:
-                log.append(f"PAIR EXACT: {rw.label} then {rw2.label}")
-                return att, cand2, log
-            if att.score > best_att.score:
-                best_att, best_src = att, cand2
-                log.append(f"pair improved: {rw.label} then {rw2.label} -> "
-                           f"{att.score:.3f}")
-    log.append(f"{tried} re-derived pairs tried")
-    return best_att, best_src, log
+# The search itself lives in solver/repair.py so the SOLVER owns it and
+# the pipeline can call it. This module is the batch harness around it;
+# an external review's central finding was that the machinery producing
+# matches sat in eval scripts and never ran in production.
+search = repair.search
 
 
 def main() -> int:
