@@ -1,0 +1,16 @@
+{
+  "git_rev": "b584ddc",
+  "git_dirty": true,
+  "set_hash": "fdf0c807fde90ec6",
+  "split": "dev",
+  "model": "gpt-oss:20b",
+  "samples": 1,
+  "temperature": 0.7,
+  "think": "low",
+  "pipeline": true,
+  "siblings": false,
+  "permute_seconds": 0,
+  "source_hash": "773030dc3c771647",
+  "kb_taint": "oracle_types",
+  "sibling_pool": ""
+}

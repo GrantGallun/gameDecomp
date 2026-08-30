@@ -1,0 +1,27 @@
+{
+  "note": "Focused replication of the noisy n=1 type-ceiling pilot. Selected before this run: the one strong positive and the two strong negatives. Run both arms at best-of-3. Continue to hard_v1 only if ceiling gains an exact match, or improves at least 2/3 functions and raises mean best score by more than 10 points.",
+  "dev": [
+    {
+      "function": "isRacePlayerRespawnSurfaceValid",
+      "tier": "medium",
+      "leaf": false,
+      "pilot_clean": 35.192,
+      "pilot_ceiling": 93.154
+    },
+    {
+      "function": "renderRaceUiSingleTrailEffect",
+      "tier": "medium",
+      "leaf": false,
+      "pilot_clean": 60.351,
+      "pilot_ceiling": 0.0
+    },
+    {
+      "function": "initRacePlayerLandingSnowSpray",
+      "tier": "medium",
+      "leaf": false,
+      "pilot_clean": 75.822,
+      "pilot_ceiling": 0.0
+    }
+  ],
+  "heldout": []
+}
