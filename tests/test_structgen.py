@@ -205,3 +205,56 @@ def test_inserted_padding_puts_every_field_on_its_offset():
         want = int(name[5:], 16)
         assert cursor == want, f"{name} at {cursor:#x}, should be {want:#x}"
         cursor += sizes[ctype] * n
+
+
+# ------------------------- offsets declared in comments (near-miss repair)
+
+def test_repad_reads_offset_from_a_trailing_comment():
+    """A semantic field name with the offset in a comment.
+
+    updateTimeTrialRecordDeltaPopupSlideIn sat at 99.999 with one fault: a
+    field its own comment placed at 0x28 actually landed at 0x20. repad read
+    offsets only from NAMES, so it reported "no change" and the candidate
+    could not be finished. Reading the comment closes it -- byte-exact.
+    """
+    body = ("typedef struct {\n"
+            "    char _pad0[0x18];\n"
+            "    s16  timer;         /* 0x18 : timer */\n"
+            "    char _pad1[2];      /* 0x1A - 0x1B : padding */\n"
+            "    s32  x;             /* 0x1C : X position */\n"
+            "    s32  velocity;      /* 0x28 : velocity */\n"
+            "} T;\n")
+    out, changed = structgen.repad(body, {0x18: 2, 0x1C: 4, 0x28: 4})
+    assert changed
+    assert "0x8" in out or "[8]" in out
+
+
+def test_comment_offset_must_agree_with_the_evidence():
+    """A comment is the model's claim, not a fact.
+
+    If the binary never observes that offset, the claim carries no weight and
+    repad must not act on it -- otherwise a confident wrong comment silently
+    rewrites the struct.
+    """
+    body = ("typedef struct {\n"
+            "    s32  a;             /* 0x00 */\n"
+            "    s32  bogus;         /* 0x99 : not observed anywhere */\n"
+            "} T;\n")
+    out, changed = structgen.repad(body, {0x00: 4})
+    assert not changed
+    assert out == body
+
+
+def test_comment_range_uses_the_first_offset_only():
+    """`/* 0x1A - 0x1B : padding */` names a range; 0x1A is the field."""
+    assert structgen._offset_from_comment(
+        "x;   /* 0x1A - 0x1B : padding */", 2, {0x1A: 2}) == 0x1A
+
+
+def test_field_name_offset_still_wins_over_comment():
+    body = ("typedef struct {\n"
+            "    s32 field1C;        /* 0x99 : wrong comment */\n"
+            "} T;\n")
+    # the name says 0x1C and the evidence has it; the comment must not override
+    out, _changed = structgen.repad(body, {0x1C: 4})
+    assert "0x99" not in out.replace("/* 0x99 : wrong comment */", "")

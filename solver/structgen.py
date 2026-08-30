@@ -176,6 +176,35 @@ SIZEOF = {"u8": 1, "s8": 1, "char": 1, "u16": 2, "s16": 2, "short": 2,
           "u64": 8, "s64": 8, "f64": 8, "double": 8}
 
 
+# A trailing comment on a field declaration, up to the end of that line.
+TRAILING_COMMENT = re.compile(r"[ \t]*(?:/\*(.*?)\*/|//([^\n]*))")
+# The first hex offset mentioned in it. `/* 0x1A - 0x1B : padding */` names a
+# RANGE, so only the first number is the field's own offset.
+COMMENT_OFFSET = re.compile(r"0[xX]([0-9A-Fa-f]+)")
+
+
+def _offset_from_comment(body: str, after: int,
+                         observed: dict[int, int]) -> int | None:
+    """Offset a field's trailing comment claims for it, if the evidence agrees.
+
+    Returns None unless the claimed offset is one the binary actually observes.
+    A comment is the model's assertion, not a fact; requiring it to match the
+    evidence tier keeps this on the right side of the evidence/inference line.
+    """
+    m = TRAILING_COMMENT.match(body, after)
+    if not m:
+        return None
+    text = m.group(1) or m.group(2) or ""
+    hit = COMMENT_OFFSET.search(text)
+    if not hit:
+        return None
+    try:
+        claimed = int(hit.group(1), 16)
+    except ValueError:
+        return None
+    return claimed if claimed in observed else None
+
+
 def repad(body: str, observed: dict[int, int]) -> tuple[str, bool]:
     """Resize padding arrays so named fields land on their observed offsets.
 
@@ -225,6 +254,23 @@ def repad(body: str, observed: dict[int, int]) -> tuple[str, bool]:
             if cand in observed:
                 want = cand
                 break
+
+        if want is None:
+            # The offset may be declared in a trailing COMMENT rather than in
+            # the name. Models routinely write a semantic name and annotate it:
+            #
+            #     s32 velocity;   /* 0x28 : velocity (signed) */
+            #
+            # On updateTimeTrialRecordDeltaPopupSlideIn that field actually
+            # landed at 0x20, and repad reported "no change" because
+            # `velocity` encodes no offset -- so a 99.999 candidate whose only
+            # fault was 8 missing bytes of padding could not be repaired.
+            #
+            # This reads nothing external: the comment is the candidate's OWN
+            # statement of where the field belongs, so acting on it resolves an
+            # internal contradiction rather than importing an assumption. Still
+            # required to agree with the evidence tier before it is used.
+            want = _offset_from_comment(body, m.end(), observed)
 
         if want is not None and want != cursor:
             delta = want - cursor
