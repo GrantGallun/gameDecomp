@@ -186,3 +186,34 @@ def test_loop_rewrite_needs_a_surplus_branch():
     even = ("--- target\n+++ candidate\n@@ -1,4 +1,4 @@\n"
             "-bne v1,a0,14\n+bne v0,v1,18\n")
     assert rewrites.loop_shape_rewrites(code, even) == []
+
+
+# ------------------------------------------------------------ stack frame
+
+def _frame_diff(want="-0x48", got="-0x20"):
+    return ("--- target\n+++ candidate\n@@ -1,4 +1,4 @@\n"
+            f"-addiu sp,sp,{want}\n"
+            f"+addiu sp,sp,{got}\n")
+
+
+def test_frame_padding_restores_the_difference():
+    """A shrunken frame is restored with an unused volatile local.
+
+    `volatile` is what stops IDO optimising it away.
+    """
+    code = "void f(void)\n{\n    s32 a;\n}\n"
+    rws = rewrites.frame_padding_rewrites(code, _frame_diff())
+    assert rws and "0x28" in rws[0].label
+    out = rws[0](code)
+    assert "volatile" in out and "framePad[0x28]" in out
+
+
+def test_frame_padding_declines_when_ours_is_already_larger():
+    """Only a SHRUNKEN frame is repairable this way; padding cannot remove."""
+    assert rewrites.frame_padding_rewrites(
+        "void f(void)\n{\n}\n", _frame_diff("-0x20", "-0x48")) == []
+
+
+def test_frame_padding_declines_without_a_frame_difference():
+    assert rewrites.frame_padding_rewrites(
+        "void f(void)\n{\n}\n", _frame_diff("-0x20", "-0x20")) == []

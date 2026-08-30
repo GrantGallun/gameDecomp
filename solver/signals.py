@@ -32,12 +32,19 @@ BRANCH = {"b", "beq", "bne", "beqz", "bnez", "bgez", "blez", "bgtz", "bltz",
           "bgezal", "bltzal", "j", "jr", "jal", "jalr", "bc1t", "bc1f"}
 RELOC = re.compile(r"%(?:hi|lo)\(([^)]*)\)")
 OPCODE = re.compile(r"^([a-z][a-z0-9.]*)")
-REGNAME = re.compile(r"\$(\w+)")
+# The `$` is OPTIONAL. objdump output in this project writes bare names --
+# `lbu v1,0x24(a0)` -- so a pattern requiring `$` matched nothing, every
+# instruction compared equal on registers, and non-memory register differences
+# were silently counted as `immediate`. Named explicitly rather than \w+ so a
+# label or symbol is never mistaken for a register.
+# Both spellings occur: objdump writes names, `cc -S` writes numbers.
+REGNAME = re.compile(
+    r"\$\d+|\$?\b(?:zero|at|v[01]|a[0-3]|t[0-9]|s[0-8]|k[01]|gp|sp|fp|ra)\b")
 
 
 def _regs(instr: str) -> tuple[str, ...]:
     """Register operands only, so a differing CONSTANT is not read as one."""
-    return tuple(REGNAME.findall(instr))
+    return tuple(m.group(0).lstrip("$") for m in REGNAME.finditer(instr))
 
 
 @dataclass

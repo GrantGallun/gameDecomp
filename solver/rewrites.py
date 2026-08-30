@@ -369,6 +369,54 @@ def _has_own_level_continue(body: str) -> bool:
     return False
 
 
+FRAME_SETUP = re.compile(r"^(?:addiu|subu?)\s+\$?sp,\s*\$?sp,\s*(-?(?:0x)?[0-9a-fA-F]+)")
+
+
+def frame_padding_rewrites(code: str, diff: str) -> list[Rewrite]:
+    """Restore a stack frame IDO shrank, with an unused volatile local.
+
+        -addiu sp,sp,-0x48      the target reserves 0x48
+        +addiu sp,sp,-0x20      we reserve 0x20
+
+    A smaller frame is not one fault among many. On
+    renderRaceUiSingleTrailEffect it comes with 34 register-choice faults whose
+    substitutions are ALL +1 in the colour pool -- a3<-a2, t4<-t3, t6<-t5,
+    t8<-t7 -- which is one uniform shift, not thirty-four decisions. The uopt
+    model predicts exactly that when a web the original had is missing: it
+    would have taken a lower colour and displaced everything after it.
+
+    So the frame is the cause and the registers are the symptom, and repairing
+    them independently would be fixing shadows.
+
+    The catalogue names the remedy: an otherwise-unused `volatile u8 pad[N]`
+    local restores the frame size without changing scheduling. `volatile` is
+    what stops IDO optimising it away.
+    """
+    want = got = None
+    for line in diff.splitlines():
+        if line.startswith(("---", "+++")) or line[:1] not in "+-":
+            continue
+        m = FRAME_SETUP.match(line[1:].strip())
+        if not m:
+            continue
+        size = abs(_num(m.group(1)) or 0)
+        if line[0] == "-" and want is None:
+            want = size
+        elif line[0] == "+" and got is None:
+            got = size
+    if want is None or got is None or want <= got:
+        return []
+
+    delta = want - got
+    body = re.search(r"\)\s*\{", code)
+    if not body:
+        return []
+    at = body.end()
+    pad = f"\n    volatile u8 framePad[{delta:#x}];\n"
+    return [Rewrite(f"restore frame by {delta:#x} bytes", "frame",
+                    lambda s, _at=at, _p=pad: s[:_at] + _p + s[_at:])]
+
+
 def layout_rewrites(code: str, diff: str) -> list[Rewrite]:
     """Offset, width and ordering repairs, from the existing diffrepair pass."""
     out: list[Rewrite] = []
@@ -385,5 +433,6 @@ def propose(code: str, diff: str) -> list[Rewrite]:
             + reloc_padding_rewrites(code, diff)
             + drop_mask_rewrites(code, diff)
             + loop_shape_rewrites(code, diff)
+            + frame_padding_rewrites(code, diff)
             + immediate_rewrites(code, diff)
             + argswap_rewrites(code, diff))
