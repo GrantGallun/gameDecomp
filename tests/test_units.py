@@ -51,15 +51,22 @@ from solver.workspace import EXACT_RE, SCORE_RE       # noqa: E402
     ("", 97.0, "permute"),
     ("", 85.0, "retype"),
     ("", 40.0, "reshape"),
-    # Exact always wins regardless of verdict.
-    ("structure-mismatch", 100.0, "matched"),
+    # A perfect instruction score without an exact verdict is usually a
+    # relocation mismatch, never proof of a match.
+    ("", 100.0, "relocation"),
+    ("structure-mismatch", 100.0, "reshape"),
 ])
 def test_route_for(verdict, score, expected):
     assert route_for(verdict, score) == expected
 
 
+def test_exact_verdict_always_wins_regardless_of_score_or_diagnosis():
+    assert route_for("structure-mismatch", 42.0, exact=True) == "matched"
+
+
 def test_triage_bands():
-    assert triage(100.0) == "matched"
+    assert triage(100.0) == "relocation"
+    assert triage(42.0, exact=True) == "matched"
     assert triage(99.9) == "permute"
     assert triage(80.0) == "retype"
     assert triage(79.9) == "reshape"

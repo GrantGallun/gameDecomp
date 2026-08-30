@@ -20,11 +20,11 @@ import glob
 import os
 import sqlite3
 
+from kb import attempts as attempt_receipts
+
 
 def matched_in_db(conn: sqlite3.Connection) -> set[str]:
-    return {r[0] for r in conn.execute(
-        "select distinct f.name from attempts a"
-        " join functions f on f.addr = a.func_addr where a.score >= 100")}
+    return attempt_receipts.exact_functions(conn)
 
 
 def matched_on_disk(root: str = "matched_recovered") -> set[str]:

@@ -27,6 +27,8 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from kb import attempts as attempt_receipts
+
 from patterns.catalog import CATALOG, hints_for_asm
 from solver import context as kb_context
 from solver import llm, workspace
@@ -205,6 +207,7 @@ class Trajectory:
 def ensure_schema(conn: sqlite3.Connection) -> None:
     schema = Path(__file__).parent.parent / "kb" / "schema.sql"
     conn.executescript(schema.read_text())
+    attempt_receipts.ensure_exact_receipt(conn)
 
 
 def func_addr(conn: sqlite3.Connection, name: str) -> int | None:
@@ -229,6 +232,7 @@ def log_attempt(conn, addr, func, i, code, prompt, att, meta, strategy,
     """
     if addr is None:
         return
+    attempt_receipts.ensure_exact_receipt(conn)
     sampling = {
         "temperature": temperature,
         "num_predict": meta.get("_num_predict"),
@@ -242,10 +246,10 @@ def log_attempt(conn, addr, func, i, code, prompt, att, meta, strategy,
     # older database degrades instead of raising.
     cols = {r[1] for r in conn.execute("pragma table_info(attempts)")}
     names = ("func_addr, iteration, source_code, prompt_context, compiled,"
-             " compiler_stderr, score, diff_summary, strategy, model,"
+             " compiler_stderr, score, exact, diff_summary, strategy, model,"
              " sampling, wall_ms, token_cost, created_at")
     vals = [addr, i, code, prompt, int(att.compiled), att.compiler_stderr,
-            att.score, att.diff, strategy, model, json.dumps(sampling),
+            att.score, int(att.exact), att.diff, strategy, model, json.dumps(sampling),
             wall_ms, meta.get("eval_count", 0), int(time.time())]
     if "raw_response" in cols and raw_response:
         names += ", raw_response"

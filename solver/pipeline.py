@@ -92,10 +92,16 @@ VERDICT_ROUTE = {
 }
 
 
-def triage(score: float) -> str:
-    """Fallback routing when no verdict is available."""
-    if score >= 100.0:
+def triage(score: float, exact: bool = False) -> str:
+    """Fallback routing when no verdict is available.
+
+    Score is not an exact-match oracle. A non-exact 100 means the instruction
+    view matched while object bytes (usually relocations) did not.
+    """
+    if exact:
         return "matched"
+    if score >= 100.0:
+        return "relocation"
     if score >= PERMUTE_FLOOR:
         return "permute"
     if score >= RETYPE_FLOOR:
@@ -103,20 +109,20 @@ def triage(score: float) -> str:
     return "reshape"
 
 
-def route_for(verdict: str, score: float) -> str:
+def route_for(verdict: str, score: float, exact: bool = False) -> str:
     """Verdict decides; score is only the fallback.
 
     A `words-identical` candidate scores ~100% and must NOT go to the permuter:
     its instructions already match and only the relocations are wrong.
     """
-    if score >= 100.0:
+    if exact:
         return "matched"
     if verdict:
         # Mixed verdicts read like "mixed(structural:4, register:8)".
         for key, route in VERDICT_ROUTE.items():
             if verdict.startswith(key):
                 return route
-    return triage(score)
+    return triage(score, exact=exact)
 
 
 def build_prompt(repo: Path, conn, func: str, asm: str, draft: str,

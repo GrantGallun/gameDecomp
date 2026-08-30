@@ -12,6 +12,7 @@ import sqlite3
 import pytest
 
 from solver import workspace
+from eval import matched
 
 SCHEMA = """
 CREATE TABLE functions (addr INTEGER PRIMARY KEY, name TEXT);
@@ -43,6 +44,37 @@ def test_successful_attempt_is_logged(conn):
     assert workspace.log_attempt(conn, "someFunc", "int x;", _att()) is True
     row = conn.execute("select score, compiled, strategy from attempts").fetchone()
     assert row[0] == 42.5 and row[1] == 1
+
+
+def test_verifier_verdict_is_persisted_not_inferred_from_score(conn):
+    workspace.log_attempt(conn, "someFunc", "wrong reloc",
+                          _att(score=100.0, exact=False))
+    workspace.log_attempt(conn, "someFunc", "right object",
+                          _att(score=99.0, exact=True))
+    rows = conn.execute("select score, exact from attempts order by id").fetchall()
+    assert rows == [(100.0, 0), (99.0, 1)]
+
+
+def test_old_rows_migrate_to_unknown_not_false_or_true(conn):
+    conn.execute(
+        "insert into attempts (func_addr, iteration, source_code, compiled, score) "
+        "values (0x80001234, 0, 'old', 1, 100.0)")
+    conn.commit()
+    workspace.log_attempt(conn, "someFunc", "new", _att(exact=True))
+    assert conn.execute(
+        "select exact from attempts where source_code='old'").fetchone()[0] is None
+
+
+def test_score_100_without_exact_verdict_is_not_matched(conn):
+    workspace.log_attempt(conn, "someFunc", "wrong reloc",
+                          _att(score=100.0, exact=False))
+    assert matched.matched_in_db(conn) == set()
+
+
+def test_only_positive_exact_receipt_marks_function_matched(conn):
+    workspace.log_attempt(conn, "someFunc", "right object",
+                          _att(score=42.0, exact=True))
+    assert matched.matched_in_db(conn) == {"someFunc"}
 
 
 def test_FAILURES_are_logged_too(conn):

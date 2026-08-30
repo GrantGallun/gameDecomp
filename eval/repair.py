@@ -124,7 +124,7 @@ def main() -> int:
     rows = conn.execute(
         "select f.name, max(a.score) as best from functions f"
         " join attempts a on a.func_addr = f.addr"
-        " group by f.addr having best >= ? and best < 100.0"
+        " group by f.addr having best >= ?"
         " order by best desc", (args.floor,)).fetchall()
 
     # A function matched only on disk still has sub-100 attempts logged, so
@@ -136,7 +136,7 @@ def main() -> int:
     done = matched_mod.already_matched(conn)
     hidden = [n for n, _b in rows if n in done]
     rows = [(n, b) for n, b in rows if n not in done]
-    print(f"{len(rows)} functions between {args.floor} and byte-exact")
+    print(f"{len(rows)} non-exact functions at or above {args.floor}")
     if hidden:
         print(f"(excluded {len(hidden)} already matched elsewhere: "
               f"{', '.join(hidden[:4])})")

@@ -14,6 +14,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from kb import attempts as attempt_receipts
+
 SCORE_RE = re.compile(r"^Score:\s*([\d.]+)%", re.MULTILINE)
 EXACT_RE = re.compile(r"^Verified exact match:\s*(\w+)", re.MULTILINE)
 ERROR_LINE_RE = re.compile(r"^(?:cfe: Error|ERROR|.*Syntax Error).*$", re.MULTILINE)
@@ -22,7 +24,7 @@ ERROR_LINE_RE = re.compile(r"^(?:cfe: Error|ERROR|.*Syntax Error).*$", re.MULTIL
 @dataclass
 class Attempt:
     compiled: bool
-    score: float          # 0..100; 100 means byte-exact
+    score: float          # 0..100 similarity; exact is authoritative
     exact: bool
     diff: str             # instruction diff, empty when it did not compile
     compiler_stderr: str
@@ -102,6 +104,7 @@ def log_attempt(conn, func: str, code: str, att: "Attempt", *,
                        (func,)).fetchone()
     if not row:
         return False
+    attempt_receipts.ensure_exact_receipt(conn)
     sampling = {"temperature": temperature, "run_id": run_id}
     if extra:
         sampling.update(extra)
@@ -117,14 +120,14 @@ def log_attempt(conn, func: str, code: str, att: "Attempt", *,
             extra_vals.append(val)
 
     base = ("func_addr, iteration, source_code, prompt_context, compiled,"
-            " compiler_stderr, score, diff_summary, strategy, model, sampling,"
-            " wall_ms, token_cost, created_at")
+            " compiler_stderr, score, exact, diff_summary, strategy, model,"
+            " sampling, wall_ms, token_cost, created_at")
     names = base + ("".join(f", {c}" for c in extra_cols))
-    marks = ",".join("?" * (14 + len(extra_cols)))
+    marks = ",".join("?" * (15 + len(extra_cols)))
     conn.execute(
         f"INSERT INTO attempts ({names}) VALUES ({marks})",
         (row[0], 0, code, prompt, int(att.compiled), att.compiler_stderr,
-         att.score, att.diff, strategy, model, json.dumps(sampling),
+         att.score, int(att.exact), att.diff, strategy, model, json.dumps(sampling),
          wall_ms, 0, int(_time.time()), *extra_vals))
     conn.commit()
     return True

@@ -164,7 +164,8 @@ CREATE TABLE IF NOT EXISTS attempts (
     prompt_context TEXT,            -- exact context, or hash + rebuild recipe
     compiled      INTEGER NOT NULL,
     compiler_stderr TEXT,
-    score         REAL,             -- asm-differ score; 0 = byte-exact
+    score         REAL,             -- asm-differ similarity, 0..100; not proof
+    exact         INTEGER,          -- verifier verdict; NULL = historical unknown
     diff_summary  TEXT,             -- full instruction diff, not just the number
     strategy      TEXT,
     model         TEXT,

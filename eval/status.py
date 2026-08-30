@@ -21,13 +21,14 @@ import sqlite3
 import subprocess
 from pathlib import Path
 
+from eval import matched as matched_mod
+from kb import attempts as attempt_receipts
+
 
 def counts(db: Path) -> dict:
     conn = sqlite3.connect(str(db))
     q = conn.execute
-    exact_db = {r[0] for r in q(
-        "select distinct f.name from attempts a"
-        " join functions f on f.addr = a.func_addr where a.score >= 100")}
+    exact_db = matched_mod.matched_in_db(conn)
     # Candidates verified byte-exact but never logged, e.g. recovered from
     # permuter output. Counting only the DB under-reports; counting only files
     # over-reports. The union is the honest figure -- getting this wrong is how
@@ -38,6 +39,7 @@ def counts(db: Path) -> dict:
         "exact": len(exact_db | on_disk),
         "exact_db_only": len(exact_db),
         "exact_disk_only": len(on_disk - exact_db),
+        "historical_exact_unknown": attempt_receipts.unknown_exact_count(conn),
         "attempted": q("select count(distinct func_addr) from attempts").fetchone()[0],
         "attempts": q("select count(*) from attempts").fetchone()[0],
         "evidence": q("select count(*) from evidence").fetchone()[0],
@@ -76,6 +78,10 @@ def main() -> int:
         print(f"\n({c['exact_disk_only']} verified match(es) exist only as files "
               f"in matched_recovered/ and are absent from the attempts table --"
               f" they were produced by a harness that did not log.)")
+    if c["historical_exact_unknown"]:
+        print(f"\n({c['historical_exact_unknown']:,} historical compiled attempt(s) "
+              "predate persisted exact verdicts. They are treated as unknown, "
+              "never inferred from score.)")
 
     if args.check:
         md = Path("CLAUDE.md").read_text(encoding="utf-8", errors="replace")

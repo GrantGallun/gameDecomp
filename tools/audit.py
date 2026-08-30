@@ -21,6 +21,7 @@ import sqlite3
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from eval import matched as matched_mod
 from solver import context as kb_context
 from solver import pipeline, structgen, workspace
 
@@ -57,7 +58,7 @@ def main() -> int:
     flags: Counter[str] = Counter()
     affected: dict[str, list[str]] = defaultdict(list)
     near: list[tuple[str, float]] = []
-    exact_n = 0
+    exact_names = matched_mod.already_matched(conn)
 
     for fn in funcs:
         rows = conn.execute(
@@ -66,10 +67,6 @@ def main() -> int:
             (fn,)).fetchall()
         scores = [r[0] for r in rows if r[1]]
         best = max(scores) if scores else 0.0
-        if best >= 100:
-            # 100 by the scorer is not necessarily byte-exact
-            exact_n += 1
-
         # --- stage: candidates -------------------------------------------
         if not scores:
             flags["no compiling candidate at all"] += 1
@@ -109,14 +106,14 @@ def main() -> int:
             affected[label].append(fn)
 
         # --- stage: the rounding trap ------------------------------------
-        if 99.5 <= best < 100:
+        if best >= 99.5 and fn not in exact_names:
             near.append((fn, best))
             if f"{best:.2f}" == "100.00":
                 flags["score displays 100.00 but is not exact"] += 1
                 affected["score displays 100.00 but is not exact"].append(fn)
 
         # --- stage: struct repairability ---------------------------------
-        if 90 <= best < 100:
+        if best >= 90 and fn not in exact_names:
             src = max((r for r in rows if r[1]), key=lambda r: r[0])[3] or ""
             lay = structgen.layout(conn, fn)
             if not structgen.struct_names(src):
@@ -159,8 +156,9 @@ def main() -> int:
         print(f"   {len(hit):3} / {len(funcs)}  {fam}")
 
     print(f"\n{'-' * 74}")
-    print(f"functions reaching score >= 100 : {exact_n}")
-    print(f"functions in 99.5-100 (near)    : {len(near)}")
+    exact_n = len(set(funcs) & exact_names)
+    print(f"functions with exact receipt     : {exact_n}")
+    print(f"non-exact functions at >= 99.5  : {len(near)}")
 
     if args.targets and near:
         print("\nHIGHEST-VALUE TARGETS -- closest non-exact functions:")

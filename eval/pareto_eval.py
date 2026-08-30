@@ -51,7 +51,7 @@ def main() -> int:
     funcs = [r for r in conn.execute(
         "select f.name, max(a.score) as best from functions f"
         " join attempts a on a.func_addr = f.addr"
-        " group by f.addr having best >= ? and best < 100.0"
+        " group by f.addr having best >= ?"
         " order by best desc", (args.floor,)).fetchall()
         if r[0] not in done]
 

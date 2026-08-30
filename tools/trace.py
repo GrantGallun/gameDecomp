@@ -211,7 +211,7 @@ def trace(func: str, generate: bool, model: str) -> int:
 
     # ---------------------------------------------------------------- route
     hdr(8, "ROUTE")
-    route = pipeline.route_for(verdict, att.score)
+    route = pipeline.route_for(verdict, att.score, exact=att.exact)
     show("chosen route", route)
     if att.score >= 95 and route == "permute" and verdict and "reloc" not in verdict:
         flag("routed to the permuter on SCORE alone. Measured 2026-08-28: "
