@@ -48,7 +48,7 @@ def traced_calls(asm: str) -> dict[str, list[str]]:
     return out
 
 
-def _to_c(expr: str, ptr: str) -> str | None:
+def _to_c(expr: str, ptr: str, code: str = "") -> str | None:
     """Turn a trace expression into C, or None if it cannot be named.
 
     param0->f1c  ->  ptr->field1C          (field naming is caller-supplied)
@@ -59,10 +59,59 @@ def _to_c(expr: str, ptr: str) -> str | None:
     if m:
         return f"{ptr}->@{int(m.group(2), 16):x}"
     if expr.startswith("&"):
+        # `&gAssetHandles->f3e` asserts that gAssetHandles is a pointer to a
+        # struct having member f3e. The trace knows the ADDRESS ARITHMETIC; it
+        # does not know how this candidate spells the type, and the candidate
+        # is free to declare gAssetHandles as a plain array. Emitting the
+        # member access anyway produced "Selector requires struct/union pointer
+        # as left hand side" and turned func_8005804C from 61.84 into a compile
+        # failure. Only emit a member access the candidate itself declares.
+        if "->" in expr or "." in expr:
+            base = re.match(r"&\s*(\w+)", expr)
+            member = re.search(r"(?:->|\.)\s*(\w+)\s*$", expr)
+            if not (base and member and code):
+                return None
+            declares_base = re.search(
+                rf"\b{re.escape(base.group(1))}\b\s*(?:\[|;|=|,)", code)
+            declares_member = re.search(
+                rf"\b\w+\s+\*?\s*{re.escape(member.group(1))}\s*(?:\[|;)", code)
+            if not (declares_base and declares_member):
+                return None
         return expr
     if re.match(r"param\d+$", expr):
         return ptr
     return None
+
+
+# The parameter list of a function DEFINITION -- a ')' followed by '{', not a
+# prototype ending in ';'. Anchoring on the definition matters: the candidates
+# declare externs above the function, and the first `(T *x)` in the file is
+# usually one of those, not the function being repaired.
+DEF_PARAMS_RE = re.compile(r"\(([^();]*)\)\s*\{", re.DOTALL)
+# `struct RacePlayer *player` -- the type may be several words, which the
+# original single-\w+ pattern could not match, so detection silently failed on
+# every candidate that spelled its parameter with `struct`.
+PTR_PARAM_RE = re.compile(
+    r"(?:^|,)\s*(?:const\s+|volatile\s+)*"
+    r"(?:struct\s+|union\s+|enum\s+)?\w+(?:\s+\w+)*\s*\*+\s*(\w+)\s*$")
+
+
+def find_ptr_param(code: str) -> str:
+    """Name of the first pointer parameter of the function defined in `code`.
+
+    Returns "" when it cannot tell, which the caller must treat as "do not
+    touch this candidate" rather than substituting a default.
+    """
+    for m in DEF_PARAMS_RE.finditer(code):
+        params = m.group(1)
+        if not params.strip() or params.strip() == "void":
+            continue
+        for part in params.split(","):
+            pm = PTR_PARAM_RE.search(part if part.startswith(",")
+                                     else "," + part)
+            if pm:
+                return pm.group(1)
+    return ""
 
 
 def fix_calls(code: str, asm: str, ptr_name: str = "") -> tuple[str, list[str]]:
@@ -75,8 +124,15 @@ def fix_calls(code: str, asm: str, ptr_name: str = "") -> tuple[str, list[str]]:
     """
     log: list[str] = []
     if not ptr_name:
-        m = re.search(r"\(\s*\w+\s*\*\s*(\w+)\s*\)", code)
-        ptr_name = m.group(1) if m else "param0"
+        ptr_name = find_ptr_param(code)
+    if not ptr_name:
+        # Falling back to a literal "param0" wrote an identifier that does not
+        # exist in the candidate. Measured on isRacePlayerRespawnSurfaceValid:
+        # a candidate compiling at 95.90 was rewritten to reference `param0->`
+        # when the parameter was named `player`, and stopped compiling
+        # altogether. Inventing a name is the exact failure this project exists
+        # to prevent, so an undeterminable pointer means DECLINE.
+        return code, ["pointer parameter could not be named -- left alone"]
 
     # offset -> field name, from the candidate's own struct
     fields: dict[int, str] = {}
@@ -138,7 +194,7 @@ def fix_calls(code: str, asm: str, ptr_name: str = "") -> tuple[str, list[str]]:
 
         newargs, ok = [], True
         for t in targs:
-            c = _to_c(t, ptr_name)
+            c = _to_c(t, ptr_name, code)
             if c is None:
                 ok = False
                 break

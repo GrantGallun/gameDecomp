@@ -1,0 +1,10 @@
+{
+ "transform": "tracefix",
+ "changed": 3,
+ "fixed": [],
+ "still_failing": [
+  "func_800615BC",
+  "isRacePlayerRespawnSurfaceValid"
+ ],
+ "broke": []
+}

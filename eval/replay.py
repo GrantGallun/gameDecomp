@@ -30,13 +30,27 @@ import sqlite3
 import time
 from pathlib import Path
 
-from solver import c89, llm, workspace
+from solver import c89, llm, tracefix, workspace
 
+
+def _tracefix(src: str, *, repo: Path, func: str, ws: Path) -> str:
+    """Trace-directed call repair. Needs the target asm, not just the source."""
+    asm = workspace.target_asm(ws, func)
+    fixed, _log = tracefix.fix_calls(src, asm)
+    return fixed
+
+
+# A transform is either pure text (str -> str) or needs to know WHICH function
+# it is repairing. The second kind takes keyword-only repo/func/ws so a pure
+# transform never has to care.
 TRANSFORMS = {
     "c89": c89.to_c89,
     "includes": llm.strip_unresolvable_includes,
+    "tracefix": _tracefix,
+    "c89+tracefix": lambda s, **kw: _tracefix(c89.to_c89(s), **kw),
     "none": lambda s: s,
 }
+NEEDS_CONTEXT = {"tracefix", "c89+tracefix"}
 
 
 def window_of(results: str) -> tuple[float, float]:
@@ -66,6 +80,23 @@ def main() -> int:
     conn = sqlite3.connect(str(Path(args.db).expanduser()))
     lo, hi = window_of(args.since_run)
     fn = TRANSFORMS[args.transform]
+    needs_ctx = args.transform in NEEDS_CONTEXT
+
+    def apply(src: str, name: str):
+        """Run the transform, returning None if it cannot be applied.
+
+        A context-hungry transform can fail for reasons that are not the
+        candidate's fault -- a missing asm file, an unparsable trace. Those
+        must not be counted as "still fails", which would understate the
+        transform; they are simply not applicable.
+        """
+        if not needs_ctx:
+            return fn(src)
+        try:
+            ws = workspace.bootstrap(repo, name)
+            return fn(src, repo=repo, func=name, ws=ws)
+        except Exception:
+            return None
 
     q = ("select f.name, a.compiled, a.score, a.source_code"
          " from attempts a join functions f on f.addr = a.func_addr"
@@ -79,7 +110,13 @@ def main() -> int:
 
     # Only rows the transform actually changes can move the number; the rest
     # are a control group that must come out identical.
-    changed = [(n, ok, sc, s) for n, ok, sc, s in rows if fn(s) != s]
+    changed, inapplicable = [], 0
+    for n, ok, sc, s in rows:
+        new = apply(s, n)
+        if new is None:
+            inapplicable += 1
+        elif new != s:
+            changed.append((n, ok, sc, s))
     print(f"attempts in window: {len(rows)}   transform changes: "
           f"{len(changed)} ({100*len(changed)/max(1,len(rows)):.1f}%)")
     print(f"transform: {args.transform}\n")
@@ -87,7 +124,9 @@ def main() -> int:
     fixed, still, broke, kept = [], [], [], []
     t0 = time.time()
     for i, (name, was_ok, was_score, src) in enumerate(changed, 1):
-        new = fn(src)
+        new = apply(src, name)
+        if new is None:
+            continue
         ws = workspace.bootstrap(repo, name)
         att = workspace.score(ws, repo, name, new)
         if was_ok and not att.compiled:
@@ -95,10 +134,16 @@ def main() -> int:
             tag = "BROKE"
         elif was_ok:
             kept.append((name, was_score, att.score))
-            tag = "kept"
+            d = att.score - was_score
+            # 3 decimals, because `:.2f` renders 99.999 as "100.00" and that
+            # has now nearly been misread as a match twice in one session.
+            # EXACT comes from the oracle flag, never from the number.
+            tag = ("kept" if abs(d) < 0.0005
+                   else f"kept {was_score:.3f} -> {att.score:.3f} ({d:+.3f})")
+            tag += "  EXACT" if att.exact else ""
         elif att.compiled:
             fixed.append((name, att.score, att.exact))
-            tag = f"FIXED -> {att.score:.2f}" + ("  EXACT" if att.exact else "")
+            tag = f"FIXED -> {att.score:.3f}" + ("  EXACT" if att.exact else "")
         else:
             still.append(name)
             tag = "still fails"
@@ -110,6 +155,18 @@ def main() -> int:
     if not args.only_failing:
         print(f"  previously compiling, still compiling : {len(kept)}")
         print(f"  previously compiling, NOW BROKEN      : {len(broke)}")
+        up = [(n, a, b) for n, a, b in kept if b - a > 0.005]
+        down = [(n, a, b) for n, a, b in kept if a - b > 0.005]
+        # counted from the oracle, not from the score
+        gained = sum(1 for n, a, b in kept if b > a and b >= 100.0)
+        print(f"    score improved: {len(up)}   score fell: {len(down)}"
+              f"   newly EXACT: {gained}")
+        for nm, a, b in sorted(up, key=lambda x: x[2] - x[1],
+                               reverse=True)[:6]:
+            print(f"      {nm[:44]:44} {a:7.3f} -> {b:7.3f}")
+        for nm, a, b in sorted(down, key=lambda x: x[1] - x[2],
+                               reverse=True)[:6]:
+            print(f"      REGRESSED {nm[:36]:36} {a:6.2f} -> {b:6.2f}")
     print(f"  previously failing, now COMPILES      : {len(fixed)}")
     print(f"  previously failing, still fails       : {len(still)}")
     if n:
@@ -119,8 +176,8 @@ def main() -> int:
                   f"{100*len(fixed)/base:.1f}%")
     if fixed:
         sc = sorted((s for _, s, _ in fixed), reverse=True)
-        print(f"  scores of repaired candidates: max {sc[0]:.2f}  "
-              f"median {sc[len(sc)//2]:.2f}  "
+        print(f"  scores of repaired candidates: max {sc[0]:.3f}  "
+              f"median {sc[len(sc)//2]:.3f}  "
               f"exact {sum(1 for _, _, e in fixed if e)}")
         print("\n  A repaired candidate that scores near zero is a syntax win")
         print("  and nothing more -- the structural gap is untouched.")
