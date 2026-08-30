@@ -73,6 +73,130 @@ def layout(conn, func: str) -> dict[str, list[tuple[int, int, str]]]:
             for b, s in per_base.items()}
 
 
+def align_positional(body: str, observed: dict[int, int],
+                     skip: int = 0) -> tuple[str, bool]:
+    """Place the candidate's fields on observed offsets by DECLARATION ORDER.
+
+    repad can only act when a declaration states where it belongs -- a name
+    like `field1C`, or a trailing `/* 0x28 */`. Measured across the near-miss
+    set, that is exactly what blocks it: feeding repad the whole program's
+    global-object layout raised its input from 0 to 186 observed offsets on
+    some functions and changed its output on NONE of them, because nothing maps
+    a declaration to an offset.
+
+    So propose the mapping instead: the i-th non-padding field goes on the i-th
+    observed offset. This is an INFERENCE and it is often wrong -- which is
+    fine, because it is never trusted. The oracle scores the result and the
+    caller keeps it only if it verifies, which is the same propose/verify shape
+    as the argument-order enumeration that moved a function with no model.
+
+    `skip` drops the first N observed offsets, since the candidate may not
+    declare the object's leading fields. Widths must agree: mapping an s32 onto
+    a byte the program only ever reads as u8 is not a near miss, it is a
+    different field, and accepting it would manufacture nonsense the oracle
+    then has to reject.
+
+    Index-for-index is a poor model on its own -- it assumes the candidate
+    declares EVERY field, and measured across the near-miss set it declined 12
+    of 23 functions on width mismatch for exactly that reason (10 declared
+    fields against 29 observed offsets). `align_subsequence` is the general
+    form; this remains as the cheap exact-arity case.
+    """
+    decls = [m for m in DECL.finditer(body)
+             if not m.group(2).lstrip("_").lower().startswith("pad")]
+    if not decls:
+        return body, False
+
+    targets = sorted(observed.items())[skip:]
+    if len(targets) < len(decls):
+        return body, False
+
+    edits: list[tuple[int, int, str]] = []
+    cursor = 0
+    for m, (off, width) in zip(decls, targets):
+        ctype = m.group(1).strip().split()[-1]
+        count = m.group(3)
+        size = SIZEOF.get(ctype, 4) * (int(count, 0) if count else 1)
+        if SIZEOF.get(ctype, 4) != width:
+            return body, False              # different field, not a shifted one
+        if off < cursor:
+            return body, False              # cannot move a field backwards
+        if off > cursor:
+            indent = re.match(r"[ \t]*", body[m.start():m.end()]).group(0)
+            edits.append((m.start(), m.start(),
+                          f"{indent}char pad{cursor:02x}[{off - cursor:#x}];\n"))
+        cursor = off + size
+
+    if not edits:
+        return body, False
+    out = body
+    for start, end, text in reversed(edits):
+        out = out[:start] + text + out[end:]
+    return out, True
+
+
+def align_subsequence(body: str, observed: dict[int, int],
+                      greedy: str = "first") -> tuple[str, bool]:
+    """Place declared fields on a WIDTH-COMPATIBLE, order-preserving subsequence.
+
+    The candidate declares only the fields its function touches -- 10
+    declarations against 29 observed offsets is normal -- so field i is not
+    offset i. What must hold is weaker and truer: the declarations appear in
+    increasing offset order, and each sits on an offset the program reads at
+    that width.
+
+    `greedy="first"` takes the earliest such assignment, `"last"` the latest.
+    Two proposals, one compile each, and the oracle picks. Neither is trusted:
+    this is a hypothesis about which bytes the candidate means, and a wrong
+    guess simply fails to verify.
+    """
+    decls = [m for m in DECL.finditer(body)
+             if not m.group(2).lstrip("_").lower().startswith("pad")]
+    if not decls:
+        return body, False
+
+    targets = sorted(observed.items())
+    if greedy == "last":
+        targets = targets[::-1]
+
+    chosen: list[tuple[int, int]] = []
+    ti = 0
+    for m in decls:
+        ctype = m.group(1).strip().split()[-1]
+        want = SIZEOF.get(ctype, 4)
+        while ti < len(targets) and targets[ti][1] != want:
+            ti += 1
+        if ti >= len(targets):
+            return body, False              # no compatible offset remains
+        chosen.append(targets[ti])
+        ti += 1
+    if greedy == "last":
+        chosen.reverse()
+        if any(a[0] >= b[0] for a, b in zip(chosen, chosen[1:])):
+            return body, False              # not strictly increasing
+
+    edits: list[tuple[int, str]] = []
+    cursor = 0
+    for m, (off, _w) in zip(decls, chosen):
+        ctype = m.group(1).strip().split()[-1]
+        count = m.group(3)
+        size = SIZEOF.get(ctype, 4) * (int(count, 0) if count else 1)
+        if off < cursor:
+            return body, False
+        if off > cursor:
+            indent = re.match(r"[ \t]*", body[m.start():m.end()]).group(0)
+            edits.append((m.start(),
+                          f"{indent}char pad{cursor:02x}[{off - cursor:#x}];\n"))
+        cursor = off + size
+
+    if not edits:
+        return body, False
+    out = body
+    for start, text in reversed(edits):
+        out = out[:start] + text + out[start:]
+    return out, True
+
+
 def render(name: str, fields: list[tuple[int, int, str]],
            keep: dict[int, str] | None = None) -> str:
     """Emit a struct where every observed offset lands exactly where observed.

@@ -20,21 +20,52 @@ import sqlite3
 from pathlib import Path
 
 from eval import matched as matched_mod
+from miner import globals_layout
 from solver import c89, structgen, tracefix, workspace
 
 
-def observed_for(conn, func: str) -> dict[int, int]:
-    """offset -> width, from the evidence tier, flattened across parameters."""
+def observed_for(conn, func: str, objs=None) -> dict[int, int]:
+    """offset -> width, from the evidence tier.
+
+    Two sources, and the second is much larger. Parameter accesses are what
+    THIS function shows. Global objects are what the WHOLE PROGRAM shows about
+    the same bytes -- measured at 2.7x more offsets on the near-miss set, with
+    individual fields observed by up to 161 functions -- and structgen.layout
+    excludes them, so they have never reached any repair pass.
+    """
     out: dict[int, int] = {}
     for _base, entries in (structgen.layout(conn, func) or {}).items():
         for off, width, _ty in entries:
             out[off] = width
+
+    if objs is None:
+        return out
+
+    # Offsets of every global object this function touches, relative to that
+    # object's own base -- which is how a candidate declaring a struct for it
+    # would number its fields.
+    row = conn.execute("select addr from functions where name = ?",
+                       (func,)).fetchone()
+    if not row:
+        return out
+    for (base,) in conn.execute(
+            "select distinct base from evidence where kind = 'mem_access'"
+            " and func_addr = ? and base like 'global:%'", (row[0],)):
+        try:
+            addr = int(str(base).split(":", 1)[1], 16)
+        except (IndexError, ValueError):
+            continue
+        obj = globals_layout.for_address(objs, addr)
+        if not obj:
+            continue
+        for f in obj.fields:
+            out.setdefault(f.offset, f.width)
     return out
 
 
-def passes(src: str, *, conn, func: str, repo: Path, ws: Path):
+def passes(src: str, *, conn, func: str, repo: Path, ws: Path, objs=None):
     """Yield (label, code) for each repair worth trying, cheapest first."""
-    obs = observed_for(conn, func)
+    obs = observed_for(conn, func, objs)
     yield "baseline", src
 
     padded, changed = structgen.repad(src, obs)
@@ -59,12 +90,32 @@ def passes(src: str, *, conn, func: str, repo: Path, ws: Path):
         if ch3:
             yield "c89+repad", cp
 
+    # Proposals, not repairs. repad needs a declaration to say where it belongs;
+    # when none does, guess the mapping by declaration order and let the ORACLE
+    # decide. Several leading fields may be undeclared, so try a few starting
+    # points -- a small enumeration whose cost is one compile each.
+    seen = set()
+    for base_label, base_src in (("", src), ("c89+", c)):
+        for skip in range(0, 4):
+            cand, ok = structgen.align_positional(base_src, obs, skip=skip)
+            if ok and cand not in seen:
+                seen.add(cand)
+                yield f"{base_label}align(skip={skip})", cand
+        # the general form: the candidate declares a SUBSET of the fields
+        for greedy in ("first", "last"):
+            cand, ok = structgen.align_subsequence(base_src, obs, greedy)
+            if ok and cand not in seen:
+                seen.add(cand)
+                yield f"{base_label}subseq({greedy})", cand
+
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", required=True)
     ap.add_argument("--repo", required=True)
     ap.add_argument("--floor", type=float, default=90.0)
+    ap.add_argument("--globals", action="store_true",
+                    help="also feed global object layouts to repad")
     ap.add_argument("--out", default="")
     args = ap.parse_args()
 
@@ -78,6 +129,10 @@ def main() -> int:
 
     # A function matched only on disk still has sub-100 attempts logged, so
     # max(score) < 100 lists it as a near miss when it is already solved.
+    objs = globals_layout.objects(conn) if args.globals else None
+    if objs:
+        print(f"global objects available to repad: {len(objs)}"
+              f"  ({sum(len(o.fields) for o in objs)} fields)")
     done = matched_mod.already_matched(conn)
     hidden = [n for n, _b in rows if n in done]
     rows = [(n, b) for n, b in rows if n not in done]
@@ -100,7 +155,7 @@ def main() -> int:
 
         best_label, best_score, best_exact, best_code = "baseline", best, False, ""
         for label, code in passes(row[0], conn=conn, func=name, repo=repo,
-                                  ws=ws):
+                                  ws=ws, objs=objs):
             if label == "baseline":
                 continue
             att = workspace.score(ws, repo, name, code)

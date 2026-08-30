@@ -258,3 +258,123 @@ def test_field_name_offset_still_wins_over_comment():
     # the name says 0x1C and the evidence has it; the comment must not override
     out, _changed = structgen.repad(body, {0x1C: 4})
     assert "0x99" not in out.replace("/* 0x99 : wrong comment */", "")
+
+
+# --------------------------- positional alignment (propose, oracle verifies)
+
+def test_positional_alignment_inserts_padding_by_order():
+    """Fields in the right order, wrong offsets -- the common shape."""
+    body = ("typedef struct {\n"
+            "    s32 a;\n"
+            "    s32 b;\n"
+            "} T;\n")
+    out, changed = structgen.align_positional(body, {0x0: 4, 0x10: 4})
+    assert changed
+    assert "pad04[0xc]" in out
+
+
+def test_positional_alignment_refuses_on_width_mismatch():
+    """An s32 onto a byte the program only reads as u8 is a DIFFERENT field.
+
+    Accepting it would manufacture nonsense for the oracle to reject, and
+    would hide the real mapping.
+    """
+    body = "typedef struct {\n    s32 a;\n} T;\n"
+    out, changed = structgen.align_positional(body, {0x0: 1})
+    assert not changed and out == body
+
+
+def test_positional_alignment_refuses_to_move_a_field_backwards():
+    body = ("typedef struct {\n"
+            "    s32 a;\n"
+            "    s32 b;\n"
+            "} T;\n")
+    # second observed offset is before the first field's end
+    out, changed = structgen.align_positional(body, {0x0: 4, 0x2: 4})
+    assert not changed
+
+
+def test_positional_alignment_needs_enough_observed_offsets():
+    body = ("typedef struct {\n"
+            "    s32 a;\n"
+            "    s32 b;\n"
+            "    s32 c;\n"
+            "} T;\n")
+    out, changed = structgen.align_positional(body, {0x0: 4, 0x8: 4})
+    assert not changed
+
+
+def test_positional_alignment_skip_drops_leading_offsets():
+    body = "typedef struct {\n    s32 a;\n} T;\n"
+    # with skip=1 the field maps to 0x10, not 0x0
+    out, changed = structgen.align_positional(body, {0x0: 4, 0x10: 4}, skip=1)
+    assert changed and "pad00[0x10]" in out
+
+
+def test_positional_alignment_is_a_no_op_when_already_correct():
+    body = ("typedef struct {\n"
+            "    s32 a;\n"
+            "    s32 b;\n"
+            "} T;\n")
+    out, changed = structgen.align_positional(body, {0x0: 4, 0x4: 4})
+    assert not changed and out == body
+
+
+def test_positional_alignment_ignores_existing_padding_fields():
+    body = ("typedef struct {\n"
+            "    char _pad0[0x4];\n"
+            "    s32 a;\n"
+            "} T;\n")
+    out, changed = structgen.align_positional(body, {0x0: 4})
+    # the only real field maps to 0x0; nothing to insert before it
+    assert not changed
+
+
+# ------------------- subsequence alignment (candidate declares a SUBSET)
+
+def test_subsequence_alignment_skips_undeclared_fields():
+    """10 declarations against 29 offsets is normal; field i is not offset i."""
+    body = ("typedef struct {\n"
+            "    s32 a;\n"
+            "    s16 b;\n"
+            "} T;\n")
+    # the s16 must land on 0x10, the only halfword, not on offset index 1
+    out, changed = structgen.align_subsequence(
+        body, {0x0: 4, 0x4: 4, 0x8: 4, 0x10: 2})
+    assert changed
+    assert "pad04[0xc]" in out
+
+
+def test_subsequence_alignment_requires_a_compatible_width():
+    body = "typedef struct {\n    f32 x;\n} T;\n"
+    out, changed = structgen.align_subsequence(body, {0x0: 1, 0x2: 2})
+    assert not changed and out == body
+
+
+def test_subsequence_alignment_preserves_declaration_order():
+    body = ("typedef struct {\n"
+            "    s16 a;\n"
+            "    s16 b;\n"
+            "} T;\n")
+    out, changed = structgen.align_subsequence(body, {0x0: 2, 0x8: 2})
+    assert changed
+    # b goes after a, never before it
+    assert out.index("s16 a;") < out.index("s16 b;")
+
+
+def test_subsequence_alignment_no_op_when_already_correct():
+    body = ("typedef struct {\n"
+            "    s32 a;\n"
+            "    s32 b;\n"
+            "} T;\n")
+    out, changed = structgen.align_subsequence(body, {0x0: 4, 0x4: 4})
+    assert not changed
+
+
+def test_subsequence_last_variant_is_a_different_proposal():
+    body = "typedef struct {\n    s32 a;\n} T;\n"
+    first, c1 = structgen.align_subsequence(body, {0x0: 4, 0x20: 4}, "first")
+    last, c2 = structgen.align_subsequence(body, {0x0: 4, 0x20: 4}, "last")
+    # first puts it at 0x0 (no edit needed); last puts it at 0x20
+    assert not c1
+    assert c2 and "pad00[0x20]" in last
