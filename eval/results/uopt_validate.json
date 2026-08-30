@@ -1,0 +1,115 @@
+{
+ "concordant": 102,
+ "pairs": 129,
+ "pct": 79.06976744186046,
+ "functions": [
+  {
+   "function": "lockRelocatableHeapBlock",
+   "webs": 3,
+   "pairs": 2,
+   "concordant": 2
+  },
+  {
+   "function": "randomNextSecondary",
+   "webs": 4,
+   "pairs": 3,
+   "concordant": 2
+  },
+  {
+   "function": "releaseGameTaskById",
+   "webs": 13,
+   "pairs": 40,
+   "concordant": 28
+  },
+  {
+   "function": "startSnowboardTrailEffect",
+   "webs": 10,
+   "pairs": 29,
+   "concordant": 28
+  },
+  {
+   "function": "tryQueueRacePlayerHitCueGhostSlowdown",
+   "webs": 6,
+   "pairs": 3,
+   "concordant": 3
+  },
+  {
+   "function": "tryQueueRacePlayerHitCueItemSteal",
+   "webs": 8,
+   "pairs": 10,
+   "concordant": 7
+  },
+  {
+   "function": "tryQueueRacePlayerHitCueLaunch",
+   "webs": 4,
+   "pairs": 2,
+   "concordant": 2
+  },
+  {
+   "function": "tryQueueRacePlayerHitCueReverseSpin",
+   "webs": 4,
+   "pairs": 2,
+   "concordant": 2
+  },
+  {
+   "function": "tryQueueRacePlayerHitCueSlide",
+   "webs": 4,
+   "pairs": 2,
+   "concordant": 2
+  },
+  {
+   "function": "tryQueueRacePlayerHitCueTerrainCrash",
+   "webs": 4,
+   "pairs": 2,
+   "concordant": 2
+  },
+  {
+   "function": "tryQueueRacePlayerHitCueTerrainFall",
+   "webs": 4,
+   "pairs": 2,
+   "concordant": 2
+  },
+  {
+   "function": "tryQueueRacePlayerHitCueTrip",
+   "webs": 4,
+   "pairs": 2,
+   "concordant": 2
+  },
+  {
+   "function": "unlockRelocatableHeapBlock",
+   "webs": 3,
+   "pairs": 2,
+   "concordant": 2
+  },
+  {
+   "function": "updateEndingLindaTumbleToPhase3C",
+   "webs": 23,
+   "pairs": 8,
+   "concordant": 1
+  },
+  {
+   "function": "updateRaceSetupFourPlayerOption",
+   "webs": 17,
+   "pairs": 4,
+   "concordant": 4
+  },
+  {
+   "function": "updateRaceStartTransitionIntroDelay",
+   "webs": 13,
+   "pairs": 3,
+   "concordant": 3
+  },
+  {
+   "function": "updateTimeTrialRecordDeltaPopupSlideIn",
+   "webs": 9,
+   "pairs": 4,
+   "concordant": 4
+  },
+  {
+   "function": "updateTimeTrialRecordDeltaPopupSlideOut",
+   "webs": 9,
+   "pairs": 9,
+   "concordant": 6
+  }
+ ]
+}
