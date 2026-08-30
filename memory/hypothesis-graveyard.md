@@ -42,3 +42,11 @@ Created: 2026-08-29
 - Evidence: 0/13 targets had a sibling at similarity 0.75 or better. Four were in 0.45-0.75 and nine were below 0.45. Retrieval completed without errors. The audit also found the old path ranked names from our pool but copied C from the finished reference repo; that contamination path is now barred and the sibling-pool source digest is fingerprinted.
 - Decision: Do not spend GPU budget on whole-function sibling prompting with the current 34-source pool. Re-run the prevalence gate as the pool grows; test basic-block or partial-structure retrieval separately.
 - Linked ideas: IDEA-20260829-03, IDEA-20260829-04
+
+### HYP-20260830-01: Perfect type knowledge raises the hard dev exact-match rate materially above a clean-KB baseline.
+- Status: Refuted
+- Tested: 2026-08-30
+- Test: Frozen best-of-2 pipeline A/B on hard_v1 dev: clean disposable KB versus separately tainted oracle-types KB, with identical code, model, source hash, set hash, and flags; 19 typed treatment functions and 20 no-type controls.
+- Evidence: Exact matches were 0/39 in both arms, failing the precommitted +2 exact gate. Mean best score fell 31.044 to 21.600 overall. Typed functions fell 26.518 to 11.161 (2 wins, 7 losses, 10 ties), versus 35.342 to 31.518 for controls; difference-in-differences was -11.534.
+- Decision: Do not build a broad type-inference tier from this premise. Diagnose harmful type-context injection and prioritize structural program-shape methods; keep the oracle KB labeled as a tainted upper-bound instrument.
+- Linked ideas: None

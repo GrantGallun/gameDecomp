@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "hypothesis_id": "oracle-types-ceiling",
+  "date": "2026-08-30",
+  "design": {
+    "set": "eval/sets/hard_v1.json",
+    "split": "dev",
+    "functions": 39,
+    "typed_treatment_functions": 19,
+    "no_type_control_functions": 20,
+    "model": "gpt-oss:20b",
+    "samples": 2,
+    "pipeline": true,
+    "siblings": false,
+    "permute_seconds": 0,
+    "clean_fingerprint": "507794dc617496ff",
+    "ceiling_fingerprint": "ad6ef9e9373f1364"
+  },
+  "precommitted_gate": "Build an inference tier only if the ceiling arm produces at least two more exact matches than clean; exact-match count dominates secondary similarity metrics.",
+  "results": {
+    "all": {
+      "n": 39,
+      "clean_exact": 0,
+      "ceiling_exact": 0,
+      "clean_mean_best": 31.044,
+      "ceiling_mean_best": 21.600,
+      "mean_delta": -9.443,
+      "ceiling_wins": 8,
+      "ceiling_losses": 14,
+      "ties": 17,
+      "clean_positive_scores": 18,
+      "ceiling_positive_scores": 14
+    },
+    "typed_treatment": {
+      "n": 19,
+      "clean_exact": 0,
+      "ceiling_exact": 0,
+      "clean_mean_best": 26.518,
+      "ceiling_mean_best": 11.161,
+      "mean_delta": -15.358,
+      "ceiling_wins": 2,
+      "ceiling_losses": 7,
+      "ties": 10,
+      "clean_positive_scores": 8,
+      "ceiling_positive_scores": 4
+    },
+    "no_type_control": {
+      "n": 20,
+      "clean_exact": 0,
+      "ceiling_exact": 0,
+      "clean_mean_best": 35.342,
+      "ceiling_mean_best": 31.518,
+      "mean_delta": -3.824,
+      "ceiling_wins": 6,
+      "ceiling_losses": 7,
+      "ties": 7,
+      "clean_positive_scores": 10,
+      "ceiling_positive_scores": 10
+    },
+    "difference_in_differences": -11.534,
+    "draw_note": "All function/arm cells used four draws except clean checkMainMenuSecretCode, which stopped after two at 99.957%; the ceiling arm received four and scored 79.709%."
+  },
+  "verdict": {
+    "status": "REFUTED",
+    "gate_passed": false,
+    "decision": "Do not build a broad type-inference tier on this evidence. First diagnose why declared-type context harms generation and prioritize structural program-shape methods."
+  }
+}

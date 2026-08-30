@@ -1158,11 +1158,17 @@
     "id": "oracle-types-ceiling",
     "claim": "Perfect type knowledge (the reference decomp's own headers, injected as inference) raises the dev-set match rate materially above the clean-KB baseline.",
     "source": "CLAUDE.md next-action premise, which contradicts CONFIRMED medium-failures-are-structural",
-    "status": "UNTESTED",
-    "evidence": "Not yet run. This exists because the project holds two contradictory positions: CLAUDE.md says matching collapses where types start to matter and names an inference tier as the next action, while medium-failures-are-structural is CONFIRMED on 30 hard functions and says the wall is program SHAPE, not missing type facts. The ceiling run is the decisive test and costs one dev-set evaluation. If the bank is right the gap is ~zero and an entire inference tier should not be built. Run: miner.import_existing --ceiling then eval.run_set --db kb-sbk1-ceiling.sqlite --split dev --kb-context, compared against the same fingerprint on the clean KB.",
-    "tested_on": "",
-    "date": "",
-    "keywords": []
+    "status": "REFUTED",
+    "evidence": "A frozen best-of-2 pipeline A/B on hard_v1 dev compared a clean disposable KB with a separately tainted oracle-types copy using identical code, model, source hash, set hash, and flags. Exact matches were 0/39 in both arms, failing the precommitted +2 exact gate. Mean best score fell from 31.044 to 21.600 overall. On the 19 functions that actually received DECLARED TYPES, mean fell 26.518 to 11.161 (2 wins, 7 losses, 10 ties); on 20 no-type controls it fell 35.342 to 31.518, for a -11.534 difference-in-differences. See eval/results/type_ceiling_hard_summary.json and paired JSONL receipts.",
+    "tested_on": "hard_v1 dev: 39 functions (19 typed treatment, 20 no-type controls), gpt-oss:20b, best-of-2 pipeline",
+    "date": "2026-08-30",
+    "keywords": [
+      "oracle-types",
+      "type-inference",
+      "ceiling",
+      "program-shape",
+      "controlled-evaluation"
+    ]
   },
   {
     "id": "strip-unresolvable-includes",
