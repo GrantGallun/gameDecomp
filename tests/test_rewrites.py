@@ -91,3 +91,31 @@ def test_propose_returns_every_kind():
                ("slti at,v1,5", "slti at,v1,4")])
     kinds = {r.kind for r in rewrites.propose(code, diff)}
     assert "layout" in kinds and "immediate" in kinds
+
+
+# ---------------------------------------------------- redundant mask removal
+
+def test_drop_mask_proposed_when_we_emit_an_extra_andi():
+    """`+andi v0,t6,0xffff` with no counterpart is a mask the target lacks.
+
+    On requestRumbleMotorStart one surplus `& 0xFFFF` displaced every later
+    branch, so an 18-instruction function showed three structural faults.
+    """
+    code = "void f(void) {\n    a = (x & 0xFFFF) << 1;\n}\n"
+    rws = rewrites.drop_mask_rewrites(
+        code, _d([("sllv t0,t9,t6", "andi v0,t6,0xffff")]))
+    assert rws
+    assert "& 0xFFFF" not in rws[0](code)
+
+
+def test_drop_mask_not_proposed_without_a_surplus_andi():
+    code = "void f(void) {\n    a = (x & 0xFFFF) << 1;\n}\n"
+    assert rewrites.drop_mask_rewrites(
+        code, _d([("addu v0,v1,a0", "addu v0,v1,a1")])) == []
+
+
+def test_drop_mask_ignores_a_narrow_andi_that_is_not_a_width_mask():
+    """0x7 is a real bit test, not a zero-extension no-op."""
+    code = "void f(void) {\n    a = (x & 0xFFFF) << 1;\n}\n"
+    assert rewrites.drop_mask_rewrites(
+        code, _d([("sllv t0,t9,t6", "andi v0,t6,0x7")])) == []

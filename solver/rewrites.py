@@ -208,6 +208,49 @@ def reloc_padding_rewrites(code: str, diff: str) -> list[Rewrite]:
     return out
 
 
+MASK_OP = re.compile(r"^(andi)\s+\$?(\w+),\s*\$?(\w+),\s*(0x[0-9a-fA-F]+|\d+)")
+SOURCE_MASK = re.compile(r"\s*&\s*(0[xX][fF]{2,4}|255|65535)\b")
+
+
+def drop_mask_rewrites(code: str, diff: str) -> list[Rewrite]:
+    """Remove a redundant mask the candidate emits and the target does not.
+
+        +andi v0,t6,0xffff       we mask; the target never does
+        -sllv t0,t9,t6           and then the target uses the UNMASKED value
+        +sllv t0,t9,v0
+
+    An extra instruction displaces every later branch, which is why
+    requestRumbleMotorStart shows three "structural" faults for what is really
+    one surplus `& 0xFFFF`: its branch targets all shift by four.
+
+    The catalogue already holds the opposite lever -- adding a redundant mask
+    to advance IDO's temp FIFO -- and there was no generator for removing one,
+    so this residual proposed nothing at all.
+
+    Masking after a narrow load is semantically a no-op (lhu and lbu already
+    zero-extend), so dropping one cannot change meaning; if the mask was load
+    bearing the candidate simply fails to verify.
+    """
+    extra_mask = False
+    for line in diff.splitlines():
+        if not line.startswith("+") or line.startswith("+++"):
+            continue
+        m = MASK_OP.match(line[1:].strip())
+        if m and _num(m.group(4)) in (0xFF, 0xFFFF):
+            extra_mask = True
+            break
+    if not extra_mask:
+        return []
+
+    out: list[Rewrite] = []
+    for m in SOURCE_MASK.finditer(code):
+        span = m.span()
+        out.append(Rewrite(
+            f"drop mask {m.group(1)} at {span[0]}", "mask",
+            lambda s, _a=span[0], _b=span[1]: s[:_a] + s[_b:]))
+    return out
+
+
 def layout_rewrites(code: str, diff: str) -> list[Rewrite]:
     """Offset, width and ordering repairs, from the existing diffrepair pass."""
     out: list[Rewrite] = []
@@ -222,5 +265,6 @@ def propose(code: str, diff: str) -> list[Rewrite]:
     """Every applicable rewrite for this residual, cheapest kind first."""
     return (layout_rewrites(code, diff)
             + reloc_padding_rewrites(code, diff)
+            + drop_mask_rewrites(code, diff)
             + immediate_rewrites(code, diff)
             + argswap_rewrites(code, diff))
