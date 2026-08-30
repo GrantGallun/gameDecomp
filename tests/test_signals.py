@@ -4,8 +4,13 @@ from solver import signals
 
 
 def _d(pairs):
-    """Build a diff from (expected, produced) instruction pairs."""
-    out = []
+    """Build a unified diff from (expected, produced) instruction pairs.
+
+    The header matters now: classification pairs instructions by ALIGNING the
+    reconstructed streams, which needs the real diff shape rather than a bare
+    list of +/- lines.
+    """
+    out = ["--- target", "+++ candidate", "@@ -1,9 +1,9 @@"]
     for a, b in pairs:
         if a:
             out.append("-" + a)
@@ -100,3 +105,44 @@ def test_offset_and_width_are_counted_separately():
         ("sw t1,0x1c(t2)", "sb t1,0x1c(t2)"),     # width  -- not by repad
     ]))
     assert s.offset == 1 and s.width == 1 and s.layout == 2
+
+
+# ------------------- defects found by external review of the classifier
+
+def test_differing_immediate_is_not_a_register_fault():
+    """`slti $2,$3,4` vs `slti $2,$3,5` is a wrong CONSTANT.
+
+    Counting it as register allocation inflated that class and pointed a whole
+    line of work at the wrong fault.
+    """
+    s = signals.analyse(_d([("slti $2,$3,4", "slti $2,$3,5")]))
+    assert s.immediate == 1
+    assert s.regalloc == 0
+
+
+def test_differing_register_is_still_a_register_fault():
+    s = signals.analyse(_d([("addu $2,$3,$4", "addu $2,$3,$5")]))
+    assert s.regalloc == 1 and s.immediate == 0
+
+
+def test_repairable_counts_only_implemented_repairs():
+    """reloc and regalloc have no implemented pass; claiming them as
+    repairable reported 'our tools own the residual' about residuals no tool
+    could touch."""
+    s = signals.Signals(layout=3, reloc=2, regalloc=5, immediate=1)
+    assert s.repairable == 3
+    assert s.no_repair_implemented == 8
+
+
+def test_pairing_survives_an_unpaired_instruction():
+    """The zip() defect: one extra line shifted every later pair.
+
+    The target has an extra `nop`; positional pairing would compare the two
+    loads against each other's neighbours and misclassify both.
+    """
+    diff = ("--- a\n+++ b\n@@ -1,4 +1,3 @@\n"
+            "-nop\n"
+            "-lw $2,0x24($4)\n"
+            "+lw $2,0x20($4)\n")
+    s = signals.analyse(diff)
+    assert s.offset == 1, "the two lw lines must pair with each other"

@@ -32,6 +32,12 @@ BRANCH = {"b", "beq", "bne", "beqz", "bnez", "bgez", "blez", "bgtz", "bltz",
           "bgezal", "bltzal", "j", "jr", "jal", "jalr", "bc1t", "bc1f"}
 RELOC = re.compile(r"%(?:hi|lo)\(([^)]*)\)")
 OPCODE = re.compile(r"^([a-z][a-z0-9.]*)")
+REGNAME = re.compile(r"\$(\w+)")
+
+
+def _regs(instr: str) -> tuple[str, ...]:
+    """Register operands only, so a differing CONSTANT is not read as one."""
+    return tuple(REGNAME.findall(instr))
 
 
 @dataclass
@@ -50,9 +56,25 @@ class Signals:
     reloc: int = 0              # %hi/%lo symbol faults -- symbol repair
     regalloc: int = 0           # same op, same offset, different register
 
+    immediate: int = 0          # same opcode, different CONSTANT operand
+
     @property
     def repairable(self) -> int:
-        return self.layout + self.reloc + self.regalloc
+        """Faults an IMPLEMENTED pass can actually fix.
+
+        This used to include reloc and regalloc, for which nothing is
+        implemented, so "our tools own the whole residual" was reported about
+        residuals no tool could touch. Availability of a repair and membership
+        of a fault class are different questions and are now kept apart:
+        `repairable` means we have the code, `classified` means we know the
+        kind.
+        """
+        return self.layout                      # repad / reorder / width
+
+    @property
+    def no_repair_implemented(self) -> int:
+        """Classified, but nothing in the codebase repairs it yet."""
+        return self.reloc + self.regalloc + self.immediate
 
     @property
     def unrepairable(self) -> int:
@@ -77,11 +99,57 @@ class Signals:
 
 
 def _pairs(diff: str) -> tuple[list[tuple[str, str]], int, int]:
+    """Pair each expected instruction with the produced one, by ALIGNMENT.
+
+    This used to be zip(minus, plus) -- positional pairing, not alignment -- so
+    a single unpaired instruction shifted every later pair and every
+    classification after it described two instructions that have nothing to do
+    with each other. The same defect was found and fixed in diffrepair and left
+    here, which means every triage number reported from this module was built
+    on drifted pairs.
+
+    diffrepair.aligned_pairs_loose normalises the offset and the memory-op
+    width before matching, so instructions differing only in those land in an
+    equal block and can be compared. Anything it does not pair is a genuine
+    structural difference and is counted from the line totals below.
+    """
     minus = [l[1:].strip() for l in diff.splitlines()
              if l.startswith("-") and not l.startswith("---")]
     plus = [l[1:].strip() for l in diff.splitlines()
             if l.startswith("+") and not l.startswith("+++")]
-    return list(zip(minus, plus)), len(minus), len(plus)
+
+    # diffrepair's alignment is deliberately CONSERVATIVE -- it pairs only what
+    # is provably comparable, because it drives rewrites and a wrong pair
+    # corrupts a struct. Classification wants the opposite: pair anything
+    # plausibly corresponding and then judge it, so that a same-opcode register
+    # difference is reported as a register fault rather than falling through to
+    # structural. Aligning on the OPCODE alone gives that.
+    import difflib
+
+    from solver import diffrepair          # local: avoids an import cycle
+
+    target, cand = diffrepair._streams(diff)
+    if not target or not cand:
+        return list(zip(minus, plus)), len(minus), len(plus)
+
+    def op(instr: str) -> str:
+        m = OPCODE.match(instr)
+        return m.group(1) if m else instr
+
+    pairs: list[tuple[str, str]] = []
+    matcher = difflib.SequenceMatcher(None, [op(x) for x in target],
+                                      [op(x) for x in cand], autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            for t, c in zip(target[i1:i2], cand[j1:j2]):
+                if t != c:
+                    pairs.append((t, c))
+        elif tag == "replace":
+            # different opcodes facing each other: still a corresponding pair,
+            # and classify() will call it structural
+            for t, c in zip(target[i1:i2], cand[j1:j2]):
+                pairs.append((t, c))
+    return pairs, len(minus), len(plus)
 
 
 def analyse(diff: str, score: float = 0.0, exact: bool = False,
@@ -116,13 +184,24 @@ def analyse(diff: str, score: float = 0.0, exact: bool = False,
             s.structural += 1
         elif oa in BRANCH:
             s.structural += 1               # same branch op, different target
+        elif _regs(a) == _regs(b):
+            # Same opcode and same registers, so what differs is a CONSTANT --
+            # `slti $2,$3,4` against `slti $2,$3,5` is a wrong immediate, not a
+            # wrong register. Counting it as register allocation inflated that
+            # class and pointed a whole line of work at the wrong fault.
+            s.immediate += 1
         else:
-            s.regalloc += 1                 # same op, different operands
+            s.regalloc += 1                 # same op, genuinely different regs
 
-    # instructions with no counterpart are missing or extra code, which is
-    # structural by definition -- register allocation cannot change how many
-    # instructions exist.
-    s.structural += abs(n_minus - n_plus)
+    # Lines the alignment could NOT pair are structural by construction: it
+    # pairs anything differing only in offset or access width, so whatever is
+    # left over differs in opcode, in branch target, or has no counterpart at
+    # all. Counting only abs(n_minus - n_plus) here lost every differing-opcode
+    # pair, because those arrive as one minus AND one plus and cancel.
+    paired = len(pairs)
+    unpaired_expected = max(0, n_minus - paired)
+    unpaired_produced = max(0, n_plus - paired)
+    s.structural += max(unpaired_expected, unpaired_produced)
     return s
 
 
