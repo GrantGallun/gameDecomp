@@ -1,0 +1,59 @@
+{
+ "baseline": {
+  "score": 91.519,
+  "regalloc": 36,
+  "structural": 0
+ },
+ "nudges": [
+  {
+   "nudge": "CONTROL blank line",
+   "pattern": "-",
+   "score": 91.519,
+   "regalloc": 36,
+   "structural": 0,
+   "exact": false,
+   "reg_changes_vs_base": 0,
+   "control": true
+  },
+  {
+   "nudge": "uncache alloc ptr",
+   "pattern": "ido-do-not-cache-what-the-target-reloads",
+   "score": 90.065,
+   "regalloc": 39,
+   "structural": 2,
+   "exact": false,
+   "reg_changes_vs_base": 31,
+   "control": false
+  },
+  {
+   "nudge": "compound bump",
+   "pattern": "ido-compound-assignment-steers-result-register",
+   "score": 90.065,
+   "regalloc": 39,
+   "structural": 2,
+   "exact": false,
+   "reg_changes_vs_base": 31,
+   "control": false
+  },
+  {
+   "nudge": "redundant mask x1",
+   "pattern": "ido-redundant-mask-advances-the-temp-fifo",
+   "score": 91.519,
+   "regalloc": 36,
+   "structural": 0,
+   "exact": false,
+   "reg_changes_vs_base": 0,
+   "control": false
+  },
+  {
+   "nudge": "redundant mask x2",
+   "pattern": "ido-redundant-mask-advances-the-temp-fifo",
+   "score": 91.519,
+   "regalloc": 36,
+   "structural": 0,
+   "exact": false,
+   "reg_changes_vs_base": 0,
+   "control": false
+  }
+ ]
+}
