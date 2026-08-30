@@ -1,0 +1,138 @@
+{
+ "pure": [
+  {
+   "function": "bootThreadMain",
+   "score": 97.222,
+   "nops": 1,
+   "delta": 1
+  }
+ ],
+ "mixed": [
+  {
+   "function": "getRacePlayerRankingProgress",
+   "score": 95.346,
+   "nops": 2,
+   "other": 96
+  },
+  {
+   "function": "calculateRaceTimerDelta",
+   "score": 94.324,
+   "nops": 1,
+   "other": 38
+  },
+  {
+   "function": "initTimeTrialRecordDeltaPopup",
+   "score": 90.484,
+   "nops": 1,
+   "other": 17
+  },
+  {
+   "function": "createCallbackTaskPreservingArgs",
+   "score": 89.723,
+   "nops": 15,
+   "other": 129
+  },
+  {
+   "function": "initMainMenuSceneModel",
+   "score": 87.614,
+   "nops": 1,
+   "other": 43
+  },
+  {
+   "function": "gameThreadMain",
+   "score": 83.514,
+   "nops": 9,
+   "other": 59
+  },
+  {
+   "function": "initControllerPakRaceRecordSaveFlow",
+   "score": 82.991,
+   "nops": 1,
+   "other": 44
+  },
+  {
+   "function": "func_8005804C",
+   "score": 68.536,
+   "nops": 1,
+   "other": 74
+  },
+  {
+   "function": "packFixedTransformMatrix",
+   "score": 66.509,
+   "nops": 8,
+   "other": 164
+  },
+  {
+   "function": "getRaceCourseSurfaceSpawnTransform",
+   "score": 63.137,
+   "nops": 6,
+   "other": 72
+  },
+  {
+   "function": "drawMenuSolidRect",
+   "score": 59.67,
+   "nops": 3,
+   "other": 157
+  },
+  {
+   "function": "updateRacePlayerMode37AerialTrick",
+   "score": 59.656,
+   "nops": 3,
+   "other": 168
+  },
+  {
+   "function": "updateRacePlayerSmoothedPathOffset",
+   "score": 59.508,
+   "nops": 1,
+   "other": 65
+  },
+  {
+   "function": "drawMenuPanelBackdrop",
+   "score": 55.372,
+   "nops": 1,
+   "other": 270
+  },
+  {
+   "function": "updateRacePlayerLeanAngle",
+   "score": 51.797,
+   "nops": 4,
+   "other": 79
+  },
+  {
+   "function": "tryStartRacePlayerCourseObjectMode",
+   "score": 46.992,
+   "nops": 10,
+   "other": 146
+  },
+  {
+   "function": "initRaceMotionModelParts",
+   "score": 28.847,
+   "nops": 2,
+   "other": 92
+  },
+  {
+   "function": "drawMenuAsciiFontTile",
+   "score": 11.399,
+   "nops": 3,
+   "other": 214
+  },
+  {
+   "function": "drawAssetTableSprite8bpp",
+   "score": 1.063,
+   "nops": 5,
+   "other": 252
+  },
+  {
+   "function": "drawPulsingAssetTableSprite",
+   "score": 0.874,
+   "nops": 5,
+   "other": 307
+  },
+  {
+   "function": "drawMenuSpriteWithAlphaClipped",
+   "score": 0.624,
+   "nops": 22,
+   "other": 430
+  }
+ ]
+}
