@@ -1283,5 +1283,15 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "permuter-helps-when-run-unconditionally",
+    "claim": "Running decomp-permuter on every near-miss candidate rather than only on a score band converts some into matches",
+    "source": "Macabeus benchmark; downgraded after external review of the sample size",
+    "status": "INCONCLUSIVE",
+    "evidence": "DOWNGRADED from REFUTED. The measurement stands -- 0 matches and 0 improvements on updateEndingLindaExitUntilPhase3C 99.545, updateRaceSplitscreenSelectPlayerCountIcons 99.436 and checkMainMenuSecretCode 98.561, at 120s each, oracle-verified -- but the label was too strong for n=3. What those three establish is that the permuter does not help THOSE THREE STRUCTURAL cases, which is unsurprising given its documented scope. A proper test needs an ALLOCATION-SHAPED population selected mechanically: candidates whose CFG, call set, relocations, instruction count and stack shape already agree with the target and which differ only in register choice or scheduling. We have no such selector yet, and eval/nearmiss.py already computes most of the needed signals. Until that population exists this is untested rather than refuted.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]

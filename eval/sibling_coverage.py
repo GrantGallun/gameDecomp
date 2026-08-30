@@ -70,10 +70,18 @@ def main() -> int:
     bands = {"0.90+": 0, "0.75-0.90": 0, "0.45-0.75": 0, "none": 0}
     for name, best in rows:
         try:
-            got = siblings.find(repo, name, top=8,
-                                historical=args.historical)
+            # An external review caught a real design error here: asking for
+            # the top N from the FINISHED repo and filtering afterwards means a
+            # legitimate sibling ranked below N unavailable reference functions
+            # is reported as absent. The allowed pool has to constrain the
+            # ranking, so rank everything and then restrict.
+            top = 2500 if args.ours else 1
+            got = siblings.find(repo, name, top=top,
+                                min_score=0.0 if args.ours else 0.45,
+                                timeout=600, historical=args.historical)
             if args.ours:
                 got = [g for g in got if g[0] in done]
+                got.sort(key=lambda g: -g[1])
             got = got[:1]
         except Exception as exc:
             print(f"{name[:44]:44} {best:7.3f}  ERROR {type(exc).__name__}")
