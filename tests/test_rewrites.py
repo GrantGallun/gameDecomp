@@ -119,3 +119,17 @@ def test_drop_mask_ignores_a_narrow_andi_that_is_not_a_width_mask():
     code = "void f(void) {\n    a = (x & 0xFFFF) << 1;\n}\n"
     assert rewrites.drop_mask_rewrites(
         code, _d([("sllv t0,t9,t6", "andi v0,t6,0x7")])) == []
+
+
+def test_drop_mask_only_touches_true_width_masks():
+    """0xFFF is a 12-bit mask, not a zero-extension no-op.
+
+    The safety argument for this rewrite is that lhu/lbu already zero-extend,
+    which covers 0xFF and 0xFFFF and nothing else. A looser pattern proposed
+    `drop mask 0xFFF` edits that changed meaning and still scored better.
+    """
+    diff = _d([("sllv t0,t9,t6", "andi v0,t6,0xffff")])
+    assert rewrites.drop_mask_rewrites("a = x & 0xFFF;\n", diff) == []
+    assert rewrites.drop_mask_rewrites("a = x & 0xFFFFF;\n", diff) == []
+    assert rewrites.drop_mask_rewrites("a = x & 0xFF;\n", diff)
+    assert rewrites.drop_mask_rewrites("a = x & 0xFFFF;\n", diff)

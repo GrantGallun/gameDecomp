@@ -209,7 +209,12 @@ def reloc_padding_rewrites(code: str, diff: str) -> list[Rewrite]:
 
 
 MASK_OP = re.compile(r"^(andi)\s+\$?(\w+),\s*\$?(\w+),\s*(0x[0-9a-fA-F]+|\d+)")
-SOURCE_MASK = re.compile(r"\s*&\s*(0[xX][fF]{2,4}|255|65535)\b")
+# EXACTLY a byte or halfword mask. `0[xX][fF]{2,4}` also admitted 0xFFF, which
+# is a 12-bit mask and NOT a width no-op: dropping it changes meaning, and the
+# sweep duly proposed `drop mask 0xFFF` edits that scored better while being
+# semantically different. The safety argument for this rewrite is that lhu and
+# lbu already zero-extend, and that argument only covers 0xFF and 0xFFFF.
+SOURCE_MASK = re.compile(r"\s*&\s*(0[xX](?:[fF]{2}|[fF]{4})|255|65535)\b")
 
 
 def drop_mask_rewrites(code: str, diff: str) -> list[Rewrite]:
