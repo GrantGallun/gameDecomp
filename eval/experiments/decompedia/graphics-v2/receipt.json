@@ -1,0 +1,1136 @@
+{
+  "scope": "constant packet representations only; not CPU-function repairs",
+  "model_calls": 0,
+  "heldout_used": false,
+  "target_c_bodies_read": false,
+  "pygfxd_version": "1.0.5",
+  "decoder_sha256": "67ccccca48efad3393e052062500817d38199ea3d5af9432f178add86ab2b461",
+  "extractor_sha256": "083d492cba42c2d29f823f5393c28b38cfdadc05469a9237fbd04dab88bfa447",
+  "rows": [
+    {
+      "assembly_sha256": "f0e21b001a69917bb34bd64482acf348fef67041c3a7fe3884abc6c893626f6e",
+      "pointer_symbol": "gRegionAllocPtr",
+      "packets": [
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3875536896,
+              "instruction": 100,
+              "text": "sw $t8, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 99,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPPipeSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "aee34f3642908dbcd78b1d753c6d88da8ccb41f95f3b6f03d3d24912770039ec",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e700000000000000",
+            "compiled_data_hex": "e7000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4229010979,
+              "instruction": 109,
+              "text": "sw $t6, 0x0($v0)"
+            },
+            {
+              "word": 4281335807,
+              "instruction": 108,
+              "text": "sw $t7, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPSetCombineMode(G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM)"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "b3b73f69b3c35baccd3007c14eaa036c0033573f4f1023487452a3294484d4df",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "fc119623ff2fffff",
+            "compiled_data_hex": "fc119623ff2fffff0000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4194304000,
+              "instruction": 118,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 120,
+              "text": "sw $t9, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": null,
+              "instruction": 131,
+              "text": "sw $t7, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 136,
+              "text": "sw $t6, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": null,
+              "instruction": 152,
+              "text": "sw $t7, 0x0($v0)"
+            },
+            {
+              "word": 117965312,
+              "instruction": 153,
+              "text": "sw $t8, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3858759680,
+              "instruction": 159,
+              "text": "sw $t6, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 158,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPLoadSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "e738e44bc8b169eb009c6cd67d186fdb56aee6b6ef0f5d7b857a8dbf361f4de5",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e600000000000000",
+            "compiled_data_hex": "e6000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4093640704,
+              "instruction": 164,
+              "text": "sw $t8, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 175,
+              "text": "sw $t6, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3875536896,
+              "instruction": 181,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 180,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPPipeSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "aee34f3642908dbcd78b1d753c6d88da8ccb41f95f3b6f03d3d24912770039ec",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e700000000000000",
+            "compiled_data_hex": "e7000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": null,
+              "instruction": 197,
+              "text": "sw $t8, 0x0($v0)"
+            },
+            {
+              "word": 524800,
+              "instruction": 198,
+              "text": "sw $t6, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4060086272,
+              "instruction": 203,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 213,
+              "text": "sw $t8, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4245684224,
+              "instruction": 218,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 223,
+              "text": "sw $t9, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3892314112,
+              "instruction": 229,
+              "text": "sw $t8, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 228,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPTileSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "943307b995beaa22852493efc30b78609e7408eca6425684e4bc0059e020eb5c",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e800000000000000",
+            "compiled_data_hex": "e8000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4110418176,
+              "instruction": 237,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": 117440512,
+              "instruction": 236,
+              "text": "sw $t7, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPSetTile(G_IM_FMT_RGBA, G_IM_SIZ_4b, 0, 0x0100, G_TX_LOADTILE, 0, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD)"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "64b7826f9a17dae90ddca356620e36d84c0f0ef92986e31d9836449d9f347874",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "f500010007000000",
+            "compiled_data_hex": "f5000100070000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3858759680,
+              "instruction": 243,
+              "text": "sw $t6, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 242,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPLoadSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "e738e44bc8b169eb009c6cd67d186fdb56aee6b6ef0f5d7b857a8dbf361f4de5",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e600000000000000",
+            "compiled_data_hex": "e6000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4026531840,
+              "instruction": 250,
+              "text": "sw $t7, 0x0($v0)"
+            },
+            {
+              "word": 117686272,
+              "instruction": 251,
+              "text": "sw $t8, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPLoadTLUTCmd(G_TX_LOADTILE, 15)"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "5976fed66e5e0cce6ccc92c8ac3cfd0866ace7cb7d2bb2202b5024963fdb8a66",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "f00000000703c000",
+            "compiled_data_hex": "f00000000703c0000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3875536896,
+              "instruction": 257,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 256,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPPipeSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "aee34f3642908dbcd78b1d753c6d88da8ccb41f95f3b6f03d3d24912770039ec",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e700000000000000",
+            "compiled_data_hex": "e7000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": null,
+              "instruction": 272,
+              "text": "sw $t6, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 277,
+              "text": "sw $t8, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3019898880,
+              "instruction": 282,
+              "text": "sw $t7, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 289,
+              "text": "sw $t9, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3003121664,
+              "instruction": 296,
+              "text": "sw $t7, 0x0($v0)"
+            },
+            {
+              "word": 67109888,
+              "instruction": 297,
+              "text": "sw $t6, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "(Gfx){0xB3000000, 0x04000400}"
+          }
+        },
+        {
+          "block": 20,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 100663296,
+              "instruction": 304,
+              "text": "sw $t8, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 305,
+              "text": "sw $t7, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        }
+      ],
+      "scope": "same-block candidate packets; no dynamic arguments inferred",
+      "function": "drawPulsingAssetTableSprite",
+      "recipe": {
+        "schema_version": 1,
+        "target": "build/src/menu/renderer/menu_render_utils.o",
+        "settings": {
+          "IDO_CC": "python3 tools/asm-processor/build.py tools/ido-recomp/linux/cc -- mips-linux-gnu-as -G 0 -I include -mips3 -mabi=32 --",
+          "CFLAGS": "-c -mips1 -G 0 -non_shared -fullwarn -Xcpluscomm  -nostdinc -Wab,-r4300_mul -woff 649,838,712,516  -I. -Iinclude -Iinclude/PR -Isrc/ultra/audio -Isrc/ultra/libc  -DLANGUAGE_C -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DNDEBUG  -DCOMPILING_LIBULTRA -DBUILD_VERSION=VERSION_I -DF3DEX_GBI",
+          "C_OPT": "-O2",
+          "C_MIPS": "-mips1",
+          "ASFLAGS": "-G 0 -I include -mips3 -mabi=32",
+          "C_OBJ_POSTPROCESS": ":"
+        },
+        "command": [
+          "python3",
+          "tools/asm-processor/build.py",
+          "tools/ido-recomp/linux/cc",
+          "--",
+          "mips-linux-gnu-as",
+          "-G",
+          "0",
+          "-I",
+          "include",
+          "-mips3",
+          "-mabi=32",
+          "--",
+          "-c",
+          "-mips1",
+          "-G",
+          "0",
+          "-non_shared",
+          "-fullwarn",
+          "-Xcpluscomm",
+          "-nostdinc",
+          "-Wab,-r4300_mul",
+          "-woff",
+          "649,838,712,516",
+          "-I.",
+          "-Iinclude",
+          "-Iinclude/PR",
+          "-Isrc/ultra/audio",
+          "-Isrc/ultra/libc",
+          "-DLANGUAGE_C",
+          "-D_LANGUAGE_C",
+          "-D_MIPS_SZLONG=32",
+          "-DNDEBUG",
+          "-DCOMPILING_LIBULTRA",
+          "-DBUILD_VERSION=VERSION_I",
+          "-DF3DEX_GBI",
+          "-O2",
+          "-Isrc/menu/renderer"
+        ],
+        "makefile_sha256": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+        "projection_sha256": "46de280e93d5c92a2a659ae9f43a4404b0570876e361e3b23b33fed5c14463a6",
+        "authority": "existing project build configuration, not inferred original compiler settings",
+        "source_origin": "C TU",
+        "scope": "C code generation; full TU syntax checking and final ROM integration are separate"
+      },
+      "gbi_sha256": "69a37c33267834f6cae9a808ac087bb051dc211249eb96e5cbd7a3cb48d0d138"
+    },
+    {
+      "assembly_sha256": "d43f8f2af6d70307ccc136aa91bd1f5e3453eda1badc0602d2dcb5091ac28be2",
+      "pointer_symbol": "gRegionAllocPtr",
+      "packets": [
+        {
+          "block": 38,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3875536896,
+              "instruction": 193,
+              "text": "sw $t8, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 192,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPPipeSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "aee34f3642908dbcd78b1d753c6d88da8ccb41f95f3b6f03d3d24912770039ec",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e700000000000000",
+            "compiled_data_hex": "e7000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 38,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4229010979,
+              "instruction": 200,
+              "text": "sw $t7, 0x0($v0)"
+            },
+            {
+              "word": 4281335807,
+              "instruction": 201,
+              "text": "sw $t9, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPSetCombineMode(G_CC_MODULATEIA_PRIM, G_CC_MODULATEIA_PRIM)"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "b3b73f69b3c35baccd3007c14eaa036c0033573f4f1023487452a3294484d4df",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "fc119623ff2fffff",
+            "compiled_data_hex": "fc119623ff2fffff0000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 38,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4194304000,
+              "instruction": 209,
+              "text": "sw $t6, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 214,
+              "text": "sw $t9, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": null,
+              "instruction": 227,
+              "text": "sw $t6, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 232,
+              "text": "sw $t8, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": null,
+              "instruction": 248,
+              "text": "sw $t6, 0x0($v0)"
+            },
+            {
+              "word": 117965312,
+              "instruction": 249,
+              "text": "sw $t7, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3858759680,
+              "instruction": 254,
+              "text": "sw $t8, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 255,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPLoadSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "e738e44bc8b169eb009c6cd67d186fdb56aee6b6ef0f5d7b857a8dbf361f4de5",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e600000000000000",
+            "compiled_data_hex": "e6000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4093640704,
+              "instruction": 260,
+              "text": "sw $t7, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 271,
+              "text": "sw $t8, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3875536896,
+              "instruction": 276,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 277,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPPipeSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "aee34f3642908dbcd78b1d753c6d88da8ccb41f95f3b6f03d3d24912770039ec",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e700000000000000",
+            "compiled_data_hex": "e7000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": null,
+              "instruction": 293,
+              "text": "sw $t7, 0x0($v0)"
+            },
+            {
+              "word": 524800,
+              "instruction": 294,
+              "text": "sw $t8, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4060086272,
+              "instruction": 299,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 309,
+              "text": "sw $t7, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4245684224,
+              "instruction": 314,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 319,
+              "text": "sw $t9, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3892314112,
+              "instruction": 324,
+              "text": "sw $t7, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 325,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPTileSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "943307b995beaa22852493efc30b78609e7408eca6425684e4bc0059e020eb5c",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e800000000000000",
+            "compiled_data_hex": "e8000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4110418176,
+              "instruction": 333,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": 117440512,
+              "instruction": 332,
+              "text": "sw $t6, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPSetTile(G_IM_FMT_RGBA, G_IM_SIZ_4b, 0, 0x0100, G_TX_LOADTILE, 0, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOLOD)"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "64b7826f9a17dae90ddca356620e36d84c0f0ef92986e31d9836449d9f347874",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "f500010007000000",
+            "compiled_data_hex": "f5000100070000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3858759680,
+              "instruction": 339,
+              "text": "sw $t8, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 340,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPLoadSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "e738e44bc8b169eb009c6cd67d186fdb56aee6b6ef0f5d7b857a8dbf361f4de5",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e600000000000000",
+            "compiled_data_hex": "e6000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 4026531840,
+              "instruction": 348,
+              "text": "sw $t6, 0x0($v0)"
+            },
+            {
+              "word": 117686272,
+              "instruction": 349,
+              "text": "sw $t7, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPLoadTLUTCmd(G_TX_LOADTILE, 15)"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "5976fed66e5e0cce6ccc92c8ac3cfd0866ace7cb7d2bb2202b5024963fdb8a66",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "f00000000703c000",
+            "compiled_data_hex": "f00000000703c0000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3875536896,
+              "instruction": 355,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": 0,
+              "instruction": 356,
+              "text": "sw $zero, 0x4($v0)"
+            }
+          ],
+          "status": "constant",
+          "decoded": {
+            "microcode": "f3dex",
+            "returncode": 0,
+            "macro": "gsDPPipeSync()"
+          },
+          "roundtrip": {
+            "returncode": 0,
+            "source_sha256": "aee34f3642908dbcd78b1d753c6d88da8ccb41f95f3b6f03d3d24912770039ec",
+            "diagnostics": "",
+            "equal": true,
+            "no_data_relocations": true,
+            "relocations": "\nThere are no relocations in this file.\n",
+            "expected_hex": "e700000000000000",
+            "compiled_data_hex": "e7000000000000000000000000000000",
+            "scope": "one eight-byte Gfx packet plus zero section padding"
+          }
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": null,
+              "instruction": 369,
+              "text": "sw $t9, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 376,
+              "text": "sw $t6, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 39,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 3019898880,
+              "instruction": 382,
+              "text": "sw $t8, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 388,
+              "text": "sw $t6, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        },
+        {
+          "block": 50,
+          "pointer_symbol": "gRegionAllocPtr",
+          "base_register": "v0",
+          "stores": [
+            {
+              "word": 100663296,
+              "instruction": 445,
+              "text": "sw $t6, 0x0($v0)"
+            },
+            {
+              "word": null,
+              "instruction": 446,
+              "text": "sw $t7, 0x4($v0)"
+            }
+          ],
+          "status": "dynamic-word"
+        }
+      ],
+      "scope": "same-block candidate packets; no dynamic arguments inferred",
+      "function": "drawMenuSpriteWithAlphaClipped",
+      "recipe": {
+        "schema_version": 1,
+        "target": "build/src/menu/renderer/menu_renderer.o",
+        "settings": {
+          "IDO_CC": "python3 tools/asm-processor/build.py tools/ido-recomp/linux/cc -- mips-linux-gnu-as -G 0 -I include -mips3 -mabi=32 --",
+          "CFLAGS": "-c -mips1 -G 0 -non_shared -fullwarn -Xcpluscomm  -nostdinc -Wab,-r4300_mul -woff 649,838,712,516  -I. -Iinclude -Iinclude/PR -Isrc/ultra/audio -Isrc/ultra/libc  -DLANGUAGE_C -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DNDEBUG  -DCOMPILING_LIBULTRA -DBUILD_VERSION=VERSION_I -DF3DEX_GBI",
+          "C_OPT": "-O2",
+          "C_MIPS": "-mips1",
+          "ASFLAGS": "-G 0 -I include -mips3 -mabi=32",
+          "C_OBJ_POSTPROCESS": ":"
+        },
+        "command": [
+          "python3",
+          "tools/asm-processor/build.py",
+          "tools/ido-recomp/linux/cc",
+          "--",
+          "mips-linux-gnu-as",
+          "-G",
+          "0",
+          "-I",
+          "include",
+          "-mips3",
+          "-mabi=32",
+          "--",
+          "-c",
+          "-mips1",
+          "-G",
+          "0",
+          "-non_shared",
+          "-fullwarn",
+          "-Xcpluscomm",
+          "-nostdinc",
+          "-Wab,-r4300_mul",
+          "-woff",
+          "649,838,712,516",
+          "-I.",
+          "-Iinclude",
+          "-Iinclude/PR",
+          "-Isrc/ultra/audio",
+          "-Isrc/ultra/libc",
+          "-DLANGUAGE_C",
+          "-D_LANGUAGE_C",
+          "-D_MIPS_SZLONG=32",
+          "-DNDEBUG",
+          "-DCOMPILING_LIBULTRA",
+          "-DBUILD_VERSION=VERSION_I",
+          "-DF3DEX_GBI",
+          "-O2",
+          "-Isrc/menu/renderer"
+        ],
+        "makefile_sha256": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+        "projection_sha256": "394fd205ce6de93609418686ccf90103c48d6f70f75d51b9033391e5a9aa212a",
+        "authority": "existing project build configuration, not inferred original compiler settings",
+        "source_origin": "C TU",
+        "scope": "C code generation; full TU syntax checking and final ROM integration are separate"
+      },
+      "gbi_sha256": "69a37c33267834f6cae9a808ac087bb051dc211249eb96e5cbd7a3cb48d0d138"
+    }
+  ]
+}

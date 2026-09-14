@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "kind": "logic-first-connected-dev-cluster",
+  "created_at": 1788487576,
+  "selection": {
+    "target_source_inspected": false,
+    "inputs": [
+      "binary call edges",
+      "function/TU metadata",
+      "existing compiled non-exact DEV attempt provenance"
+    ],
+    "heldout_excluded_across_all_manifests": true,
+    "already_exact_excluded": true,
+    "prior_semantic_settlements_excluded": [
+      "fixedSine",
+      "initControllerPakRaceRecordSaveFlow",
+      "randomNextMain",
+      "randomNextObject",
+      "resetAllViewports",
+      "resetRacePlayerTrickSubstate",
+      "updateRacePickupIdle",
+      "updateRacePlayerLeanAngle",
+      "updateRacePlayerMode16AerialTrick",
+      "updateRacePlayerMode37AerialTrick",
+      "updateRacePlayerMode40Stun",
+      "updateRacePlayerMode53AerialTrick"
+    ],
+    "exclusion_receipts": [
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v10-full-semantic.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v12-expanded-routed.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v18-pickup-valid-panel.json",
+      "/mnt/c/Code/gameDecomp/eval/results/semantic-stress-resetAllViewports-header-derived-v1.json",
+      "/mnt/c/Code/gameDecomp/eval/results/semantic-stress-initControllerPakRaceRecordSaveFlow-header-derived-v1.json"
+    ],
+    "requested_size": 16,
+    "eligible_candidates": 61,
+    "frontier_mode": "independent-leaf-batch"
+  },
+  "cluster": [
+    {
+      "function": "updateCourseSelectCourseDescription",
+      "tu_id": 295,
+      "instruction_count": 126,
+      "attempt_id": 17198,
+      "source_sha256": "d0e878752d6548ccdbc9f9e3794cb7df626570f4018308fdf3b4b0619d9ea45f",
+      "stored_weighted_score": 99.64
+    },
+    {
+      "function": "releaseSoundEffectHandleNode",
+      "tu_id": 254,
+      "instruction_count": 39,
+      "attempt_id": 21091,
+      "source_sha256": "631649e8c59f4759afbfe8891b59fb7e67812bcaccb86c617b7f321b939895bc",
+      "stored_weighted_score": 99.615
+    },
+    {
+      "function": "Fwobble",
+      "tu_id": 276,
+      "instruction_count": 9,
+      "attempt_id": 22387,
+      "source_sha256": "3ee64113228ac22ad3c3d04efa0d509e9732e795b38a63736b5b68b88f0d4a11",
+      "stored_weighted_score": 99.444
+    },
+    {
+      "function": "drawCharacterSelectCoursePreviewPanel2",
+      "tu_id": 280,
+      "instruction_count": 157,
+      "attempt_id": 11982,
+      "source_sha256": "a1dc03126700f0b040163f3ea4cfacd981d76ba6676615d0a9d525142af83b7a",
+      "stored_weighted_score": 99.395
+    },
+    {
+      "function": "drawCharacterSelectCoursePreviewPanel6",
+      "tu_id": 280,
+      "instruction_count": 157,
+      "attempt_id": 11979,
+      "source_sha256": "878c273dd735bc8c75ff6e9d805d70fdaafeef21d3b5037d346c4ecbb7a518e4",
+      "stored_weighted_score": 99.395
+    },
+    {
+      "function": "drawCharacterSelectCoursePreviewPanel8",
+      "tu_id": 280,
+      "instruction_count": 157,
+      "attempt_id": 11980,
+      "source_sha256": "8deee8ea9ae2fd587e4a949e3926d50a4d6406f550d9a0b5683aee98c213e777",
+      "stored_weighted_score": 99.395
+    },
+    {
+      "function": "drawRaceSplitscreenSelectOption2Frame",
+      "tu_id": 312,
+      "instruction_count": 157,
+      "attempt_id": 11723,
+      "source_sha256": "5104f599f5e194ee071a328b4e929827c481b8c5bd21260c2ce35e6ed4c4200e",
+      "stored_weighted_score": 99.395
+    },
+    {
+      "function": "drawRaceSplitscreenSelectOption4Frame",
+      "tu_id": 312,
+      "instruction_count": 157,
+      "attempt_id": 11719,
+      "source_sha256": "f19796151622d17442e5c0e10a8b74845d342a091bafe2721fe80ef4b82308ca",
+      "stored_weighted_score": 99.395
+    },
+    {
+      "function": "updateRaceGameplayFlow",
+      "tu_id": 321,
+      "instruction_count": 191,
+      "attempt_id": 22488,
+      "source_sha256": "acf98b8f806156f481adb91a6e6cbd9ad63a35d93a022ef98842d480d805b4ff",
+      "stored_weighted_score": 99.346
+    },
+    {
+      "function": "reserveSoundEffectQueueReadIndex",
+      "tu_id": 254,
+      "instruction_count": 14,
+      "attempt_id": 22459,
+      "source_sha256": "b2f7f1c91fa32dccc4eb8e5ca434424de123fa7401d72161b22a701d0240dc78",
+      "stored_weighted_score": 98.692
+    },
+    {
+      "function": "drawRacePlayerModel",
+      "tu_id": 328,
+      "instruction_count": 374,
+      "attempt_id": 9431,
+      "source_sha256": "0974150279408b60b8a95842755835a49ffc234d78fad8ee1418d96dbaa3cbf4",
+      "stored_weighted_score": 98.449
+    },
+    {
+      "function": "__MusIntRandom",
+      "tu_id": 276,
+      "instruction_count": 79,
+      "attempt_id": 22393,
+      "source_sha256": "ac00818967aee79f54c78a7f9d8d0fe84db275e4fb9b14b332a30d14567a4130",
+      "stored_weighted_score": 98.013
+    },
+    {
+      "function": "returnToCourseSelectModeMenu",
+      "tu_id": 290,
+      "instruction_count": 136,
+      "attempt_id": 17201,
+      "source_sha256": "797ade37c7c09f14af34899adec4fedf8b56b9a7178ab9bcac305668b7fa7608",
+      "stored_weighted_score": 97.721
+    },
+    {
+      "function": "renderRaceUiSingleTrailEffect",
+      "tu_id": 336,
+      "instruction_count": 78,
+      "attempt_id": 19208,
+      "source_sha256": "733697163d97b3f497374fd54cdc6efa1a2993cbfc5bb599827fd4221c16ec8b",
+      "stored_weighted_score": 97.532
+    },
+    {
+      "function": "bootThreadMain",
+      "tu_id": 270,
+      "instruction_count": 34,
+      "attempt_id": 2959,
+      "source_sha256": "d397c15d3ccf96ff390374ab043bcc5f7c411a49722c3e6fadb68528e9471665",
+      "stored_weighted_score": 97.222
+    },
+    {
+      "function": "initRacePlayerLandingSnowSpray",
+      "tu_id": 322,
+      "instruction_count": 92,
+      "attempt_id": 19210,
+      "source_sha256": "baa80e0902c217b4a975e3e48eeddbe1f711a4f8db82dd488428a5f4bc4ff0d6",
+      "stored_weighted_score": 96.293
+    }
+  ],
+  "binary_call_edges": [],
+  "shortfall": 0,
+  "manifest_digest": "06600c34f159e9f1075e2032d87e01105caa9a4189968f9fc295b1f5245066b8"
+}

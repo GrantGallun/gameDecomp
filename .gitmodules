@@ -1,0 +1,3 @@
+[submodule "external/snowboardkids-decomp"]
+	path = external/snowboardkids-decomp
+	url = https://github.com/cdlewis/snowboardkids-decomp.git

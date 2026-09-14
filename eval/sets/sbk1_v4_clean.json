@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "kind": "never-touched-metadata-only-eval-set",
+  "created_at": 1788322780,
+  "seed": 20260901,
+  "per_stratum": 3,
+  "policy": {
+    "selection_inputs": "function/TU metadata only",
+    "target_source_inspected_during_assignment": false,
+    "excluded": [
+      "any attempt receipt",
+      "any earlier eval-set membership",
+      "any historical result-artifact membership",
+      "recovered-source artifact",
+      "published/runtime/library translation units"
+    ],
+    "heldout_rule": "never bootstrap, generate, repair, or inspect per-function residuals before the single preregistered evaluation"
+  },
+  "exclusion_counts": {
+    "attempted": 439,
+    "prior_set_members": 387,
+    "prior_result_members": 2521,
+    "recovered_sources": 24,
+    "combined": 2569
+  },
+  "dev": [
+    {
+      "function": "initCharacterSelectCourseConfirmCursor",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "redrawTrainingCourseLessonEndMenu",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "initRaceTypeSelectCornerSprites",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "updateRacePlayerMode32Character3",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "updateEndingLindaWaitBeforePhase2E",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "finishTitleDemoRaceIntro",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "initRaceCoursePropModels",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateMainMenuDemoRaceIntro",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "initNewGameSaveData",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "initRaceCameraFollowPlayer",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "initLongRangeHomingItemProjectile",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "renderAreaBlastItemProjectile",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "drawMainMenuSettingsOptions",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "updateRacePlayerSurfaceCue",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "drawTrainingCourseLessonEndMenu",
+      "tier": "huge",
+      "leaf": false
+    }
+  ],
+  "heldout": [
+    {
+      "function": "startMainMenuModePreviewRaceFlow",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "updateControllerPakFileDeleteFreeSpaceInfo",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "requestControllerPakProbe",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "drawEndingCreditsNancySpeedLine",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "drawCharacterSelectCourseTitleCursor",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "makeFixedRotationX",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "updateShopMenuSidePanel",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "drawCharacterSelectCourseDescriptionPopup",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "drawCourseUnlockPricePanel",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "renderCloseRangeHomingItemProjectile",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateRacePlayerMode12LaunchRecover",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateCourseSelectCourseListBackdrop",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "initRaceCourseSceneTasks",
+      "tier": "huge",
+      "leaf": false
+    }
+  ],
+  "shortfalls": [
+    {
+      "tier": "tiny",
+      "leaf": true,
+      "wanted": 6,
+      "available": 0
+    },
+    {
+      "tier": "small",
+      "leaf": true,
+      "wanted": 6,
+      "available": 0
+    },
+    {
+      "tier": "medium",
+      "leaf": true,
+      "wanted": 6,
+      "available": 0
+    },
+    {
+      "tier": "large",
+      "leaf": true,
+      "wanted": 6,
+      "available": 0
+    },
+    {
+      "tier": "huge",
+      "leaf": true,
+      "wanted": 6,
+      "available": 0
+    },
+    {
+      "tier": "huge",
+      "leaf": false,
+      "wanted": 6,
+      "available": 4
+    }
+  ],
+  "manifest_digest": "bfd746e18e9bec6a8af084130f5ffc42226a9a27ea0fe52fa81d0180f77e7f80"
+}

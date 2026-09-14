@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "kind": "n64_shared_function_history",
+  "records": {
+    "__MusIntPowerOf2": {
+      "public_history": [
+        {
+          "repo_id": "pokestadium",
+          "commit": "a1922e5fc705095bcf87a4b80b29d779a4b2a60f",
+          "author_date": "2024-09-12T07:28:43+01:00",
+          "author": "Kelebek1",
+          "subject": "various",
+          "path": "src/38BB0.c",
+          "symbol": "func_8003BBA4",
+          "event": "first_public_decompiled_body_found"
+        },
+        {
+          "repo_id": "pokestadium",
+          "commit": "969c424ad8de7f9ad6de0ddf19d9d85b7af65807",
+          "author_date": "2026-08-14T19:53:55-05:00",
+          "author": "Diamond Lewis",
+          "subject": "Add `libnumus`",
+          "path": "src/libnumus/player.c",
+          "symbol": "__MusIntPowerOf2",
+          "event": "identified_and_renamed_as_libnumus"
+        }
+      ],
+      "target_history": [
+        {
+          "commit": "cf04c7081087b847ab6cceb23d88cc5fcefe709d",
+          "author_date": "2026-07-06T22:09:38-04:00",
+          "author": "Chris Lewis",
+          "subject": "Match func_8009F194",
+          "path": "src/player_commands.c",
+          "symbol": "func_8009F194",
+          "event": "target_match_with_named_rodata_constants"
+        },
+        {
+          "commit": "9f74ba0068c2355f5c48f90a630d06858fdc7c10",
+          "author_date": "2026-07-08T11:04:56-04:00",
+          "author": "Chris Lewis",
+          "subject": "Match menu and UI rodata segments",
+          "path": "src/player_commands.c",
+          "symbol": "func_8009F194",
+          "event": "named_constants_replaced_by_inline_literals"
+        },
+        {
+          "commit": "223b7cf2ce6892a071212320ddbe06522c018ddf",
+          "author_date": "2026-07-19T10:27:41-04:00",
+          "author": "Chris Lewis",
+          "subject": "Organize libmus audio code",
+          "path": "src/libmus/player.c",
+          "symbol": "__MusIntPowerOf2",
+          "event": "identified_and_renamed_as_libmus"
+        }
+      ],
+      "interpretation": "The public generic body predates the target match and the transferred body is relocated-byte exact. The target match commit used named target constants and does not say it copied public source, so common library lineage is proven but author-to-author copying is not."
+    },
+    "__MusIntRandom": {
+      "public_history": [
+        {
+          "repo_id": "pokestadium",
+          "commit": "a1922e5fc705095bcf87a4b80b29d779a4b2a60f",
+          "author_date": "2024-09-12T07:28:43+01:00",
+          "author": "Kelebek1",
+          "subject": "various",
+          "path": "src/38BB0.c",
+          "symbol": "func_8003BEF4",
+          "event": "first_public_decompiled_body_found"
+        },
+        {
+          "repo_id": "pokestadium",
+          "commit": "969c424ad8de7f9ad6de0ddf19d9d85b7af65807",
+          "author_date": "2026-08-14T19:53:55-05:00",
+          "author": "Diamond Lewis",
+          "subject": "Add `libnumus`",
+          "path": "src/libnumus/player.c",
+          "symbol": "__MusIntRandom",
+          "event": "identified_and_renamed_as_libnumus"
+        }
+      ],
+      "target_history": [
+        {
+          "commit": "940370a8cebdffc03fa06e63eeef7ef71067b61a",
+          "author_date": "2026-07-06T06:07:10-04:00",
+          "author": "Chris Lewis",
+          "subject": "Match func_8009F4C8",
+          "path": "src/player_commands.c",
+          "symbol": "func_8009F4C8",
+          "event": "target_match_with_manually_unrolled_source"
+        },
+        {
+          "commit": "223b7cf2ce6892a071212320ddbe06522c018ddf",
+          "author_date": "2026-07-19T10:27:41-04:00",
+          "author": "Chris Lewis",
+          "subject": "Organize libmus audio code",
+          "path": "src/libmus/player.c",
+          "symbol": "__MusIntRandom",
+          "event": "identified_and_renamed_as_libmus"
+        }
+      ],
+      "interpretation": "The public eight-iteration loop predates the target match and compiles byte-exact because IDO unrolls it into the target form. The target commit used an explicitly four-way-unrolled loop, so the public source is a cleaner exact alternative but direct copying is not established."
+    }
+  }
+}

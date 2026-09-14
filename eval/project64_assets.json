@@ -1,0 +1,13 @@
+{
+  "Project64.exe": "f8b954eaa879da5f5fca2fce7ed5081a969eef4acc46e306b26f81709de8bfe7",
+  "Lang/English.pj.Lang": "bf2073b6e743e0ff6ed15ae758d85257ff022d396c1a98cbf950b6f15660ade4",
+  "Config/Project64.rdb": "b9604f4432928c749d509ef3121c8f6b2b7c3f90c25f3e468296e360a9753e2d",
+  "Config/Video.rdb": "66b88e63215e3bbe303e40a0934a0d57839ddb81dcf163931c924c8d7e6ef453",
+  "Config/Audio.rdb": "a704762f8513f74884d4886369c1044d146c4adbcb4a5c098891a059316fd435",
+  "Plugin/Audio/Project64-Audio.dll": "57e35bea7df688f82ae24b9340d4b38858f472fe9279b371554d37836c8597cd",
+  "Plugin/Input/Project64-Input.dll": "b97b7c12fd4442189dc76b0fd9c01115001f6a3fc21067206cc4ffd9d4a4c1c6",
+  "Plugin/RSP/Project64-RSP.dll": "abb777321985cf85d5cf03b7a6232bfd83b8ebcfb5fdebba508d4b8011b1e4c5",
+  "Plugin/GFX/GLideN64/GLideN64.dll": "a1dfd92a438a38e5fb2af4174c16567d74d27c462d03f017f3d17ceadbe4658b",
+  "Plugin/GFX/GLideN64/GLideN64.ini": "0b9c1a38e738d84c6168817dd23336cb15691f1a36d6b0dadb088e507fa91e68",
+  "Plugin/GFX/GLideN64/GLideN64.custom.ini": "774bae8df9e1a7912afe312520d62400b6fba55f14379312b1c6e34071515646"
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "logic-first-connected-dev-cluster",
+  "created_at": 1788493000,
+  "selection": {
+    "target_source_inspected": false,
+    "inputs": [
+      "binary call edges",
+      "function/TU metadata",
+      "existing compiled non-exact DEV attempt provenance"
+    ],
+    "heldout_excluded_across_all_manifests": true,
+    "already_exact_excluded": true,
+    "requested_size": 1,
+    "frontier_mode": "large-function-coverage-scheduler-stress"
+  },
+  "cluster": [
+    {
+      "function": "drawRacePlayerModel",
+      "tu_id": 328,
+      "instruction_count": 374,
+      "attempt_id": 9431,
+      "source_sha256": "0974150279408b60b8a95842755835a49ffc234d78fad8ee1418d96dbaa3cbf4",
+      "stored_weighted_score": 98.449
+    }
+  ],
+  "binary_call_edges": [],
+  "shortfall": 0,
+  "manifest_digest": "bf621b82c2f75ddec37b50466c5194c71f495d2ea7b12c5d2d5347c8a7532514"
+}

@@ -43,6 +43,40 @@ These must never break. Everything else is negotiable.
 
 ## Architecture
 
+The solver has two non-conflicting work lanes. The logic-first lane reconstructs
+call-connected modules and records compiling, logic-shape, and structural
+candidates without promoting them into the real build. The exactness lane uses
+the compiler/object residual to polish structurally ready candidates. Both feed
+the same evidence/TMS substrate, and only byte-exact candidates may commit. See
+`LOGIC_FIRST.md` for the stage definitions and first connected DEV baseline.
+The optional finished-decomp teacher is governed separately by target/TU
+exclusion regimes and tamper-evident packets; see `REFERENCE_TEACHER.md`.
+
+The completion campaign now enables the resilient agent worker: deterministic
+build-context recovery, compiler-checked connected type plans, existing C89
+normalization, and target-led differential evaluation after compilation. The
+worker reuses the existing interpreter, coverage explorer, stress generator and
+value-DAG feed. It retains separate semantic and byte champions; a lower byte
+score can be worthwhile behavioral progress but never an exactness promotion.
+For original void-pointer member drafts, an initial bounded constraint stage
+measures header layouts using the configured target compiler, propagates draft
+pointer assignments, and compares ordinary field accesses with observed entry
+load/store widths. It enumerates remaining alternatives through the existing
+type-plan actuator. This is a restricted candidate search, not binary-only type
+inference or proof that the chosen union view is the original source type.
+Repeated plan failures change representation and bounded stalls retry an intact
+initial candidate. See `PIPELINE_MAP.md` for wiring and measured limits. Existing
+header/TU metadata is explicitly assisted context, never binary-derived evidence.
+
+The logic-first debugger may use counterfactual resynchronization to reveal
+later independent call/write mismatches, but those runs are explanations, not
+semantic evidence. A candidate passes only on an unintervened replay. Repair
+prompts choose one source-grounded mismatch cluster as the edit objective and
+use later clusters only to reject inconsistent hypotheses. Multiple observed
+offsets do not by themselves authorize a whole-structure rewrite: shared
+layout changes require project-header or repeated cross-function binary
+evidence. See `DIFFERENTIAL_DEBUGGER.md`.
+
 ```
                     +------------------------------+
                     |           ORACLE             |
@@ -160,11 +194,56 @@ Every attempt, kept. This is the debugging record now and the RL dataset later.
 
 ```sql
 CREATE TABLE attempts (
-  id INTEGER PRIMARY KEY, func_addr INTEGER, iteration INTEGER,
-  source_code TEXT, score REAL, compiled INTEGER,
+  id INTEGER PRIMARY KEY, func_addr INTEGER, run_id TEXT, iteration INTEGER,
+  parent_attempt_id INTEGER, source_code TEXT, score REAL, compiled INTEGER,
   diff_summary TEXT, strategy TEXT, created_at INTEGER
 );
+
+CREATE TABLE attempt_edges (
+  parent_attempt_id INTEGER, child_attempt_id INTEGER,
+  relation TEXT, action TEXT, feedback TEXT,
+  PRIMARY KEY (parent_attempt_id, child_attempt_id)
+);
 ```
+
+Attempt order is not trajectory order. Independent samples have no attempt parent;
+best-anchored refinement can branch from an older row; deterministic beam search has
+many children. Training pairs therefore come only from explicit edges.
+
+### Local-model repair loop
+
+After deterministic repairs reach a fixed point, the optional local-model stage
+branches from the best verified parent. Each call proposes one bounded JSON edit
+(one hypothesis, at most four unique substring replacements). The harness applies
+the edit, recompiles it, and uses only the compiler/object verifier to admit and
+rank children. Compiling parents remain eligible, so a regression never becomes a
+mandatory next step. Non-compiling children survive only in the bounded error beam,
+where a changed compiler diagnostic can reveal the next blocker.
+
+Refusals, malformed edits, duplicates, and generation failures are stored in
+`model_proposals`; compilable or non-compilable source children are stored in
+`attempts` and connected to their true parent by a `model-repair` edge. This keeps
+"the model did not propose source" distinct from "the compiler rejected source."
+
+The stage is disabled by default pending a controlled exact-match A/B. Enable it
+with `--model-repair-draws`; depth and beam width have separate flags and are part
+of the experiment fingerprint.
+
+The newer completion campaign also has an explicit **coordinated type
+transaction** profile for noncompiling roots. It extends the same search kernel,
+not the KB evidence tier: at most 64 source-bound line/declaration-slot edits,
+12,000 changed-span characters, and 4,000 net source growth, applied atomically.
+Included ordinary public signatures are locked modulo parameter names; complex
+or conflicting declarations remain explicitly unresolved and compiler-checked.
+Candidate views must use explicit C rather than preprocessor substitutions.
+New recognized typedef collisions with included headers and changes to the
+control-keyword sequence are rejected before compilation. These checks protect
+the type-repair scope; they are not a general C parser or semantic proof.
+A temporarily worse noncompiling child can receive two follow-up depths while
+the best verified candidate remains retained. All provider calls, source
+parents, declines, compiler results, and bounded stopping conditions remain
+logged. This exception to the ordinary four-edit path is mapped and evaluated
+in `PIPELINE_MAP.md` and `COMPLETION_CAMPAIGN.md`.
 
 ### Contradictions
 
@@ -287,8 +366,9 @@ strides decoded arithmetically from the target's own index arithmetic, catalog
 prescriptions whose detectors fire on this target, and — for the lower bands —
 the source of already-matched near-twins.
 
-**Do not permute below 95%.** The permuter moves register allocation and never
-touches control flow or types. `unlockRelocatableHeapBlock` sat at 99.167%
+**The 95% floor is a historical budget heuristic, not a tool limitation.**
+The permuter also changes types and source structure; route by the measured
+residual before using a score fallback. `unlockRelocatableHeapBlock` sat at 99.167%
 purely because the model declared an 18-byte struct against a real 20-byte one;
 300 seconds of permuting moved it nowhere. A high score is not evidence that
 what remains is a polish job.
@@ -399,6 +479,30 @@ gameDecomp/
 ```
 
 ## Open questions
+
+### Binary data and diagnostic memory (2026-09-13)
+
+`solver.binary_data` deterministically catalogs pinned data assembly and checks
+emitted file-backed spans against the pinned ROM. Literal/symbol reconstruction,
+ROM verification, BSS storage and typed-C verification have separate counters.
+Spans and address-taken references are binary evidence; they do not establish C
+object extents, dispatch tables, ABI types or current mutable memory contents.
+The data catalog is not an asset-completion denominator. No held-out C bodies
+enter this path.
+
+At a drained controller boundary, `eval.campaign_data` binds/cache-checks a catalog
+and supplies bounded function-specific evidence to repair workers. Changed data
+evidence participates in scheduling identity; unchanged evidence cannot renew a
+search budget. Differential panels may seed ROM-verified read-only spans with
+linked addresses, before their panel identity and test exploration are formed.
+Candidate-owned bytes retain precedence, including aliases, so wrong candidate
+initializers remain visible. Mutable data, BSS, heap objects and MMIO still need
+separate runtime evidence or explicit environment contracts.
+
+`python -m eval.data_matching --run RUN` reports the recorded catalog. Its optional
+region/candidate-byte comparison produces a source-independent byte receipt; it
+does not promote C definitions. Function/object and whole-ROM gates remain the
+only matching authorities for their respective scopes.
 
 - Union detection: when is a class disagreement a union vs a mis-identified base?
 - Cross-TU struct identity: same layout in two TUs — same type, or coincidence?

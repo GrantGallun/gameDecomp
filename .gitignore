@@ -18,3 +18,28 @@ rec*.py
 # Runtime / tooling artifacts, not project source
 .aioptimizer/
 .claude/scheduled_tasks.lock
+.tools/
+ghidra-work/
+
+# Explicit-seed model generations are reproducible runtime state; receipts stay tracked.
+eval/results/generation_cache/
+
+# Run data is regenerable and large (checkpoints, search dumps, emulator copies).
+# Keep each result directory's documentation and scripts only.
+eval/results/**
+!eval/results/**/
+!eval/results/**/*.md
+!eval/results/**/*.py
+!eval/results/**/*.ps1
+!eval/results/**/*.sh
+!eval/results/**/*.js
+!eval/results/**/*.html
+eval/results/**/code/
+eval/results/**/staged-code/
+eval/results/**/previous-code/
+eval/results/**/portable/
+
+# Test and tool scratch
+.cache/
+.pytest-tmp*/
+*.tmp

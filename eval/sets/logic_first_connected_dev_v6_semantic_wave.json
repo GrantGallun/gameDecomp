@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "kind": "logic-first-connected-dev-cluster",
+  "created_at": 1788495426,
+  "selection": {
+    "target_source_inspected": false,
+    "inputs": [
+      "binary call edges",
+      "function/TU metadata",
+      "existing compiled non-exact DEV attempt provenance"
+    ],
+    "heldout_excluded_across_all_manifests": true,
+    "already_exact_excluded": true,
+    "prior_semantic_settlements_excluded": [
+      "Fwobble",
+      "__MusIntRandom",
+      "drawCharacterSelectCoursePreviewPanel2",
+      "drawCharacterSelectCoursePreviewPanel6",
+      "drawCharacterSelectCoursePreviewPanel8",
+      "drawRacePlayerModel",
+      "drawRaceSplitscreenSelectOption2Frame",
+      "drawRaceSplitscreenSelectOption4Frame",
+      "fixedSine",
+      "initControllerPakRaceRecordSaveFlow",
+      "randomNextMain",
+      "randomNextObject",
+      "releaseSoundEffectHandleNode",
+      "renderRaceUiSingleTrailEffect",
+      "reserveSoundEffectQueueReadIndex",
+      "resetAllViewports",
+      "resetRacePlayerTrickSubstate",
+      "returnToCourseSelectModeMenu",
+      "updateCourseSelectCourseDescription",
+      "updateRaceGameplayFlow",
+      "updateRacePickupIdle",
+      "updateRacePlayerLeanAngle",
+      "updateRacePlayerMode16AerialTrick",
+      "updateRacePlayerMode37AerialTrick",
+      "updateRacePlayerMode40Stun",
+      "updateRacePlayerMode53AerialTrick"
+    ],
+    "exclusion_receipts": [
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v10-full-semantic.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v12-expanded-routed.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v18-pickup-valid-panel.json",
+      "/mnt/c/Code/gameDecomp/eval/results/semantic-stress-resetAllViewports-header-derived-v1.json",
+      "/mnt/c/Code/gameDecomp/eval/results/semantic-stress-initControllerPakRaceRecordSaveFlow-header-derived-v1.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v23-independent-leaf-fwobble-adapter.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v24-independent-leaf-semantic-first.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v27-remaining-semantic-first.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v28-mus-rng-bit-basis.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v30-course-switch-semantic.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v32-gameplay-flow-semantic.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v33-return-menu-linker-aliases.json",
+      "/mnt/c/Code/gameDecomp/eval/results/semantic-stress-renderRaceUiSingleTrailEffect-binary-layout-v2-complete-panel.json",
+      "/mnt/c/Code/gameDecomp/eval/results/dag-pipeline-census-v25-draw-player-full-target.json"
+    ],
+    "requested_size": 16,
+    "eligible_candidates": 47,
+    "frontier_mode": "independent-leaf-batch"
+  },
+  "cluster": [
+    {
+      "function": "bootThreadMain",
+      "tu_id": 270,
+      "instruction_count": 34,
+      "attempt_id": 23883,
+      "source_sha256": "d397c15d3ccf96ff390374ab043bcc5f7c411a49722c3e6fadb68528e9471665",
+      "stored_weighted_score": 97.222
+    },
+    {
+      "function": "initRacePlayerLandingSnowSpray",
+      "tu_id": 322,
+      "instruction_count": 92,
+      "attempt_id": 23887,
+      "source_sha256": "baa80e0902c217b4a975e3e48eeddbe1f711a4f8db82dd488428a5f4bc4ff0d6",
+      "stored_weighted_score": 96.293
+    },
+    {
+      "function": "getRacePlayerRankingProgress",
+      "tu_id": 329,
+      "instruction_count": 319,
+      "attempt_id": 22326,
+      "source_sha256": "4ffaa49c4245964e547e31629ed9bc98d3a07961ea0bca0ecad8e2d1405ef10c",
+      "stored_weighted_score": 95.346
+    },
+    {
+      "function": "func_80059518",
+      "tu_id": 336,
+      "instruction_count": 187,
+      "attempt_id": 9540,
+      "source_sha256": "9f6739ad61378a3d7c5e8e1c52bbdea2e5fb95d42d5eb89c157b6646888a5f06",
+      "stored_weighted_score": 94.846
+    },
+    {
+      "function": "calculateRaceTimerDelta",
+      "tu_id": 335,
+      "instruction_count": 69,
+      "attempt_id": 17599,
+      "source_sha256": "03cc65d1d86c02fe649cfb07fbc51bc6ddfd77ca8f354abd4f908a1d7f8fde5a",
+      "stored_weighted_score": 94.324
+    },
+    {
+      "function": "createCallbackTaskPreservingArgs",
+      "tu_id": 267,
+      "instruction_count": 142,
+      "attempt_id": 17600,
+      "source_sha256": "dc9984d98ab5d70e263a352f5f1d3072ff3042d3e0e0b3b1a19db86c1056942c",
+      "stored_weighted_score": 90.291
+    },
+    {
+      "function": "_ldexpf",
+      "tu_id": 343,
+      "instruction_count": 10,
+      "attempt_id": 19885,
+      "source_sha256": "c225bb0317a48e9ebfc46b5bd9c5d3607c70a6147e51e4c71c79dfe953b7ef40",
+      "stored_weighted_score": 89.909
+    },
+    {
+      "function": "initMenuAssetHandles",
+      "tu_id": 308,
+      "instruction_count": 13,
+      "attempt_id": 5512,
+      "source_sha256": "54f7e30ca33770e122f88dffb6de9b1124c1a4bb909995683e9578a0aadd1aa1",
+      "stored_weighted_score": 89.583
+    },
+    {
+      "function": "drawTimeTrialHud",
+      "tu_id": 335,
+      "instruction_count": 144,
+      "attempt_id": 17711,
+      "source_sha256": "5543b5b8751f856e265f5dbcf7edf46df8a469ad972a795e5cb2f5fbd20c0eaf",
+      "stored_weighted_score": 89.0
+    },
+    {
+      "function": "func_80063A9C",
+      "tu_id": 336,
+      "instruction_count": 245,
+      "attempt_id": 9445,
+      "source_sha256": "322cd60cd692e8e54899b62232ac1084799400ba0a28361d972ad23fc7d2e4d3",
+      "stored_weighted_score": 88.221
+    },
+    {
+      "function": "Fendit",
+      "tu_id": 276,
+      "instruction_count": 5,
+      "attempt_id": 19753,
+      "source_sha256": "f56608312a3015b18e4a9d5614803e46ccd20a0fd2007fc9133c06cfb273df1b",
+      "stored_weighted_score": 88.0
+    },
+    {
+      "function": "Fvelocity",
+      "tu_id": 276,
+      "instruction_count": 5,
+      "attempt_id": 19785,
+      "source_sha256": "d6b27fce53b06384df034ef0ba7039526237149d2bdc81587642abf04d8c929e",
+      "stored_weighted_score": 88.0
+    },
+    {
+      "function": "initMainMenuSceneModel",
+      "tu_id": 301,
+      "instruction_count": 45,
+      "attempt_id": 4400,
+      "source_sha256": "24d5a98c9f9a8355142a7f9eae6e8f6d475e8be7321e5563697c2d93764e815b",
+      "stored_weighted_score": 87.841
+    },
+    {
+      "function": "compressRaceRecordReplayData",
+      "tu_id": 301,
+      "instruction_count": 69,
+      "attempt_id": 17717,
+      "source_sha256": "7147efd4dc80ed78e3d94dfc351411f64ef95fcb70c464deca8ca2c95ea60ecd",
+      "stored_weighted_score": 87.768
+    },
+    {
+      "function": "packFixedTransformMatrix",
+      "tu_id": 308,
+      "instruction_count": 104,
+      "attempt_id": 19008,
+      "source_sha256": "906aa02a0f0d57218b40507ec474ecd8b1b22d984882607486d4217c8f4ff4c1",
+      "stored_weighted_score": 87.404
+    },
+    {
+      "function": "fixedCosine",
+      "tu_id": 277,
+      "instruction_count": 25,
+      "attempt_id": 21033,
+      "source_sha256": "ee2b91ce01999a568f8cf998675b62fcb5ec16e5df82e12912f1f7615aa50cf6",
+      "stored_weighted_score": 86.375
+    }
+  ],
+  "binary_call_edges": [],
+  "shortfall": 0,
+  "manifest_digest": "18eea3c851d1d87971da3e221fc22902b0312ec19e651ad47a739570f62ab561"
+}

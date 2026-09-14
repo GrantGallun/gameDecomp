@@ -1409,5 +1409,605 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "byte-score-anticorrelates-with-register-faults",
+    "claim": "On an allocation-shaped residual the dist.py byte score moves OPPOSITE to the number of wrong instructions, so any search ranked by score steers away from the answer. Rank by fault count instead; the oracle's exact flag remains the only verdict.",
+    "source": "measured on renderRaceUiSingleTrailEffect",
+    "status": "CONFIRMED",
+    "evidence": "Two statement swaps, each lowering score and lowering register faults: 91.974->91.779 with regalloc 39->38, and 91.974->89.494 with regalloc 39->35. A beam search ranked by faults then fell 41->39->38->37->36->34 while the score fell 91.974->85.987, so every step of real progress would have been rejected by a score-ranked search. eval/allocsearch.py.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "ido-statement-order-moves-register-allocation",
+    "claim": "Swapping adjacent INDEPENDENT assignments changes which colour uopt gives each web, because equal-priority webs break ties on construction chronology, which follows source statement order.",
+    "source": "patterns catalogue, confirmed locally",
+    "status": "CONFIRMED",
+    "evidence": "renderRaceUiSingleTrailEffect: instruction mix identical to the target (75 vs 75, no opcode count differs), so nothing is missing and only colouring differs. Five swaps moved the fault count 41->34 monotonically. The lever is real and measurable.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "adjacent-statement-swaps-alone-close-a-register-residual",
+    "claim": "A beam search over adjacent independent-statement swaps is enough to drive an allocation-shaped residual to byte-exact.",
+    "source": "this iteration",
+    "status": "REFUTED",
+    "evidence": "182 compiles, beam 4, depth 10 on renderRaceUiSingleTrailEffect: faults plateau at 34 of an initial 41 by depth 5 and regress afterwards. Adjacent swaps reach only part of the permutation space; whole-run permutation and web MERGING (which values share a register) are untried. No match.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "workspace-score-is-safe-under-concurrent-harnesses",
+    "claim": "Two harnesses may score the same function at once, because build.sh takes a flock.",
+    "source": "assumed by every sweep in eval/",
+    "status": "REFUTED",
+    "evidence": "build.sh locks the BUILD, but the filenames are shared: every caller writes <func>.c and reads <func>_diff, so A can read B's residual against A's source with nothing erroring. Caught when three runs of one fixed source gave three different proposal sets while an eval.compose_regress ran in another shell -- score 91.909 vs 91.974, register faults 38 vs 39, for a source that never changed. Fixed by _workspace_lock in solver/workspace.py, which holds a separate .score.lock across write/build/read.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "base-register-identifies-an-object",
+    "claim": "Offset constraints can be grouped by base register name, and a base whose constraints disagree is unreliable.",
+    "source": "solver/diffrepair.constraints, since it was written",
+    "status": "REFUTED",
+    "evidence": "v0 is the return-value register and names a different object after every call; s0 is callee-saved and holds several objects across a long function. On initRacePlayerLandingSnowSpray one ambiguous offset (0x4 -> {0x28,0x2c,0x30}) discarded twelve unanimous +1148 constraints. On updateCourseSelectCourseDescription base a2's eighteen clean pairs were dropped for 'conflicts with another base' because an unrelated loaded pointer t6 also had an opinion about offset 0. Replaced by constraint_sets/delta_clusters, which never merge and propose each reading separately.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "nested-struct-member-shifts-every-later-offset",
+    "claim": "A struct member whose type is not a primitive can be skipped when computing field offsets.",
+    "source": "solver/diffrepair._fields",
+    "status": "REFUTED",
+    "evidence": "It was skipped WITHOUT advancing the cursor, so every field after a nested struct got a wrong offset. On updateRacePlayerMode53AerialTrick the parser reported [0, 32, 48, 68, ...] for a struct whose compiled accesses run to 124; the correct list is [0, 32, 44, 56, 72, 84, 104, 108, 112, 114, 116, 120, 122, 124]. Every layout proposal was then declined for 'not a field offset in that region'. Fixed by type_sizes(), which resolves structs declared in the same file, and by DECLINING the region when a type is still unknown rather than guessing.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "signedness-only-faults-have-a-repair",
+    "claim": "A pure signedness mismatch (lb vs lbu) is repairable by retyping the field, and was being discarded.",
+    "source": "solver/diffrepair.width_constraints",
+    "status": "CONFIRMED",
+    "evidence": "OPCODE_WIDTH maps lb and lbu both to 1, so the pass hit `want == got` and returned early -- a u8 field where the target reads s8 produced no constraint at all, despite UNSIGNED_OPS already existing to record exactly that. Now emitted and applied; four tests cover it, including that a STORE still carries no signedness.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "jtbl-normalization-gap-blocks-switch-functions",
+    "claim": "normalize_asm.py reconciles jump-table symbols, so a function containing a switch can reach byte-exact.",
+    "source": "the harness's own docstring",
+    "status": "REFUTED",
+    "evidence": "Its pattern is jtbl_[0-9A-Fa-f]+_[0-9A-Fa-f]+ and requires TWO underscore-separated hex parts. Real symbols like jtbl_800E0E78 have one, so they survive on the target side while our side emits %hi(.rodata). The normalized target for updateCourseSelectCourseDescription contains ZERO occurrences of '.rodata'. build.sh requires NORMALIZED_EXACT for TRUE_MATCH, so these functions cannot be recorded as matching however correct the code is. Affects 5 functions: checkMainMenuSecretCode (98.561, the closest in the project), createCallbackTaskPreservingArgs, gameThreadMain, getRacePlayerRankingProgress, updateCourseSelectCourseDescription. NOT currently masking a completed match -- applying the missing normalization by hand leaves 7 to 259 differing lines, none zero -- so it is a ceiling, not a hidden win. Fixing it changes the match criterion and is the user's call, not the agent's.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "reloc-addend-repair-follows-a-typedef",
+    "claim": "The addend repair can find the element struct of the symbol it is asked about.",
+    "source": "solver/rewrites.reloc_padding_rewrites",
+    "status": "REFUTED",
+    "evidence": "It searched only for an inline anonymous struct, `struct {...} gRacePlayers[8];`. The ordinary decompiled-header spelling is `typedef struct {...} RacePlayer;` followed by `extern RacePlayer gRacePlayers[4];`, and on that the pass silently declined -- on the exact residual shape it was written for. Fixed by _element_struct_body, which resolves the element type first.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "statement-relocation-beats-adjacent-swaps",
+    "claim": "Relocating a statement to any position in its independent run reaches orderings adjacent swaps cannot, and moves the allocation residual further.",
+    "source": "generalisation of ido-statement-order-is-an-allocation-lever",
+    "status": "CONFIRMED",
+    "evidence": "renderRaceUiSingleTrailEffect: adjacent swaps reached 39 faults from 43 in 16 compiles; relocation reached 38 in 30 compiles. Real but small, and both exhaust at depth 2. Not a match.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "body-statement-order-recolours-the-parameter-copy",
+    "claim": "Reordering body statements can change the colour assigned to the prologue's parameter copy, which is the web that anchors the whole residual on renderRaceUiSingleTrailEffect.",
+    "source": "the obvious next step once relocation stalled",
+    "status": "REFUTED",
+    "evidence": "The residual's anchor is `-move a3,a0 / +move a2,a0`, the prologue copy of the a0 parameter into a saved register; all 31 remaining register faults follow from it. Every reachable body permutation (30 compiles, beam 5, depth 10) left that line unchanged. The target giving this web a HIGHER colour means some other web outranks it there on `save`, so the lever is the reference COUNT of a competing web, not the order of the statements. Note this also corrects an earlier reading in this session: target a3 against our a2 means we are missing a high-save web, not carrying a surplus one, so inlining a temporary is the wrong direction here.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "allocation-gate-should-test-dominance-not-purity",
+    "claim": "The statement-order gate may require a residual with no layout faults at all.",
+    "source": "solver/rewrites._allocation_shaped, first cut",
+    "status": "REFUTED",
+    "evidence": "renderRaceUiSingleTrailEffect has structural 0 and 41 register faults -- the most allocation-shaped residual in the medium tier -- and two wrong offsets. Purity refused it, and no layout generator covered those two offsets either, so the function got ZERO proposals of any kind. Changed to dominance (registers >= 1 and registers >= 2 * layout); proposals went 0 -> 8 and faults 43 -> 38.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "uopt-save-model-can-steer-source-edits",
+    "claim": "Modelling uopt's `save` from the candidate's own output lets the solver propose WHICH web to strengthen, instead of permuting source and hoping.",
+    "source": "the plan proposed after statement relocation stalled",
+    "status": "REFUTED",
+    "evidence": "Seven totalsave models measured against real IDO output on the matched corpus, scored on an IDENTICAL 802-pair set that all of them rank strictly: flat n/nocs 57.5, loop 2x 58.4, loop 4x 58.0, loop 8x 57.7, loop 10x 57.7, loop 10x with memory 2x 57.5, memory refs only 50.4. Chance is 50. The per-model table's 65-68% is an artefact -- a model that discriminates less excludes its ties from the denominator and is graded on an easier subset, so those accuracies are not comparable across models. Weight sweeping cannot fix it: webs are rebuilt from POST-allocation assembly by splitting at register redefinition, which conflates distinct values that reuse a register and cannot see what uopt coalesced. The prescription is now gated behind unvalidated_ok.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "uopt-loop-weighting-was-inert-on-object-dumps",
+    "claim": "The 10x-per-loop-level weighting in uopt.webs affects the model when run on the oracle's normalized dumps.",
+    "source": "solver/uopt._loop_depth",
+    "status": "REFUTED",
+    "evidence": "_loop_depth found loops only via `label:` lines and branches naming them. The normalized object dumps have NO label lines -- branch targets are bare hex byte offsets -- so every depth stayed 0 and the weighting never applied. It failed silently: a sweep over 2x, 4x, 8x and 10x per level returned byte-identical concordance for all four, which is only possible if nothing is ever inside a loop. Fixed with _numeric_depth, resolving back edges from hex targets at 4 bytes per instruction; 14 of 85 functions then show a loop. Fixing it made concordance WORSE (65.6 vs 68.3 flat), which is itself evidence against the weight model rather than for it.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "allocation-anchor-is-readable-without-a-model",
+    "claim": "Which web is mis-coloured, and where it is referenced, can be read from the oracle's diff with no allocator model.",
+    "source": "solver/allocdiff",
+    "status": "CONFIRMED",
+    "evidence": "Aligning both streams by instruction index and comparing webs by first-def line names the anchor exactly. On renderRaceUiSingleTrailEffect it reports 13 mis-coloured webs and the anchor at stream line 13 -- target a3, ours a2 -- with the four instructions referencing it, a spill/reload pair at 0x48(sp) plus two uses. This is the part worth keeping and could focus an oracle-checked search on statements feeding that one value.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "fault-objective-counts-consequences-not-causes",
+    "claim": "Counting wrong INSTRUCTIONS is the right search objective for an allocation residual.",
+    "source": "eval/faultsearch.faults_of, first cut",
+    "status": "REFUTED",
+    "evidence": "One web given the wrong colour renames that value at every reference, so the instruction count measures blast radius rather than progress. renderRaceUiSingleTrailEffect reports 31-42 register-fault instructions arising from 13 mis-coloured webs, and its anchor alone accounts for four. This is the same error as counting four branch-target faults that are one instruction-count difference seen four times. Replaced by allocdiff.mismatches(), which counts webs and is model-free -- it compares the two streams the oracle already produced and involves no prediction, unlike the REFUTED save model. The objective now reads 18 where it read 43, and the search reaches 14. It found a DIFFERENT local optimum, not a match: exact is still 0 on this function.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "rewrite-generators-generalize-across-functions",
+    "claim": "The rewrite generators encode general compiler behaviour, so each one helps on functions beyond the one whose residual it was written from.",
+    "source": "implicit in every capability claim made from them",
+    "status": "REFUTED",
+    "evidence": "Measured over 41 unmatched functions with compiling candidates (eval/generalization.py). Nothing fires broadly: argswap tops out at 10 of 41, most reach 0-2. FOUR never fire at all (reloc_padding, inline_temporary, branch_sentinel, signed_compare); THREE fire but never lower the fault count (immediate on 5 functions, compare_swap on 2, frame_padding on 1); TWO help only on their own origin function (pointer_table_deref, statement_order). Only reloc_symbol and argswap help on as many as 2 functions other than their origin. Caveats: signed_compare and branch_sentinel have no customers left because their functions are already solved, which is the memorisation signature rather than a bug; argswap is under-tested at 4 proposals per function out of 135. The suite is a collection of narrow patterns, not general capability, and the 49-function held-out split in eval/sets/sbk1_v3.json has still never been run.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "struct-layout-evidence-transfers-between-functions",
+    "claim": "A field pinned by one function's residual is pinned for every other function declaring the same struct, so layout evidence can be pooled instead of re-derived and discarded.",
+    "source": "the empty inference tier and 12,751 unread attempts",
+    "status": "CONFIRMED",
+    "evidence": "Harvesting the 10,941 stored residuals cost zero compiles and attributed 1,028 constraint sets to named structs: RacePlayer is pinned by 13 functions across 15 offsets, gRacePlayers by 3, seven structs by more than one function, and there are ZERO width conflicts anywhere -- which is what licenses pooling at all. solver/layoutstore.py plus shared_layout_rewrites then moved initRacePlayerLandingSnowSpray from 35 faults to 30 using nine RacePlayer offsets pinned by 13 OTHER functions, with that function's own history excluded so the transfer is not circular. First evidence flow between functions in this project. It helped 1 of 21 medium functions and produced no match, so the mechanism is confirmed and its yield is not yet.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "attempts-table-is-a-usable-knowledge-source",
+    "claim": "The attempts table is only a debugging record and a future training set; nothing present can use it.",
+    "source": "TRAINING.md framing, and the absence of any reader",
+    "status": "REFUTED",
+    "evidence": "12,751 attempts and 93 strategies had been logged with no consumer anywhere in miner/, kb/ or solver/. The 10,941 stored residuals turn out to be directly minable: they yielded 1,028 attributed constraint sets and a 31-struct/104-offset layout store for zero compiles, which then repaired a function its own residual could not. The table is usable now, not only after training.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "register-pressure-explains-the-allocation-residual",
+    "claim": "The allocation residual is the candidate holding more values live across calls than the target -- an extra web visible as pressure, without needing a priority model.",
+    "source": "proposed after the save model was refuted",
+    "status": "INCONCLUSIVE",
+    "evidence": "solver/liveness.py computes backward liveness over solver.cfg and reports caller-saved registers live across each call; both sides are computed, because `cc -S` emits .livereg masks for the candidate but target.s carries none. Over 21 medium functions: 5 profiles IDENTICAL, 4 DIFFER, 12 unusable (no calls or unusable streams). It differs usefully where it differs -- updateRacePlayerMode16AerialTrick target [2,4,14,13,0] against candidate [3,7,14,13,0], and func_80059A04 carrying +1 at nearly every one of 13 calls, which is a systematic extra live value with a program point attached. BUT it is IDENTICAL on renderRaceUiSingleTrailEffect ([14,2,2] both sides), the function whose residual is purest allocation and where the hypothesis was most wanted. So pressure is a real and separate cause affecting SOME functions; it does not explain the anchor case, whose difference must be priority or tie-breaking after all. Worth a generator for the functions where profiles differ; not the general answer to the wall.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "livereg-masks-give-a-target-side-liveness-signal",
+    "claim": "IDO's .livereg masks can be compared between target and candidate to locate allocation differences.",
+    "source": "the one unexplored compiler output",
+    "status": "REFUTED",
+    "evidence": "cc -S does emit them for a candidate -- renderRaceUiSingleTrailEffect yields 4, e.g. 0x0000FF0E,0x00000FFF meaning at,v0,v1,t0-t7 and f0-f11 live across that call. But target.s, being a ROM disassembly, contains ZERO .livereg directives, so there is nothing to compare against. Liveness must be COMPUTED on both sides to keep the comparison apples-to-apples, which is what solver/liveness.py does; the compiler's own annotation is usable only for candidate-versus-candidate work, which solver/asmlayer.py already covers.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "call-graph-is-missing-from-the-project",
+    "claim": "The project lacks a call graph, so it cannot order work by dependency the way every decomp project does.",
+    "source": "user intuition, and the absence of any caller/callee tooling",
+    "status": "REFUTED",
+    "evidence": "It was there the whole time and had no consumer. The evidence tier holds 9,854 call rows, 9,761 with a resolved target, across 1,819 callers and 625 callees, and functions.is_leaf is populated for all 2,113. func_deps has ZERO rows; only kb/tms.py and eval/poison_test.py mention call evidence at all. Meanwhile the work queue was ordered by descending byte score, which is dependency-blind. Same shape as every other finding this session: the data existed and nothing read it.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "leaf-first-ordering-exposes-cheap-high-leverage-work",
+    "claim": "Ordering by call-graph position instead of byte score exposes cheap functions the score-ordered queue never reached.",
+    "source": "the standard decomp workflow, applied to the existing edges",
+    "status": "CONFIRMED",
+    "evidence": "The graph is a clean DAG -- ZERO cycles across 2,113 functions -- so topological order needs no SCC handling. Only 195 of 2,113 functions had ever been attempted, because the eval sets were deliberately sampled for difficulty. There are 322 leaves, 271 never attempted, 234 of those under 60 instructions, and 137 in the TINY tier which currently solves at 24/25. getRelocatableHeapBlockBase -- 8 instructions, a leaf, 15 unmatched callers depending on it -- had never been attempted and matched BYTE-EXACT on the first structural guess, CPU only, no model; setCallbackTaskCallback (2 instructions) likewise. Queues emitted as eval/sets/leaves_v1.json (234) and unblockers_v1.json (47).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "propagating-verified-callee-signatures-changes-caller-codegen",
+    "claim": "Giving a caller its callee's oracle-verified signature changes the caller's generated instructions, because return and parameter widths drive extension and marshalling.",
+    "source": "the mechanism that makes leaf-first more than easy-first",
+    "status": "INCONCLUSIVE",
+    "evidence": "solver/protostore.py harvests signatures from byte-exact sources; prototype_rewrites FIRES on 12 of 41 unmatched functions, the BROADEST reach of any generator (argswap was 10, everything else 0-5), all of them reaching getRelocatableHeapBlockBase within an hour of it being solved. But on 11 of 11 that compiled, the INSTRUCTION residual is byte-identical: the source changes and the output does not. The reason is specific, not general -- of the 83 verified signatures, 68 return void and 13 more return a 32-bit type, all codegen-identical to the implicit int a caller assumes. Exactly ONE has a width-sensitive return (u8 getRaceItemEffectType) and it does not reach those callers. So the mechanism is untested rather than refuted, and the leaf sweep is what would test it: narrow-return getters are exactly what sits in the 137 unattempted tiny leaves. Do not retire this without re-running it after that sweep.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "strict-bottom-up-gating-beats-attempting-everything",
+    "claim": "Solve the leaves, promote a function only once EVERY function it calls is solved, sweep the lowest level again when the frontier stalls.",
+    "source": "user proposal; the standard human decomp workflow",
+    "status": "INCONCLUSIVE",
+    "evidence": "CORRECTED after external audit. Originally recorded REFUTED; that overreached. Simulated on the real call graph (eval/wavefront.py, 2,113 functions, zero cycles) with per-tier rates measured excluding the 55 RECOVERED functions: tiny 96.3, small 64.0, medium 41.0, large 14.6, huge 11.8 (large collapses from 70.8 once recovery is removed, so almost every large 'match' was recovered rather than solved). STRICT GATE reaches 971 of 2,113 (46.0%); attempting everything at the same rates reaches 1,196 (56.6%). THE LIMIT OF THAT COMPARISON: it holds each function's solvability fixed and independent of whether its callees are solved, which is exactly the dependency benefit gating exists to capture. So it prices gating under the assumption that transfer is worth nothing -- about 225 functions -- rather than refuting it. The assumption is not arbitrary (prototype propagation measurably changed ZERO instructions across 11 callers, because 68 of 83 verified signatures return void), but one null on a 6.5%-full corpus does not establish that transfer is worthless in general. WHAT STANDS: use the graph as a PRIORITY, which costs nothing and is strictly better than score-ordering. What is open: whether a solved callee makes its caller easier, which needs re-testing once the pool is not starved. The break-even is computable -- gating wins if the per-function boost from solved callees exceeds the ~225-function blocking loss.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "a-few-small-functions-gate-most-of-the-binary",
+    "claim": "Blocking is spread evenly, so no single function is worth special attention.",
+    "source": "implicit in a score-ordered work queue",
+    "status": "REFUTED",
+    "evidence": "At the wavefront's stall point the blocking is extremely concentrated and sits in the SMALL tier, which solves at 64%: addMainMenuSceneModelDrawCallback blocks 211 functions, stepMainMenuSceneModelAnimation 110, loopMainMenuSceneModelAnimation 109, stepRaceMotionAnimationUntilEnd 65, drawMenuSprite 55, __ll_div 51. A handful of small functions gate roughly a third of the binary. Score-ordered work will not reach them: they are not high-scoring near-misses, they are unattempted.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "think-false-is-a-usable-slice-efficiency-lever",
+    "claim": "Setting think=false on gpt-oss slice calls removes the reasoning trace and reduces generation cost on the current local Ollama stack.",
+    "source": "S1 token-efficiency hypothesis",
+    "status": "REFUTED",
+    "evidence": "The pre-registered capability gate fired before the six-function run. On the same fenced-format probe, think=low returned the direct answer in 56 tokens and 0.602s. think=false consumed the full 512-token cap in 4.585s, left the response field empty, and surfaced only through the thinking field. The lever does not exist on this model/interface combination; this does not establish whether reasoning itself is useful.",
+    "tested_on": "gpt-oss:20b local Ollama capability gate (2026-08-31)",
+    "date": "2026-08-31",
+    "keywords": [
+      "tokens",
+      "thinking",
+      "slices",
+      "ollama"
+    ]
+  },
+  {
+    "id": "explicit-seed-generation-cache-preserves-draw-identity",
+    "claim": "A generation cache keyed by an explicit draw seed can make identical reruns free without returning a cached sample for a new draw.",
+    "source": "S2 token-efficiency design",
+    "status": "CONFIRMED",
+    "evidence": "Live mechanical check: same-seed replay returned byte-identical text in 0.0063s with zero charged tokens; a new seed used a distinct cache key and made a real 55-token generation. Unit tests reject caching without a seed and separate reasoning/prefill/runtime options in the key.",
+    "tested_on": "gpt-oss:20b local Ollama plus deterministic cache tests (2026-08-31)",
+    "date": "2026-08-31",
+    "keywords": [
+      "cache",
+      "seed",
+      "tokens",
+      "experiments"
+    ]
+  },
+  {
+    "id": "current-wavefront-has-leaf-contract-repair-surface",
+    "claim": "The current eligible wavefront contains best stored parent candidates whose compiled callsites violate completed-leaf facts and therefore justify mismatch-only repair.",
+    "source": "WF1 activation hypothesis",
+    "status": "REFUTED",
+    "evidence": "Zero-token replay over the two reserved and three eligible deferred parents found four replayable candidates at 97.532, 68.536, 96.293, and 89.644 percent. All four already satisfied exact-leaf argument and normalized return-consumer facts; the fifth had no replayable candidate. After rejecting fake 0x4/4 and or/move spelling mismatches, zero repairs activated, 0 of 2400 reserved tokens were spent, and nothing was promoted.",
+    "tested_on": "five eligible DEV parents, four replayable stored candidates (2026-08-31)",
+    "date": "2026-08-31",
+    "keywords": [
+      "wavefront",
+      "callee",
+      "contracts",
+      "activation",
+      "repair"
+    ]
+  },
+  {
+    "id": "abi-sensitive-leaf-enrichment-produces-exact-transfer",
+    "claim": "Ranking small unsolved leaves by narrow ABI evidence and caller fanout will produce at least two exact leaves out of eight and one measurable parent codegen transfer.",
+    "source": "ABI-sensitive leaf enrichment pilot",
+    "status": "REFUTED",
+    "evidence": "The preregistered exact and transfer targets failed: 8 seeded DEV draws used 2,159 generated tokens and produced 0 exact leaves, while the sole caller of the strongest near-match had no stored compiling candidate. The mechanism still produced a real zero-token gain: binary-derived struct alignment plus promoted-temporary enumeration moved randomNextObject from 95.625 to 98.750 percent, leaving one allocation web. This supports phase-aware repair but does not establish exact-leaf yield or upward transfer.",
+    "tested_on": "eight ABI-ranked DEV leaves plus one bounded caller-surface audit (2026-09-01)",
+    "date": "2026-09-01",
+    "keywords": [
+      "wavefront",
+      "abi",
+      "leaves",
+      "cache",
+      "layout",
+      "transfer"
+    ]
+  },
+  {
+    "id": "two-lane-wavefront-harvest-and-narrow-return-transfer",
+    "claim": "A frozen matchability-first leaf cohort will add at least three exact functions, and a narrow-return child annotation will measurably change one parent object once a compiling baseline exists.",
+    "source": "two-lane wavefront pilot",
+    "status": "REFUTED",
+    "evidence": "The exact-count half succeeded only as low-hanging-fruit calibration: 13 of 16 leaves were already exact from zero-token m2c and all were empty returns; a post-hoc project-header and empty-return preflight took the cohort to 16 of 16 with zero new calls, including two real scheduler getters. The transfer half failed even after binary annotations made updateRacePickupIdle compile at 91.064 percent. Its two randomNextObject consumers immediately mask v0 with 0xF, the project header already declares u8, the u8 arm was assembly-identical, and u32 was an incompatible redeclaration. Narrow-return evidence plus caller count is insufficient; the consumer must be compiler-active.",
+    "tested_on": "16 frozen straight-line DEV leaves and randomNextObject -> updateRacePickupIdle (2026-09-01)",
+    "date": "2026-09-01",
+    "keywords": [
+      "wavefront",
+      "headers",
+      "annotations",
+      "abi",
+      "masks",
+      "transfer"
+    ]
+  },
+  {
+    "id": "tool-name-shape-heuristic-hid-seventy-functions",
+    "claim": "Functions were absent from every sweep because tools/claude classified any 5-10 character alphanumeric argument as a decomp.me scratch ID and refused it before bootstrap, not because they were hard.",
+    "source": "zero-token harvest, blocked-name audit",
+    "status": "CONFIRMED",
+    "evidence": "73 of 2,113 function names match the shape; 70 have real assembly under asm/ and all 73 had ZERO logged attempts and zero matches. They never appeared as failures because they never appeared at all. Resolving the name against asm/**/<name>.s before applying the shape test made 66 of 69 bootstrap on the first try. Composition is 39 libmus, 29 libultra, fixedSine and dmaReadRom -- mostly library code, so honest capability weight is lower than the count suggests (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "undeclared-param-struct-blocks-the-draft-not-the-difficulty",
+    "claim": "The dominant reason a never-attempted function has no baseline is that m2c names a struct type nothing declares, making the parameter list a syntax error, rather than the body being wrong.",
+    "source": "zero-token harvest compile-failure histogram",
+    "status": "CONFIRMED",
+    "evidence": "Of 66 bootstrapped drafts, 64 failed to compile and 45 failed with the identical shape (Syntax Error on the signature line, then Empty declaration specifiers). 28 of those name an undeclared pointer parameter type for which the evidence tier already holds offsets, keyed by param0/param1 -- the parameter position, so no inference is needed to join them. A forward declaration is insufficient: the bodies dereference members (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "binary-derived-struct-declaration-produces-exact-matches",
+    "claim": "Synthesising the missing struct from observed offsets, with m2c's own member names, is enough to take a non-compiling draft to byte-exact with no model involved.",
+    "source": "solver/typedecl.py",
+    "status": "CONFIRMED",
+    "evidence": "Replaying the 64 non-compiling drafts with the typedecl stage and zero generated tokens: 24 planned, 20 rescued to compiling, 14 byte-exact (Fdrumsoff, Fenvoff, Fenvon, Fignore, Fport, Fportoff, Freverb, Ftrans, Ftroff, Ftron, Fveloff, Fvelon, Fvolume, Fwobbleoff). Fdrumsoff matched as char pad00[0x70] plus one s32 -- every field where the binary says, names as hypotheses. No include/game header, no target source. This is the same lever that took updateRacePickupIdle from not-compiling to 91.064 by hand; mechanised it also closes functions outright (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "reconstructed-project-headers-are-a-separate-contamination-tier",
+    "claim": "Adding a reconstructed include/game header to a draft is neither a solve nor a target-source recovery, and counting it as either misstates the capability number.",
+    "source": "project-header preflight audit",
+    "status": "CONFIRMED",
+    "evidence": "getSchedulerAudioTaskQueue matched as `return &scheduler->messageQueue;` against include/game/audio/audio_engine.h, which declares the exact prototype INCLUDING the parameter name and lays out SchedulerState in full. The body was not copied, so it is not recovery; the pipeline could not have reached it from binary evidence, so it is not a solve. eval/status.py now counts a third bucket, header_assisted, and excludes it from SOLVED. 3 functions affected (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "compile-error-buckets-are-first-errors-not-independent-blockers",
+    "claim": "The compile-failure histogram counts each draft's FIRST error, so a bucket's size is an upper bound on what fixing it unlocks, not an estimate of it.",
+    "source": "do-while stage replay over never-attempted leaves",
+    "status": "CONFIRMED",
+    "evidence": "33 of 139 non-compiling leaf drafts failed on the build's do-token ban. The sanctioned for-break rewrite fired on all 33 with zero declines -- the arm was verified to fire, not assumed -- and produced 0 exact and only 2 newly-compiling functions, because 23 then failed on an undeclared type, 4 on an undefined symbol and 3 on a selector error that the first error had masked. Bucket sizes must be treated as upper bounds when planning which repair to build (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "zero-token-harvest-rate-does-not-generalise-off-the-libmus-population",
+    "claim": "The exact rate of the m2c-plus-typedecl harvest is a property of the population, not of the method, and the first population was unusually favourable.",
+    "source": "zero-token harvest, two populations",
+    "status": "CONFIRMED",
+    "evidence": "On the 69 names tools/claude had refused, 16 of 69 went byte-exact (23%), and typedecl rescued 20 of 24 planned. On 174 never-attempted call-graph leaves the same code gave 5 of 174 (2.9%) and typedecl rescued only 4 of 25 planned. The libmus F* functions are near-identical thin wrappers over one struct field, so one working generator closes many at once; general leaves are not. Do not extrapolate the 23% to the remaining ~1,000 cheap unattempted functions (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "typedecl-must-model-dereferenced-and-subscripted-members",
+    "claim": "typedecl declares every member as a scalar, so a draft that subscripts or arrow-dereferences a member compiles no better than before -- it merely swaps one compile error for another.",
+    "source": "typedecl failure analysis",
+    "status": "UNTESTED",
+    "evidence": "Of 25 typedecl plans on the leaf population only 4 compiled. The failures are specific and readable: 'Subscripting a non-array' where the body writes arg0->m[i] against a declared s32 m, and 'Selector requires struct/union pointer' where it writes arg0->m->n. Both are size-compatible with a 4-byte pointer on MIPS32, so declaring such members as pointers rather than scalars is offset-preserving and testable. Not yet built (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "unknowns-ledger-ranks-work-the-diff-cannot-see",
+    "claim": "Enumerating a function's unresolved variables BEFORE compiling gives a work queue over the ~1,800 functions that score 0 and are invisible to diff-based triage, plus a falsification set: zero free unknowns and no match means a pass is broken.",
+    "source": "LEDGER.md; Dillig/Dillig/Aiken PLDI 2012 abductive error diagnosis",
+    "status": "UNTESTED",
+    "evidence": "eval/triage.py and solver/signals.py both classify residuals post-compile and need a diff, so 1,823 never-attempted functions and ~140 non-compiling drafts all sit at score 0 and are indistinguishable. Schema designed against the EXISTING inference tier, which already has kind/subject/value/status/origin plus inference_support for provenance and retracted_at for retraction, and holds 0 rows. Not yet built; must fire on Fdrumsoff (undeclared_type PlayerCommandState, accessed 112/4) and releaseRelocatableHeapBlockMetadata (undeclared_global width 2, plus subscripted on gRelocatableHeapFreeBlockStack) before it ranks anything.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "error-directed-greedy-search-is-published-prior-art",
+    "claim": "The compile-error-driven repair chain in eval/zero_token_harvest.py is a named technique from the decompilation literature, not an invention, and the published version defers commitment where ours does not.",
+    "source": "Superset Decompilation, arXiv 2603.28002 (2026)",
+    "status": "CONFIRMED",
+    "evidence": "Manifold's final 'Selecting a Representative' phase is error-directed greedy search using the compiler as a type-checking oracle, iteratively reducing error counts -- which is exactly m2c -> compile error -> typedecl -> compile error -> do-while -> recompile, built 2026-09-01 without knowing it had a name. The difference that matters: PGSD retains ambiguous interpretations as parallel candidates with provenance (~40% of nodes carry more than one) and defers resolution, while our chain commits to one candidate per stage. Also confirms the deterministic path over prompts on independent grounds: a prompt forces early commitment by construction, since the model must pick a layout to emit code.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "evidence-rows-are-already-binsub-constraints",
+    "claim": "The evidence tier's (base, offset, width, signed, is_load) rows are BinSub/Retypd capability sketches in all but name, so the binary half of a constraint-based type model needs no new extraction.",
+    "source": "BinSub arXiv 2409.01841; Retypd PLDI 2016",
+    "status": "CONFIRMED",
+    "evidence": "BinSub represents record fields as (offset, size): tau with SEPARATE load (covariant) and store (contravariant) parameters, because one polarity alone loses information. Our 72,845 evidence rows carry offset, width, signedness and an is_load polarity flag already. Consequence for the typedecl defect measured the same day: declaring every member a scalar made only 4 of 25 plans compile, and 7 of the 21 failures were 'Subscripting a non-array' or 'Selector requires struct/union pointer'. Those are not two special cases to patch but two capabilities (subscripted, dereferenced) the sketch must carry. BinSub also reports Retypd-level precision (type distance 1.67 vs 1.68) at 63x the speed, so the simplification path is known if we ever solve rather than enumerate.",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "unknowns-ledger-falsification-gate-finds-enumerator-bugs-first",
+    "claim": "The 'zero free unknowns and no match' gate finds defects in the enumerator before it finds defects in the solver, and that is the gate working rather than failing.",
+    "source": "solver/unknowns.py first live run; LEDGER.md gate 2",
+    "status": "CONFIRMED",
+    "evidence": "Two self-defects on the first two runs. (1) The evidence tier spells global bases `global:0x801107D8` -- lowercase 0x prefix, UPPERCASE hex digits -- so formatting with {addr:#010x} matched only the 133 of 1,166 addresses containing no hex letters and returned zero citations for the other 1,033 without erroring. (2) An absent m2c body has no parameters, members or globals to enumerate, so it scored zero and ranked as the EASIEST work available; 26 of 42 zero-weight leaves were that. Fixing both collapsed the zero-weight set from 42 to 15. Neither bug raised anything on its own; both were surfaced only by asking why a function with nothing unresolved had not matched (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "sixty-four-bit-helper-routines-are-a-coherent-unmatched-family",
+    "claim": "The __ll_* / __ull_* 64-bit integer helpers fail as a family, not individually, and are a single unenumerated blocker rather than seven hard functions.",
+    "source": "unknowns ledger, zero-weight non-compiling residual",
+    "status": "UNTESTED",
+    "evidence": "After the two enumerator fixes, 10 leaves still show zero free weight and do not compile. Seven are __ll_lshift, __ll_mul, __ll_rem, __ll_rshift, __ull_div, __ull_divremi, __ull_rem, __ull_rshift -- the libgcc/libultra 64-bit helper family. The ledger enumerates nothing for them, which means the blocker is a kind it does not model yet; the likely candidate is long long handling that IDO's C89 frontend rejects. Not diagnosed. Named here because a family this coherent is one fix, not seven (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "mock-based-tests-cannot-catch-code-data-disagreement",
+    "claim": "A unit test built on a fixture the author shaped cannot catch a disagreement between the code and the production data, because it encodes the same wrong assumption twice and calls the agreement a pass.",
+    "source": "three ungrounded-test failures in one day",
+    "status": "CONFIRMED",
+    "evidence": "Four instances, all green in CI and all wrong. heldout_names read entry['name'] while the split files key on 'function', returning the empty set and disabling the only guard that must never fail. _global_evidence formatted global:{addr:#010x} while the evidence tier spells it global:0x801107D8, returning zero citations for 1,033 of 1,166 addresses. The ledger subject used the same lowercase spelling, so a row could not be joined to the evidence it cites. And no fixture covered an m2c draft that is only a comment, so 26 functions with no body ranked as the easiest work available. Remedy shipped as tests/conftest.py plus tests/test_grounded.py: anything that parses, joins or filters PRODUCTION data gets a test that reads production data, skipped rather than failed where the WSL tree is absent. Two of the first grounded tests were themselves wrong -- they grepped module source for 'include/game' and matched the docstring promising it is not read, since a text search cannot distinguish a path from a promise; replaced with an AST import check (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "leaf-failure-is-compilation-not-difficulty",
+    "claim": "Unmatched leaf functions fail overwhelmingly because no candidate ever compiled, not because the decompilation was wrong.",
+    "source": "leaf failure census",
+    "status": "CONFIRMED",
+    "evidence": "322 leaves: 68 matched, 25 heldout, 25 never attempted, 204 attempted and unmatched. Of those 204, 166 (81%) have NEVER produced a compiling candidate; only 38 compiled and missed, several of them close (randomNextObject 98.750, resetRacePlayerTrickSubstate 96.667). After running the full zero-token chain over all 191 never-compiled or never-attempted leaves, 165 still have a blocker, and every large bucket is a declaration problem: 62 syntax error, 38 do-token, 31 no text symbols, 28 undefined symbol, 6 selector. None is 'this function is hard' (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "struct-offsets-pool-across-functions-naming-the-same-type",
+    "claim": "A parameter struct's layout should be pooled across every function whose draft names that type, exactly as globals_layout pools a global across every function that touches its address.",
+    "source": "typedecl decline census",
+    "status": "CONFIRMED",
+    "evidence": "typedecl declines when a draft names more members than the binary has offsets for THAT function's parameter, which caused 13 declines plus 8 no-evidence cases out of 42 examined. Pooling by m2c's type name: PlayerCommandState appears in 15 leaf drafts with 36 pooled offsets against 15 for the best single function -- 2.4x, closely matching globals_layout's 2.7x for globals. The type identity is m2c's hypothesis rather than a binary fact, so the pooled struct is a hypothesis too; it is falsifiable by the oracle, which is the correct way to hold it. Also found: typedecl only inspects PARAMETERS, so an undeclared type on a LOCAL is invisible to it (17 of 62 syntax errors had no pointer parameter at all).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "m2c-declares-primitive-pointers-it-then-dereferences",
+    "claim": "A declared type can contradict the draft's own capability set, which is a distinct failure from an undeclared type and is invisible to a declared/undeclared test.",
+    "source": "syntax-error census",
+    "status": "CONFIRMED",
+    "evidence": "Fcutoff is `s32 Fcutoff(PlayerCommandState *arg0, u8 *arg1)` whose body runs `arg1->unk0` and `arg1->unk1`. u8 is a known build type, so typedecl skips that parameter entirely, yet the draft dereferences members through it. 9 of 62 syntax-error leaves are this shape (Fcutoff, Fdefa, Fgoto). Under the BinSub framing this is mechanical: the observed capability set says `dereferenced with members {unk0, unk1}` and the declared type cannot satisfy it. Needs a kind of its own -- contradicted_type -- resolved by the same struct synthesis (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "cross-function-struct-pooling-did-not-unlock-compiles",
+    "claim": "Pooling a struct's offsets across every function naming its type widens the layout as predicted, but did NOT convert that into compiling candidates on the hard leaf residual.",
+    "source": "solver/typepool.py, paired rerun on 190 never-compiled leaves",
+    "status": "REFUTED",
+    "evidence": "The widening replicated: 54 types pooled from 486 drafts, 294 offsets, PlayerCommandState 36 pooled against 15 for its best single contributor. But typedecl plans went 28 -> 35 while COMPILED stayed at 1 of ~165, and only 8 of the 35 plans actually used pooled fields. Prediction was ~21 unlocked; actual 0. Two reasons found. (a) A bug the pooling exposed: `void` is a keyword so buildtypes never lists it, and typedecl emitted `typedef struct {...} void;` for 8 plans including guMtxF2L and alCopy. (b) On the libmus family the binding constraint was never the layout -- arg0 declared fine and arg1 was the blocker. Pooling is kept because the widening is real and costs nothing, but it is not the lever (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "byte-pointer-member-access-needs-indexing-not-a-struct",
+    "claim": "When m2c declares a one-byte pointer and then emits member accesses through it, the repair is indexing, not struct synthesis -- a synthesised type would silently rescale the pointer arithmetic.",
+    "source": "solver/memberaccess.py",
+    "status": "CONFIRMED",
+    "evidence": "Fcutoff is `s32 Fcutoff(PlayerCommandState *arg0, u8 *arg1)` whose body runs `arg1->unk0` and returns `(s32)(arg1 + 2)`. u8 is a real build type so typedecl correctly skips it, and the draft still fails with `Selector requires struct/union pointer`. m2c encodes the offset in the member name, so for a one-byte element offset IS index and arg1->unk1 is arg1[1]; `arg1 + 2` keeps walking two bytes. Changing u8* to a struct pointer would have made it two structs -- a wrong constant rather than a compile error. Arm verified to fire on 8 drafts; Selector errors fell 12 -> 9 and Fcutoff, Flength and Fwobble now compile. Restricted to one-byte element types; wider elements decline (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "harness-reported-the-pre-repair-compile-error",
+    "claim": "A repair harness that reports the BEST attempt's error hides whether the repair helped, because a failed repair and a failed original both score 0.0 and the original wins the tie.",
+    "source": "eval/zero_token_harvest.py receipt audit",
+    "status": "CONFIRMED",
+    "evidence": "38 leaves were reported as blocked on the build's do-token ban AFTER the for-break rewrite had already removed it -- the receipt was showing the m2c stage's error because the repaired candidate also failed to compile and `att.score > best.score` was false at 0.0 vs 0.0. Every bucket size measured from those receipts was therefore attributed to the wrong cause. Fixed to report the LAST stage's error plus an error_stage field; re-measuring immediately moved 12 functions out of do-token and into syntax-error, which is where the real work is (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "undeclared-globals-were-the-binding-constraint-on-leaves",
+    "claim": "Declaring the globals an m2c draft names, with widths from the evidence tier and extents left unspecified, is the single largest deterministic unlock on the leaf residual.",
+    "source": "solver/globaldecl.py",
+    "status": "CONFIRMED",
+    "evidence": "Paired rerun on the SAME 189 never-compiled leaves, zero generated tokens, only the globals stage added: compiled 3 -> 21, byte-exact 0 -> 11 (MusSetMasterVolume, clearPendingPositionalSoundRequests, requestMusicSequenceStop, resetSecondaryRng, and the seven tryQueueRacePlayerHitCue* variants). Arms verified to fire: globals 32 alone, 24 with do-while, 13 with typedecl. The undefined-symbol bucket fell 43 -> 20. Two declaration shapes, and the distinction mattered: a single observed offset and no subscript gives `extern u16 g;`, while a subscript or several offsets gives `extern u32 g[];` -- a legal C89 incomplete array that permits indexing while committing to no extent the binary does not reveal. Widths come from evidence, never from symbol_addrs.txt's curated `// size:` annotations (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "hypothesis-ordering-was-wrong-three-times-in-a-row",
+    "claim": "Ranking repair work by bucket SIZE mis-ordered it; the binding constraint was consistently a different bucket than the largest one.",
+    "source": "leaf repair sequence",
+    "status": "CONFIRMED",
+    "evidence": "Predicted order was pooling first (~21 unlocked), then pointer capabilities, then globals. Actual: pooling REFUTED at 0 unlocked despite replicating its 2.4x widening; byte-indexing confirmed but small at 3 compiles; globals delivered 18 compiles and 11 matches. The reason is that compile errors are reported one at a time, so a bucket's size counts FIRST errors and says nothing about whether fixing it exposes another blocker underneath -- already recorded as [[compile-error-buckets-are-first-errors-not-independent-blockers]], and I mis-ordered anyway. The cheap correction is to fix the bucket whose mechanism is most independent of the others, not the biggest (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "compile-error-registry-routes-ninety-percent-of-failures",
+    "claim": "Routing a compile failure to its fix by normalised error signature covers the great majority of real failures and turns an unroutable error into a named gap.",
+    "source": "solver/compilefix.py",
+    "status": "CONFIRMED",
+    "evidence": "Over all 4,027 non-compiling attempts: 118 distinct signatures, ten covering 90.1%. The registry accounts for 92.5% -- 29.6% routed by signature alone, 50.0% by the Syntax Error sub-signatures refined against the SOURCE rather than the message, 12.9% recorded as known causes we deliberately do not repair. Nothing unexplained remains above 1.1%. It found three bugs in itself on first run: gaps() reported Syntax Error as the top gap although every sub-signature routes; `at line 13` was not normalised, splitting one redeclaration cause into four signatures of 33/28/25/20; and every KNOWN_UNFIXABLE key was copied from a census truncating at 60 characters while signature() truncates at 64, so none matched. Also registered two fixes that already existed and were unreachable from this path: strip_unresolvable_includes (91 attempts) and strip_redeclarations (106) (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "error-directed-iteration-beats-the-blind-chain",
+    "claim": "Dispatching on the CURRENT compile error and recompiling after each fix outperforms applying every repair once in a fixed order.",
+    "source": "eval/zero_token_harvest.py --iterate; Superset Decompilation arXiv 2603.28002",
+    "status": "UNTESTED",
+    "evidence": "BUILT AND RUNNING, NOT YET MEASURED -- do not treat the null below as a result. Paired run over 143 never-compiled leaves gave arm A (blind chain) 0 compiled and arm B (iterate) 0 compiled, but that population was already exhausted by the existing fixes, so the test could not discriminate. The mechanism demonstrably works: 99 fixes fired (globals 48, do-while 37, typedecl 9, byte-index 5) and 71 of 143 functions took two or three routed repair steps, each chosen by the error the previous step exposed. This is the shape Manifold's selection phase uses. Needs a population where the fixes still have room -- the ~500 unattempted non-leaf functions, NOT the leaf residual. Known reporting defect to fix first: the iterate path does not populate row['typedecl_plans'], so the summary reads typedecl_planned=0 while the trace shows 9 (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "typedecl-ignores-undeclared-types-on-locals",
+    "claim": "typedecl inspects only parameters, so an undeclared struct type on a LOCAL variable is invisible to it -- and that is now the single largest blocker on the leaf residual.",
+    "source": "compilefix trace over 143 never-compiled leaves",
+    "status": "UNTESTED",
+    "evidence": "The registry's stop-reason census: 106 of 143 functions end at 'every registered fix declined' rather than 'no registered fix', and the largest sub-signature is Syntax Error/undeclared-type-not-a-parameter at 66. The error routes correctly and the selected fix declines, because typedecl.pointer_parameters only reads the parameter list. Complication to solve: the evidence tier keys observed accesses by param0/param1, which is the parameter POSITION, so a local has no evidence key at all. The layout for a local must therefore come from solver/typepool.py's cross-function pool, keyed by the type NAME m2c gave it, with members placed by their offset-encoded names rather than by source order (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "m2c-drafts-already-carry-reconstructed-header-knowledge",
+    "claim": "The m2c bootstrap draft is not header-free. m2c builds its context by preprocessing a project translation unit, so reconstructed include/game/** type and MEMBER NAMES are already present in every draft this project treats as a clean baseline.",
+    "source": "MusAsk decline analysis",
+    "status": "CONFIRMED",
+    "evidence": "MusAsk's draft declares `PlayerCommandState *var_v1;` and accesses `->pdata` and `->soundId`. Neither is an m2c unkNN placeholder: both are declared in include/game/audio/audio_engine.h, lines 84 and 101, which the decomp team reconstructed. m2c obtained them by preprocessing the project TU. Consequence for the contamination line: what solver/project_headers.py supplies EXPLICITLY -- and what eval/status.py now counts apart as header-assisted -- is already leaking IMPLICITLY through the draft, in name form. The leak is names only; no layout or offset enters the candidate, and byte-exactness is still decided by the oracle. But eval/zero_token_harvest.py's docstring claim that the path 'reads only common.h' describes the CANDIDATE's includes, not m2c's knowledge, and should not be read as a contamination guarantee (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
+  },
+  {
+    "id": "undeclared-local-types-with-real-member-names-are-contamination-bounded",
+    "claim": "The largest remaining leaf bucket is not a missing generator. It is functions whose member names came from a reconstructed header, so no mechanical name-to-offset mapping exists without giving that header back.",
+    "source": "typedecl locals support, measured",
+    "status": "REFUTED",
+    "evidence": "Predicted that reading pointer LOCALS as well as parameters would unlock the 66 functions stuck on Syntax Error/undeclared-type-not-a-parameter. Built it, and verified the routing after a first null showed the arm had never fired -- the registry sent that signature to globals alone. With routing fixed, typedecl is tried first and still declines, correctly: PlayerCommandState pools to 56 offsets, but MusAsk uses members `pdata` and `soundId`, which are real names rather than offset-encoded unkNN, so typepool.named_fields returns None and positional zip onto 56 pooled offsets is refused by design. Compiled stayed 0 of 143. The refusal is right: zipping two names onto 56 offsets would fabricate a layout. These functions are solvable only by supplying the reconstructed header, which makes them header-assisted rather than solved. Keep the locals support -- it is correct and will fire where names ARE offset-encoded -- but do not expect this bucket to yield deterministically (2026-09-01).",
+    "tested_on": "",
+    "date": "",
+    "keywords": []
   }
 ]

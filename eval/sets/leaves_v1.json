@@ -1,0 +1,1580 @@
+{
+  "derived_from": "eval.callgraph_shape",
+  "note": "Never-attempted LEAVES, smallest first. The call graph is a clean DAG with zero cycles, so a leaf can be solved without regard to order. Only 195 of 2113 functions had ever been attempted: the eval sets were deliberately sampled for difficulty, so the cheapest and most idiomatic functions in the binary were never tried, and the sibling pool was starved of exactly the ordinary shapes it needed.",
+  "selection": {
+    "never_attempted": true,
+    "leaf": true,
+    "max_insns": 60
+  },
+  "dev": [
+    {
+      "function": "finishCourseSelectUiTask",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 8
+    },
+    {
+      "function": "updateRelocatableHeap",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 3
+    },
+    {
+      "function": "alSynDelete",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 1
+    },
+    {
+      "function": "getSchedulerAudioTaskQueue",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 1
+    },
+    {
+      "function": "getSchedulerGraphicsTaskQueue",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 1
+    },
+    {
+      "function": "func_80011854",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "func_80011D6C",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "initMainMenuSceneModelRenderer",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "initMainMenuSceneModelRenderer_pad",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "n_alSynFreeFX",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "noopCallbackTask",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "noopEndingCreditsSlash",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "noopEndingCreditsSlashAlt",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "noopEndingCreditsTommy",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "noopRaceCameraDebugUpdate",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "noopRaceCameraReplayUpdate",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "noopRaceCameraUpdate",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "noopRaceHudCallback",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "raceSetupMenuNoop",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "unusedRaceCameraNoop1",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "unusedRaceCameraNoop2",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "unusedRaceCameraNoop3",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "updateRacePlayerTrickSubstateNoop",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "callers": 0
+    },
+    {
+      "function": "resetSecondaryRng",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 3,
+      "callers": 3
+    },
+    {
+      "function": "clearPendingPositionalSoundRequests",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 3,
+      "callers": 1
+    },
+    {
+      "function": "Fdrumsoff",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 3,
+      "callers": 0
+    },
+    {
+      "function": "Fenvon",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 3,
+      "callers": 0
+    },
+    {
+      "function": "Fportoff",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 3,
+      "callers": 0
+    },
+    {
+      "function": "Fprint",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 3,
+      "callers": 0
+    },
+    {
+      "function": "Fstereo",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 3,
+      "callers": 0
+    },
+    {
+      "function": "Ftron",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 3,
+      "callers": 0
+    },
+    {
+      "function": "Fveloff",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 3,
+      "callers": 0
+    },
+    {
+      "function": "Fwobbleoff",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 3,
+      "callers": 0
+    },
+    {
+      "function": "__osPopThread",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 7
+    },
+    {
+      "function": "osGetCount",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 5
+    },
+    {
+      "function": "__osSpSetStatus",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 3
+    },
+    {
+      "function": "__osSetCompare",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 2
+    },
+    {
+      "function": "__osGetSR",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 1
+    },
+    {
+      "function": "__osSetFpcCsr",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 1
+    },
+    {
+      "function": "__osSetSR",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 1
+    },
+    {
+      "function": "__osSpGetStatus",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 1
+    },
+    {
+      "function": "__osViGetCurrentContext",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 1
+    },
+    {
+      "function": "Fbendrange",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "Fenvoff",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "Fignore",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "Fignore_trans",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "Fport",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "Freverb",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "Ftrans",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "Ftroff",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "Fvelon",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "Fvolume",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "__osExceptionPreamble",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "entrypoint",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "noopThreeArgs",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 4,
+      "callers": 0
+    },
+    {
+      "function": "resolveAssetTableRelativePointer",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 5,
+      "callers": 1
+    },
+    {
+      "function": "Fendit",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 5,
+      "callers": 0
+    },
+    {
+      "function": "Fvelocity",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 5,
+      "callers": 0
+    },
+    {
+      "function": "Fviboff",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 5,
+      "callers": 0
+    },
+    {
+      "function": "noopFourArgs",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 5,
+      "callers": 0
+    },
+    {
+      "function": "resetRacePlayerTrickSubstate",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 6,
+      "callers": 36
+    },
+    {
+      "function": "__osRestoreInt",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 6,
+      "callers": 26
+    },
+    {
+      "function": "osAiGetLength",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 6,
+      "callers": 2
+    },
+    {
+      "function": "osGetThreadPri",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 6,
+      "callers": 2
+    },
+    {
+      "function": "__freeParam",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 6,
+      "callers": 1
+    },
+    {
+      "function": "alFxParam",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 6,
+      "callers": 1
+    },
+    {
+      "function": "rmonPrintf",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 7,
+      "callers": 2
+    },
+    {
+      "function": "osSyncPrintf",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 7,
+      "callers": 0
+    },
+    {
+      "function": "__osDisableInt",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 8,
+      "callers": 26
+    },
+    {
+      "function": "alFilterNew",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 8,
+      "callers": 7
+    },
+    {
+      "function": "Fstop",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 8,
+      "callers": 1
+    },
+    {
+      "function": "Fcutoff",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 8,
+      "callers": 0
+    },
+    {
+      "function": "Fpan",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 8,
+      "callers": 0
+    },
+    {
+      "function": "requestMusicSequenceStop",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 9,
+      "callers": 24
+    },
+    {
+      "function": "alLink",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 9,
+      "callers": 7
+    },
+    {
+      "function": "randomNextObject",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 9,
+      "callers": 1
+    },
+    {
+      "function": "Fwobble",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 9,
+      "callers": 0
+    },
+    {
+      "function": "getRaceCourseNextSurface",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 9,
+      "callers": 0
+    },
+    {
+      "function": "MusSetMasterVolume",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 10,
+      "callers": 3
+    },
+    {
+      "function": "osPiGetCmdQueue",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 10,
+      "callers": 1
+    },
+    {
+      "function": "strlen",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 10,
+      "callers": 1
+    },
+    {
+      "function": "Fdrums",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 10,
+      "callers": 0
+    },
+    {
+      "function": "_ldexpf",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 10,
+      "callers": 0
+    },
+    {
+      "function": "memcpy",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 11,
+      "callers": 3
+    },
+    {
+      "function": "__ll_lshift",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 11,
+      "callers": 1
+    },
+    {
+      "function": "__ull_rshift",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 11,
+      "callers": 1
+    },
+    {
+      "function": "__ll_rshift",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 11,
+      "callers": 0
+    },
+    {
+      "function": "__ll_mul",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "callers": 65
+    },
+    {
+      "function": "requestMusicSequenceBank",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "callers": 29
+    },
+    {
+      "function": "osCreateMesgQueue",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "callers": 9
+    },
+    {
+      "function": "alUnlink",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "callers": 5
+    },
+    {
+      "function": "__osSiDeviceBusy",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "callers": 3
+    },
+    {
+      "function": "__osSpDeviceBusy",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "callers": 3
+    },
+    {
+      "function": "alMainBusParam",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "callers": 2
+    },
+    {
+      "function": "__osAiDeviceBusy",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "callers": 1
+    },
+    {
+      "function": "alAuxBusParam",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "callers": 1
+    },
+    {
+      "function": "releaseRelocatableHeapBlockMetadata",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "callers": 1
+    },
+    {
+      "function": "__osSpSetPc",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 13,
+      "callers": 1
+    },
+    {
+      "function": "alHeapInit",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 13,
+      "callers": 1
+    },
+    {
+      "function": "alSaveParam",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 13,
+      "callers": 1
+    },
+    {
+      "function": "handle_CpU",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 13,
+      "callers": 0
+    },
+    {
+      "function": "__allocParam",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 14,
+      "callers": 7
+    },
+    {
+      "function": "__MusIntMemSet",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 14,
+      "callers": 1
+    },
+    {
+      "function": "reserveSoundEffectQueueReadIndex",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 14,
+      "callers": 1
+    },
+    {
+      "function": "dispatchRacePlayerAirborneMode",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 14,
+      "callers": 0
+    },
+    {
+      "function": "dispatchRacePlayerMode07CourseObject",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 14,
+      "callers": 0
+    },
+    {
+      "function": "initAudioDmaCallback",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 14,
+      "callers": 0
+    },
+    {
+      "function": "setViewportOverlayColor",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 14,
+      "callers": 0
+    },
+    {
+      "function": "__ull_div",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 15,
+      "callers": 3
+    },
+    {
+      "function": "reserveSoundEffectQueueWriteIndex",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 15,
+      "callers": 2
+    },
+    {
+      "function": "__ull_rem",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 15,
+      "callers": 1
+    },
+    {
+      "function": "acquireSoundEffectHandleNode",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 15,
+      "callers": 1
+    },
+    {
+      "function": "Fwave",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 15,
+      "callers": 0
+    },
+    {
+      "function": "__ll_rem",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 15,
+      "callers": 0
+    },
+    {
+      "function": "__osDequeueThread",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 16,
+      "callers": 3
+    },
+    {
+      "function": "strchr",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 16,
+      "callers": 1
+    },
+    {
+      "function": "getAssetTableImageAndPalette",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 17,
+      "callers": 36
+    },
+    {
+      "function": "suspendGameTask",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 17,
+      "callers": 17
+    },
+    {
+      "function": "approachRaceIntroFlyoverSpinStep",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 17,
+      "callers": 9
+    },
+    {
+      "function": "tryQueueRacePlayerHitCueSlowdown",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 17,
+      "callers": 1
+    },
+    {
+      "function": "Flength",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 17,
+      "callers": 0
+    },
+    {
+      "function": "resumeGameTask",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 18,
+      "callers": 17
+    },
+    {
+      "function": "__osEnqueueThread",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 18,
+      "callers": 6
+    },
+    {
+      "function": "osMapTLBRdb",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 18,
+      "callers": 1
+    },
+    {
+      "function": "tryQueueRacePlayerHitCueObstacle",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 18,
+      "callers": 1
+    },
+    {
+      "function": "tryQueueRacePlayerHitCueSpin",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 18,
+      "callers": 1
+    },
+    {
+      "function": "tryQueueRacePlayerHitCueStun",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 18,
+      "callers": 1
+    },
+    {
+      "function": "tryQueueRacePlayerHitCueTumble",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 18,
+      "callers": 1
+    },
+    {
+      "function": "initRaceCameraCourseStart",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 18,
+      "callers": 0
+    },
+    {
+      "function": "initRaceCameraFixedPositionFollow",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 18,
+      "callers": 0
+    },
+    {
+      "function": "setRaceCameraModeForced",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 19,
+      "callers": 2
+    },
+    {
+      "function": "acquireRelocatableHeapBlockMetadata",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 19,
+      "callers": 1
+    },
+    {
+      "function": "Fdistort",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 19,
+      "callers": 0
+    },
+    {
+      "function": "randomNextMain",
+      "tier": "small",
+      "leaf": true,
+      "insns": 20,
+      "callers": 21
+    },
+    {
+      "function": "MusHandleAsk",
+      "tier": "small",
+      "leaf": true,
+      "insns": 20,
+      "callers": 1
+    },
+    {
+      "function": "osEPiRawReadIo",
+      "tier": "small",
+      "leaf": true,
+      "insns": 20,
+      "callers": 1
+    },
+    {
+      "function": "osEPiRawWriteIo",
+      "tier": "small",
+      "leaf": true,
+      "insns": 20,
+      "callers": 1
+    },
+    {
+      "function": "updateRaceCamera",
+      "tier": "small",
+      "leaf": true,
+      "insns": 21,
+      "callers": 12
+    },
+    {
+      "function": "alHeapDBAlloc",
+      "tier": "small",
+      "leaf": true,
+      "insns": 21,
+      "callers": 8
+    },
+    {
+      "function": "osPiRawReadIo",
+      "tier": "small",
+      "leaf": true,
+      "insns": 21,
+      "callers": 2
+    },
+    {
+      "function": "__MusIntFindChannel",
+      "tier": "small",
+      "leaf": true,
+      "insns": 21,
+      "callers": 1
+    },
+    {
+      "function": "initRaceCameraChase",
+      "tier": "small",
+      "leaf": true,
+      "insns": 21,
+      "callers": 0
+    },
+    {
+      "function": "resetViewport",
+      "tier": "small",
+      "leaf": true,
+      "insns": 22,
+      "callers": 2
+    },
+    {
+      "function": "_timeToSamples",
+      "tier": "small",
+      "leaf": true,
+      "insns": 22,
+      "callers": 1
+    },
+    {
+      "function": "tryQueueRacePlayerHitCuePushBack",
+      "tier": "small",
+      "leaf": true,
+      "insns": 22,
+      "callers": 1
+    },
+    {
+      "function": "tryQueueRacePlayerHitCuePushForward",
+      "tier": "small",
+      "leaf": true,
+      "insns": 22,
+      "callers": 1
+    },
+    {
+      "function": "__ll_div",
+      "tier": "small",
+      "leaf": true,
+      "insns": 23,
+      "callers": 51
+    },
+    {
+      "function": "addRacePlayerScore",
+      "tier": "small",
+      "leaf": true,
+      "insns": 23,
+      "callers": 4
+    },
+    {
+      "function": "getAssetTableImagePaletteAndSize",
+      "tier": "small",
+      "leaf": true,
+      "insns": 23,
+      "callers": 3
+    },
+    {
+      "function": "__osSumcalc",
+      "tier": "small",
+      "leaf": true,
+      "insns": 23,
+      "callers": 2
+    },
+    {
+      "function": "__MusIntProcessWobble",
+      "tier": "small",
+      "leaf": true,
+      "insns": 23,
+      "callers": 1
+    },
+    {
+      "function": "Fvibup",
+      "tier": "small",
+      "leaf": true,
+      "insns": 23,
+      "callers": 0
+    },
+    {
+      "function": "fixedSine",
+      "tier": "small",
+      "leaf": true,
+      "insns": 24,
+      "callers": 72
+    },
+    {
+      "function": "setRaceCameraMode",
+      "tier": "small",
+      "leaf": true,
+      "insns": 24,
+      "callers": 16
+    },
+    {
+      "function": "updateRelocatableHeapNextFreeAddress",
+      "tier": "small",
+      "leaf": true,
+      "insns": 24,
+      "callers": 4
+    },
+    {
+      "function": "Fvibdown",
+      "tier": "small",
+      "leaf": true,
+      "insns": 24,
+      "callers": 0
+    },
+    {
+      "function": "__ull_divremi",
+      "tier": "small",
+      "leaf": true,
+      "insns": 24,
+      "callers": 0
+    },
+    {
+      "function": "dispatchRacePlayerMode30Attack",
+      "tier": "small",
+      "leaf": true,
+      "insns": 24,
+      "callers": 0
+    },
+    {
+      "function": "fixedCosine",
+      "tier": "small",
+      "leaf": true,
+      "insns": 25,
+      "callers": 32
+    },
+    {
+      "function": "stepMenuFadeAlpha",
+      "tier": "small",
+      "leaf": true,
+      "insns": 25,
+      "callers": 25
+    },
+    {
+      "function": "MusHandleSetVolume",
+      "tier": "small",
+      "leaf": true,
+      "insns": 25,
+      "callers": 2
+    },
+    {
+      "function": "MusHandleSetFreqOffset",
+      "tier": "small",
+      "leaf": true,
+      "insns": 25,
+      "callers": 1
+    },
+    {
+      "function": "Fgoto",
+      "tier": "small",
+      "leaf": true,
+      "insns": 25,
+      "callers": 0
+    },
+    {
+      "function": "MusHandleSetPan",
+      "tier": "small",
+      "leaf": true,
+      "insns": 25,
+      "callers": 0
+    },
+    {
+      "function": "initRaceCameraPositionTransition",
+      "tier": "small",
+      "leaf": true,
+      "insns": 25,
+      "callers": 0
+    },
+    {
+      "function": "initRaceCameraRotationTransition",
+      "tier": "small",
+      "leaf": true,
+      "insns": 25,
+      "callers": 0
+    },
+    {
+      "function": "__osIdCheckSum",
+      "tier": "small",
+      "leaf": true,
+      "insns": 26,
+      "callers": 5
+    },
+    {
+      "function": "setPackedMatrixTranslation",
+      "tier": "small",
+      "leaf": true,
+      "insns": 26,
+      "callers": 5
+    },
+    {
+      "function": "initFixedTransform",
+      "tier": "small",
+      "leaf": true,
+      "insns": 26,
+      "callers": 2
+    },
+    {
+      "function": "copyPackedMatrixTranslation",
+      "tier": "small",
+      "leaf": true,
+      "insns": 26,
+      "callers": 0
+    },
+    {
+      "function": "updateRemainingCallbackTasks",
+      "tier": "small",
+      "leaf": true,
+      "insns": 27,
+      "callers": 17
+    },
+    {
+      "function": "MusAsk",
+      "tier": "small",
+      "leaf": true,
+      "insns": 27,
+      "callers": 2
+    },
+    {
+      "function": "updateCallbackTasks",
+      "tier": "small",
+      "leaf": true,
+      "insns": 28,
+      "callers": 79
+    },
+    {
+      "function": "__MusIntInitEnvelope",
+      "tier": "small",
+      "leaf": true,
+      "insns": 28,
+      "callers": 1
+    },
+    {
+      "function": "osWritebackDCache",
+      "tier": "small",
+      "leaf": true,
+      "insns": 29,
+      "callers": 12
+    },
+    {
+      "function": "MusHandleStop",
+      "tier": "small",
+      "leaf": true,
+      "insns": 29,
+      "callers": 5
+    },
+    {
+      "function": "alCopy",
+      "tier": "small",
+      "leaf": true,
+      "insns": 29,
+      "callers": 1
+    },
+    {
+      "function": "osInvalICache",
+      "tier": "small",
+      "leaf": true,
+      "insns": 29,
+      "callers": 1
+    },
+    {
+      "function": "Ffor",
+      "tier": "small",
+      "leaf": true,
+      "insns": 31,
+      "callers": 0
+    },
+    {
+      "function": "updateRaceCameras",
+      "tier": "small",
+      "leaf": true,
+      "insns": 32,
+      "callers": 17
+    },
+    {
+      "function": "initMenuTilemapSprite",
+      "tier": "small",
+      "leaf": true,
+      "insns": 32,
+      "callers": 7
+    },
+    {
+      "function": "approachRaceIntroFlyoverOrbitRadius",
+      "tier": "small",
+      "leaf": true,
+      "insns": 32,
+      "callers": 6
+    },
+    {
+      "function": "ldiv",
+      "tier": "small",
+      "leaf": true,
+      "insns": 33,
+      "callers": 1
+    },
+    {
+      "function": "MusStop",
+      "tier": "small",
+      "leaf": true,
+      "insns": 34,
+      "callers": 2
+    },
+    {
+      "function": "guMtxIdentF",
+      "tier": "small",
+      "leaf": true,
+      "insns": 34,
+      "callers": 2
+    },
+    {
+      "function": "decrementRaceChallengeTimeLimit",
+      "tier": "small",
+      "leaf": true,
+      "insns": 34,
+      "callers": 1
+    },
+    {
+      "function": "isPositionNearCurrentRaceViewportCamera",
+      "tier": "small",
+      "leaf": true,
+      "insns": 35,
+      "callers": 42
+    },
+    {
+      "function": "__osTimerServicesInit",
+      "tier": "small",
+      "leaf": true,
+      "insns": 35,
+      "callers": 1
+    },
+    {
+      "function": "alSavePull",
+      "tier": "small",
+      "leaf": true,
+      "insns": 35,
+      "callers": 0
+    },
+    {
+      "function": "updateCallbackTasksWithMinPriority",
+      "tier": "small",
+      "leaf": true,
+      "insns": 36,
+      "callers": 17
+    },
+    {
+      "function": "updateControllerInputState",
+      "tier": "small",
+      "leaf": true,
+      "insns": 36,
+      "callers": 1
+    },
+    {
+      "function": "Fnext",
+      "tier": "small",
+      "leaf": true,
+      "insns": 36,
+      "callers": 0
+    },
+    {
+      "function": "runRenderCallbacks",
+      "tier": "small",
+      "leaf": true,
+      "insns": 37,
+      "callers": 1
+    },
+    {
+      "function": "MusHandleSetTempo",
+      "tier": "small",
+      "leaf": true,
+      "insns": 37,
+      "callers": 0
+    },
+    {
+      "function": "initRaceCameraStaticFollow",
+      "tier": "small",
+      "leaf": true,
+      "insns": 37,
+      "callers": 0
+    },
+    {
+      "function": "osSetIntMask",
+      "tier": "small",
+      "leaf": true,
+      "insns": 38,
+      "callers": 3
+    },
+    {
+      "function": "__osProbeTLB",
+      "tier": "small",
+      "leaf": true,
+      "insns": 38,
+      "callers": 1
+    },
+    {
+      "function": "initRaceCameraMenuPreview",
+      "tier": "small",
+      "leaf": true,
+      "insns": 38,
+      "callers": 0
+    },
+    {
+      "function": "releaseSoundEffectHandleNode",
+      "tier": "small",
+      "leaf": true,
+      "insns": 39,
+      "callers": 1
+    },
+    {
+      "function": "__ll_mod",
+      "tier": "small",
+      "leaf": true,
+      "insns": 39,
+      "callers": 0
+    },
+    {
+      "function": "_bzero",
+      "tier": "small",
+      "leaf": true,
+      "insns": 40,
+      "callers": 4
+    },
+    {
+      "function": "init_lpfilter",
+      "tier": "small",
+      "leaf": true,
+      "insns": 40,
+      "callers": 2
+    },
+    {
+      "function": "_doModFunc",
+      "tier": "small",
+      "leaf": true,
+      "insns": 42,
+      "callers": 1
+    },
+    {
+      "function": "__osContAddressCrc",
+      "tier": "small",
+      "leaf": true,
+      "insns": 44,
+      "callers": 3
+    },
+    {
+      "function": "osInvalDCache",
+      "tier": "small",
+      "leaf": true,
+      "insns": 44,
+      "callers": 2
+    },
+    {
+      "function": "multiplyFixedMatrix3s",
+      "tier": "small",
+      "leaf": true,
+      "insns": 45,
+      "callers": 13
+    },
+    {
+      "function": "guMtxL2F",
+      "tier": "small",
+      "leaf": true,
+      "insns": 46,
+      "callers": 0
+    },
+    {
+      "function": "removeHuffmanQueueNode",
+      "tier": "small",
+      "leaf": true,
+      "insns": 47,
+      "callers": 1
+    },
+    {
+      "function": "tryQueueRacePlayerHitCueSpinout",
+      "tier": "small",
+      "leaf": true,
+      "insns": 48,
+      "callers": 1
+    },
+    {
+      "function": "initRaceCameraReplayPosition",
+      "tier": "small",
+      "leaf": true,
+      "insns": 50,
+      "callers": 0
+    },
+    {
+      "function": "__osContDataCrc",
+      "tier": "small",
+      "leaf": true,
+      "insns": 52,
+      "callers": 4
+    },
+    {
+      "function": "__MusIntProcessContinuousPitchBend",
+      "tier": "small",
+      "leaf": true,
+      "insns": 52,
+      "callers": 1
+    },
+    {
+      "function": "__MusIntProcessContinuousVolume",
+      "tier": "small",
+      "leaf": true,
+      "insns": 52,
+      "callers": 1
+    },
+    {
+      "function": "__osContGetInitData",
+      "tier": "small",
+      "leaf": true,
+      "insns": 52,
+      "callers": 1
+    },
+    {
+      "function": "Ftempo",
+      "tier": "small",
+      "leaf": true,
+      "insns": 52,
+      "callers": 0
+    },
+    {
+      "function": "initRaceCameraIntroPan",
+      "tier": "small",
+      "leaf": true,
+      "insns": 52,
+      "callers": 0
+    },
+    {
+      "function": "rspbootTextStart",
+      "tier": "small",
+      "leaf": true,
+      "insns": 52,
+      "callers": 0
+    },
+    {
+      "function": "__osPfsGetInitData",
+      "tier": "small",
+      "leaf": true,
+      "insns": 53,
+      "callers": 2
+    },
+    {
+      "function": "alAuxBusPull",
+      "tier": "small",
+      "leaf": true,
+      "insns": 54,
+      "callers": 0
+    },
+    {
+      "function": "scaleFixedMatrix3sByQuarter",
+      "tier": "small",
+      "leaf": true,
+      "insns": 55,
+      "callers": 3
+    },
+    {
+      "function": "allocateGameTask",
+      "tier": "small",
+      "leaf": true,
+      "insns": 56,
+      "callers": 1
+    },
+    {
+      "function": "_frexpf",
+      "tier": "small",
+      "leaf": true,
+      "insns": 59,
+      "callers": 1
+    },
+    {
+      "function": "alResampleParam",
+      "tier": "small",
+      "leaf": true,
+      "insns": 59,
+      "callers": 1
+    },
+    {
+      "function": "__MusIntInitialiseChannel",
+      "tier": "medium",
+      "leaf": true,
+      "insns": 60,
+      "callers": 3
+    }
+  ],
+  "heldout": []
+}

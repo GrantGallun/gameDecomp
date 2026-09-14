@@ -1,0 +1,340 @@
+{
+  "derived_from": "eval.callgraph",
+  "note": "Never-attempted callees ordered by how many unmatched callers they block, then by size. The work queue has always been ordered by byte score, which is dependency-blind: getRelocatableHeapBlockBase is 8 instructions, blocks 15 callers, had never been attempted, and matched on the first structural guess.",
+  "selection": {
+    "never_attempted": true,
+    "max_insns": 60
+  },
+  "dev": [
+    {
+      "function": "setCurrentGameTaskCallback",
+      "tier": "small",
+      "leaf": true,
+      "insns": 21,
+      "unblocks": 7
+    },
+    {
+      "function": "addRenderCallback",
+      "tier": "small",
+      "leaf": false,
+      "insns": 24,
+      "unblocks": 5
+    },
+    {
+      "function": "setRaceMotionAnimation",
+      "tier": "small",
+      "leaf": false,
+      "insns": 45,
+      "unblocks": 5
+    },
+    {
+      "function": "__ll_mul",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "unblocks": 4
+    },
+    {
+      "function": "__ll_div",
+      "tier": "small",
+      "leaf": true,
+      "insns": 23,
+      "unblocks": 4
+    },
+    {
+      "function": "resetRacePlayerTrickSubstate",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 6,
+      "unblocks": 3
+    },
+    {
+      "function": "requestMusicSequenceBank",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 12,
+      "unblocks": 3
+    },
+    {
+      "function": "createCallbackTaskWithUserIdPreservingArgs",
+      "tier": "tiny",
+      "leaf": false,
+      "insns": 16,
+      "unblocks": 3
+    },
+    {
+      "function": "requestRumbleMotorInit",
+      "tier": "tiny",
+      "leaf": false,
+      "insns": 19,
+      "unblocks": 3
+    },
+    {
+      "function": "sprintf",
+      "tier": "small",
+      "leaf": false,
+      "insns": 23,
+      "unblocks": 3
+    },
+    {
+      "function": "fixedSine",
+      "tier": "small",
+      "leaf": true,
+      "insns": 24,
+      "unblocks": 3
+    },
+    {
+      "function": "stepRaceMotionAnimationUntilEnd",
+      "tier": "small",
+      "leaf": false,
+      "insns": 33,
+      "unblocks": 3
+    },
+    {
+      "function": "updateRelocatableHeap",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "unblocks": 2
+    },
+    {
+      "function": "resetSecondaryRng",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 3,
+      "unblocks": 2
+    },
+    {
+      "function": "enqueuePositionalSoundEffect",
+      "tier": "small",
+      "leaf": false,
+      "insns": 21,
+      "unblocks": 2
+    },
+    {
+      "function": "updateCallbackTasks",
+      "tier": "small",
+      "leaf": false,
+      "insns": 28,
+      "unblocks": 2
+    },
+    {
+      "function": "initRacePlayers",
+      "tier": "small",
+      "leaf": false,
+      "insns": 43,
+      "unblocks": 2
+    },
+    {
+      "function": "finishCourseSelectUiTask",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 2,
+      "unblocks": 1
+    },
+    {
+      "function": "requestMusicSequenceStop",
+      "tier": "tiny",
+      "leaf": true,
+      "insns": 9,
+      "unblocks": 1
+    },
+    {
+      "function": "calculateFixedAngleBetweenXZPoints",
+      "tier": "tiny",
+      "leaf": false,
+      "insns": 11,
+      "unblocks": 1
+    },
+    {
+      "function": "fadeOutAllMusicSequences",
+      "tier": "tiny",
+      "leaf": false,
+      "insns": 15,
+      "unblocks": 1
+    },
+    {
+      "function": "updateRacePlayerLocalVelocityNoVerticalOffset",
+      "tier": "tiny",
+      "leaf": false,
+      "insns": 15,
+      "unblocks": 1
+    },
+    {
+      "function": "updateRaceFlowFrameWithCourseEffects",
+      "tier": "tiny",
+      "leaf": false,
+      "insns": 18,
+      "unblocks": 1
+    },
+    {
+      "function": "requestControllerRead",
+      "tier": "small",
+      "leaf": false,
+      "insns": 20,
+      "unblocks": 1
+    },
+    {
+      "function": "randomNextMain",
+      "tier": "small",
+      "leaf": true,
+      "insns": 20,
+      "unblocks": 1
+    },
+    {
+      "function": "stopSoundEffects",
+      "tier": "small",
+      "leaf": false,
+      "insns": 21,
+      "unblocks": 1
+    },
+    {
+      "function": "loadRawRomAsset",
+      "tier": "small",
+      "leaf": false,
+      "insns": 25,
+      "unblocks": 1
+    },
+    {
+      "function": "updateRemainingCallbackTasks",
+      "tier": "small",
+      "leaf": false,
+      "insns": 27,
+      "unblocks": 1
+    },
+    {
+      "function": "osViBlack",
+      "tier": "small",
+      "leaf": false,
+      "insns": 28,
+      "unblocks": 1
+    },
+    {
+      "function": "spawnRaceUiAltBurstTextParticle",
+      "tier": "small",
+      "leaf": false,
+      "insns": 30,
+      "unblocks": 1
+    },
+    {
+      "function": "stepRaceMotionLoopingAnimation",
+      "tier": "small",
+      "leaf": false,
+      "insns": 30,
+      "unblocks": 1
+    },
+    {
+      "function": "enqueueSoundEffect",
+      "tier": "small",
+      "leaf": false,
+      "insns": 32,
+      "unblocks": 1
+    },
+    {
+      "function": "updateRaceCameras",
+      "tier": "small",
+      "leaf": false,
+      "insns": 32,
+      "unblocks": 1
+    },
+    {
+      "function": "stepRaceMotionJointAnimationUntilEnd",
+      "tier": "small",
+      "leaf": false,
+      "insns": 33,
+      "unblocks": 1
+    },
+    {
+      "function": "clearRaceReplayCourseGrid",
+      "tier": "small",
+      "leaf": false,
+      "insns": 34,
+      "unblocks": 1
+    },
+    {
+      "function": "spawnRaceUiSparkle",
+      "tier": "small",
+      "leaf": false,
+      "insns": 34,
+      "unblocks": 1
+    },
+    {
+      "function": "decrementRaceChallengeTimeLimit",
+      "tier": "small",
+      "leaf": true,
+      "insns": 34,
+      "unblocks": 1
+    },
+    {
+      "function": "areRacePlayersFinished",
+      "tier": "small",
+      "leaf": true,
+      "insns": 35,
+      "unblocks": 1
+    },
+    {
+      "function": "updateControllerInputState",
+      "tier": "small",
+      "leaf": true,
+      "insns": 36,
+      "unblocks": 1
+    },
+    {
+      "function": "updateCallbackTasksWithMinPriority",
+      "tier": "small",
+      "leaf": false,
+      "insns": 36,
+      "unblocks": 1
+    },
+    {
+      "function": "incrementRaceElapsedTimer",
+      "tier": "small",
+      "leaf": true,
+      "insns": 38,
+      "unblocks": 1
+    },
+    {
+      "function": "drawMenuSprite",
+      "tier": "small",
+      "leaf": false,
+      "insns": 47,
+      "unblocks": 1
+    },
+    {
+      "function": "freeRelocatableHeapBlock",
+      "tier": "small",
+      "leaf": false,
+      "insns": 47,
+      "unblocks": 1
+    },
+    {
+      "function": "drawMenuSpriteWithAlpha",
+      "tier": "small",
+      "leaf": false,
+      "insns": 49,
+      "unblocks": 1
+    },
+    {
+      "function": "updateRacePlayers",
+      "tier": "small",
+      "leaf": false,
+      "insns": 51,
+      "unblocks": 1
+    },
+    {
+      "function": "osSetThreadPri",
+      "tier": "small",
+      "leaf": false,
+      "insns": 56,
+      "unblocks": 1
+    },
+    {
+      "function": "drawMenuAsciiText",
+      "tier": "medium",
+      "leaf": false,
+      "insns": 60,
+      "unblocks": 1
+    }
+  ],
+  "heldout": []
+}

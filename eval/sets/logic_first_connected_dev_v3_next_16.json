@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "kind": "logic-first-connected-dev-cluster",
+  "created_at": 1788483377,
+  "selection": {
+    "target_source_inspected": false,
+    "inputs": [
+      "binary call edges",
+      "function/TU metadata",
+      "existing compiled non-exact DEV attempt provenance"
+    ],
+    "heldout_excluded_across_all_manifests": true,
+    "already_exact_excluded": true,
+    "prior_semantic_settlements_excluded": [
+      "fixedSine",
+      "randomNextMain",
+      "randomNextObject",
+      "resetRacePlayerTrickSubstate",
+      "updateRacePickupIdle",
+      "updateRacePlayerLeanAngle",
+      "updateRacePlayerMode16AerialTrick",
+      "updateRacePlayerMode37AerialTrick",
+      "updateRacePlayerMode40Stun",
+      "updateRacePlayerMode53AerialTrick"
+    ],
+    "exclusion_receipts": [
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v10-full-semantic.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v12-expanded-routed.json",
+      "/mnt/c/Code/gameDecomp/eval/results/differential-wavefront-v18-pickup-valid-panel.json"
+    ],
+    "requested_size": 16,
+    "eligible_candidates": 63
+  },
+  "cluster": [
+    {
+      "function": "resetAllViewports",
+      "tu_id": 272,
+      "instruction_count": 73,
+      "attempt_id": 18658,
+      "source_sha256": "3a2f907cb6cccfcb5d4f4f628451553aaabb0eca7874040522bea86149993e86",
+      "stored_weighted_score": 62.965
+    },
+    {
+      "function": "initControllerPakRaceRecordSaveFlow",
+      "tu_id": 285,
+      "instruction_count": 115,
+      "attempt_id": 18015,
+      "source_sha256": "aa3641f24b52bf55cd17550b4b2d0fc16102f48b938f3e971b4e53dfa50651a6",
+      "stored_weighted_score": 85.783
+    }
+  ],
+  "binary_call_edges": [
+    {
+      "caller": "initControllerPakRaceRecordSaveFlow",
+      "callee": "resetAllViewports"
+    }
+  ],
+  "shortfall": 14,
+  "manifest_digest": "676f2594ce8c9a80b33929be672a8669ae2f38bafa8b444c5f70919b902be4f5"
+}

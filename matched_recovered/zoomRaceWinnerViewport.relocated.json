@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "kind": "mips_relocated_function_oracle_receipt",
+  "role": "relocation-only fallback; ordinary object oracle remains primary",
+  "target": {
+    "path": "/home/grant/decomp/sbk1/nonmatchings/zoomRaceWinnerViewport/target.o",
+    "sha256": "1fe7a0bb3c6e33c0ace2a6f3f518f42a7c0fb19f46524b9d88bf0e0a8cf0656f"
+  },
+  "candidate": {
+    "path": "/home/grant/decomp/sbk1/nonmatchings/zoomRaceWinnerViewport/zoomRaceWinnerViewport.o",
+    "sha256": "98b45f25e66ed1c612770965e2530ab21d19daebe425f8a8fc67f8316ecd4536"
+  },
+  "text_address": "0x800751C4",
+  "inferred_address_symbols": {
+    "D_801121E0": 2148606432
+  },
+  "synthetic_shared_symbols": {
+    "gCurrentGameTask": 2147549184,
+    "interpolateRaceViewport": 2147549440,
+    "prepareRaceResultsFlow": 2147549696,
+    "resetViewport": 2147549952,
+    "setCurrentGameTaskCallback": 2147550208,
+    "updateRaceFlowFrame": 2147550464
+  },
+  "target_sections": {
+    ".late_rodata": "0x800E1674"
+  },
+  "candidate_sections": {
+    ".rodata": "0x800E1674"
+  },
+  "relocated_text": {
+    "bytes": 3728,
+    "target_sha256": "74c5109ff69b8faea93630e725a4aad8b5c10b6a871de2d1fc8d39f41cc27ffd",
+    "candidate_sha256": "74c5109ff69b8faea93630e725a4aad8b5c10b6a871de2d1fc8d39f41cc27ffd",
+    "equal": true,
+    "first_mismatch_words": []
+  },
+  "data_sections": [
+    {
+      "section": ".rodata",
+      "runtime_address": "0x800E1674",
+      "rom_offset": "0xE2274",
+      "bytes": 88,
+      "candidate_section_bytes": 96,
+      "trailing_padding_bytes": 8,
+      "trailing_padding_zero": true,
+      "candidate_sha256": "ee56347f2eca51b443e140eb3e6f20eb894e815e83c11c8da1587eeaa55e1c3f",
+      "rom_sha256": "ee56347f2eca51b443e140eb3e6f20eb894e815e83c11c8da1587eeaa55e1c3f",
+      "equal": true,
+      "first_mismatch_words": []
+    }
+  ],
+  "unchecked_candidate_data_sections": [],
+  "compiled": true,
+  "oracle_tested": true,
+  "exact": true,
+  "status": "relocated_text_and_data_exact"
+}

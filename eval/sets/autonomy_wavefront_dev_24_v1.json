@@ -1,0 +1,32 @@
+{
+  "kind": "frozen-header-assisted-development-panel",
+  "selection_seed": "20260904-wavefront-v1:",
+  "selection": "First four by SHA256(seed + function) per game/SDK x <=24, 25-64, 65-160 instruction stratum. No prior attempt rows at selection. Existing heldout targets excluded. Not a heldout benchmark.",
+  "heldout": [],
+  "dev": [
+    {"function": "updateRaceTypeSelectCursor", "stratum": "game_medium", "instructions": 95},
+    {"function": "drawRaceTypeSelectCornerSprites", "stratum": "game_medium", "instructions": 80},
+    {"function": "drawRaceSetupSaveChoicePrompts", "stratum": "game_medium", "instructions": 150},
+    {"function": "drawMultiplayerRaceHud", "stratum": "game_medium", "instructions": 129},
+    {"function": "waitForControllerPakReplaySaveMessageSecondPage", "stratum": "game_small", "instructions": 30},
+    {"function": "fadeInEndingCreditsFlow", "stratum": "game_small", "instructions": 64},
+    {"function": "updateRacePlayerMode07LaunchRampPose", "stratum": "game_small", "instructions": 29},
+    {"function": "updateEndingTommyWaitThenFinalPhase", "stratum": "game_small", "instructions": 40},
+    {"function": "waitRaceIntroFlyoverShortPanFinal", "stratum": "game_tiny", "instructions": 20},
+    {"function": "initCharacterSelectCourseStatsBadge", "stratum": "game_tiny", "instructions": 15},
+    {"function": "updateRaceUiTrickScorePopupHold", "stratum": "game_tiny", "instructions": 23},
+    {"function": "initCharacterSelectCoursePreviewPanel6", "stratum": "game_tiny", "instructions": 17},
+    {"function": "alLoadParam", "stratum": "sdk_medium", "instructions": 117},
+    {"function": "osPfsRepairId", "stratum": "sdk_medium", "instructions": 152},
+    {"function": "osPfsIsPlug", "stratum": "sdk_medium", "instructions": 104},
+    {"function": "__osBlockSum", "stratum": "sdk_medium", "instructions": 69},
+    {"function": "osInvalDCache", "stratum": "sdk_small", "instructions": 44},
+    {"function": "osSetEventMesg", "stratum": "sdk_small", "instructions": 26},
+    {"function": "alSynSetFXMix", "stratum": "sdk_small", "instructions": 37},
+    {"function": "__osPfsSelectBank", "stratum": "sdk_small", "instructions": 27},
+    {"function": "__osPiCreateAccessQueue", "stratum": "sdk_tiny", "instructions": 20},
+    {"function": "__osDisableInt", "stratum": "sdk_tiny", "instructions": 8},
+    {"function": "guPerspective", "stratum": "sdk_tiny", "instructions": 22},
+    {"function": "__osSetCompare", "stratum": "sdk_tiny", "instructions": 4}
+  ]
+}

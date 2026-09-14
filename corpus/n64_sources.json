@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "kind": "public_n64_decomp_provenance_corpus",
+  "policy": {
+    "direct_external_source_in_prompt": false,
+    "similarity_role": "ranking_and_provenance_hypothesis_only",
+    "promotion_requirement": "compile plus target byte-exact oracle",
+    "headline_evaluation": "exclude famous pretraining-contamination risks"
+  },
+  "repositories": [
+    {
+      "id": "pokestadium",
+      "url": "https://github.com/pret/pokestadium.git",
+      "local_path": ".tools/compare-pokestadium",
+      "source_roots": ["src"],
+      "evaluation_policy": "dev_only"
+    },
+    {
+      "id": "pokestadiumgs",
+      "url": "https://github.com/pret/pokestadiumgs.git",
+      "local_path": ".tools/corpus/pokestadiumgs",
+      "source_roots": ["src", "lib"],
+      "evaluation_policy": "dev_only"
+    },
+    {
+      "id": "pokemonsnap",
+      "url": "https://github.com/ethteck/pokemonsnap.git",
+      "local_path": ".tools/corpus/pokemonsnap",
+      "source_roots": ["src", "ultralib"],
+      "evaluation_policy": "dev_only"
+    },
+    {
+      "id": "dkr",
+      "url": "https://github.com/davidsm64/diddy-kong-racing.git",
+      "local_path": ".tools/corpus/dkr",
+      "source_roots": ["src", "libultra"],
+      "evaluation_policy": "dev_only"
+    },
+    {
+      "id": "fzerox",
+      "url": "https://github.com/inspectredc/fzerox.git",
+      "local_path": ".tools/corpus/fzerox",
+      "source_roots": ["src"],
+      "evaluation_policy": "dev_only"
+    },
+    {
+      "id": "mk64",
+      "url": "https://github.com/n64decomp/mk64.git",
+      "local_path": ".tools/corpus/mk64",
+      "source_roots": ["src"],
+      "evaluation_policy": "exclude_headline_famous"
+    },
+    {
+      "id": "sm64",
+      "url": "https://github.com/n64decomp/sm64.git",
+      "local_path": ".tools/corpus/sm64",
+      "source_roots": ["src", "lib"],
+      "evaluation_policy": "exclude_headline_famous"
+    },
+    {
+      "id": "oot",
+      "url": "https://github.com/zeldaret/oot.git",
+      "local_path": ".tools/corpus/oot",
+      "source_roots": ["src"],
+      "evaluation_policy": "exclude_headline_famous"
+    },
+    {
+      "id": "mm",
+      "url": "https://github.com/zeldaret/mm.git",
+      "local_path": ".tools/corpus/mm",
+      "source_roots": ["src"],
+      "evaluation_policy": "exclude_headline_famous"
+    }
+  ]
+}

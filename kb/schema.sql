@@ -153,15 +153,30 @@ CREATE TABLE IF NOT EXISTS contradictions (
 
 -- ---------------------------------------------------------------- trajectory
 
+-- One invocation can emit many attempts, possibly across several functions.
+-- Keep run identity outside the sampling JSON so lineage queries do not have
+-- to parse an optional blob whose shape changed over time.
+CREATE TABLE IF NOT EXISTS attempt_runs (
+    id          TEXT PRIMARY KEY,
+    kind        TEXT    NOT NULL DEFAULT '', -- sample | refine | pipeline | repair
+    model       TEXT    NOT NULL DEFAULT '',
+    config      TEXT    NOT NULL DEFAULT '{}', -- exact invocation settings, JSON
+    started_at  INTEGER NOT NULL
+);
+
 -- Every attempt, including failures and regressions. Debugging record now,
 -- training set later. See TRAINING.md -- never prune this table, and never
--- overwrite a row: the (n -> n+1) pairing is what makes it refinement data.
+-- overwrite a row. Explicit parent edges, not row order, make refinement data.
 CREATE TABLE IF NOT EXISTS attempts (
     id            INTEGER PRIMARY KEY,
     func_addr     INTEGER NOT NULL REFERENCES functions(addr),
     iteration     INTEGER NOT NULL,
+    run_id         TEXT REFERENCES attempt_runs(id),
+    parent_attempt_id INTEGER REFERENCES attempts(id),
     source_code   TEXT    NOT NULL,
+    source_sha256 TEXT,
     prompt_context TEXT,            -- exact context, or hash + rebuild recipe
+    prompt_sha256 TEXT,
     compiled      INTEGER NOT NULL,
     compiler_stderr TEXT,
     score         REAL,             -- asm-differ similarity, 0..100; not proof
@@ -172,7 +187,50 @@ CREATE TABLE IF NOT EXISTS attempts (
     sampling      TEXT,             -- JSON
     wall_ms       INTEGER,
     token_cost    INTEGER,
+    raw_response  TEXT,             -- model text before C extraction
+    extract_status TEXT,
+    done_reason   TEXT,
     created_at    INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS att_func ON attempts(func_addr, iteration);
+
+-- The prompt that produced a child may be reconstructed from the child row,
+-- while this edge records which candidate it was trying to change and why.
+-- Multiple parents are allowed for future composed candidates; current repair
+-- paths have one parent.
+CREATE TABLE IF NOT EXISTS attempt_edges (
+    parent_attempt_id INTEGER NOT NULL REFERENCES attempts(id),
+    child_attempt_id  INTEGER NOT NULL REFERENCES attempts(id) ON DELETE CASCADE,
+    relation          TEXT    NOT NULL, -- refine | deterministic-repair | model-repair | derive
+    action            TEXT    NOT NULL DEFAULT '',
+    feedback          TEXT    NOT NULL DEFAULT '',
+    created_at        INTEGER NOT NULL,
+    PRIMARY KEY (parent_attempt_id, child_attempt_id)
+);
+
+-- A model call is evidence even when it refuses, emits malformed JSON, or
+-- proposes a duplicate source that is not worth recompiling. Keep proposal
+-- receipts separate from verifier attempts so "did not score" is never
+-- mis-recorded as "compiled = false".
+CREATE TABLE IF NOT EXISTS model_proposals (
+    id                INTEGER PRIMARY KEY,
+    run_id            TEXT REFERENCES attempt_runs(id),
+    parent_attempt_id INTEGER REFERENCES attempts(id),
+    child_attempt_id  INTEGER REFERENCES attempts(id),
+    prompt_context    TEXT NOT NULL,
+    prompt_sha256     TEXT NOT NULL,
+    raw_response      TEXT NOT NULL,
+    status            TEXT NOT NULL, -- valid | invalid | refusal | duplicate | generation-error
+    kind              TEXT NOT NULL DEFAULT '',
+    hypothesis        TEXT NOT NULL DEFAULT '',
+    edits             TEXT NOT NULL DEFAULT '[]', -- structured-edit JSON
+    model             TEXT NOT NULL DEFAULT '',
+    sampling          TEXT NOT NULL DEFAULT '{}',
+    wall_ms           INTEGER NOT NULL DEFAULT 0,
+    token_cost        INTEGER NOT NULL DEFAULT 0,
+    created_at        INTEGER NOT NULL
+);
+
+-- Indexes involving columns added by migration live in kb/attempts.py. Keeping
+-- them out of this script lets it open a pre-lineage attempts table safely.

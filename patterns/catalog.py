@@ -56,6 +56,169 @@ def register(p: Pattern) -> Pattern:
 # ------------------------------------------------------------------ confirmed
 
 register(Pattern(
+    id="split-byte-zero-test-load",
+    name="An immediately tested byte load need not remain a named register web",
+    kind="solver",
+    looks_like="A byte-load loop has an otherwise identical target and candidate instruction stream but the named load temporary occupies a different register.",
+    means="A split declaration and immediately tested load can form a named IDO web. In the measured strlen candidate, substituting the same byte-pointer load into its sole zero test changed v0 to target t7 and restored the exact object without changing the loop structure. This establishes one compiler case, not the original source.",
+    prescription="Use byte_test_inline.candidates through the bounded isolated-register-web family: require matching explicit byte local and pointer declarations, precisely one assignment and one immediate zero-test read, no intervening operation, no volatile qualifier, local macro directive, shadowing or extra use. Compiler/frontend/semantic/object gates remain authoritative; broader transfer is unmeasured.",
+    confirmed_on=[
+        "eval/results/small-functions-20260913/tiny-pilot/receipts/strlen-final-generator/summary.json:82748:private-attempt-2",
+    ],
+))
+
+register(Pattern(
+    id="single-local-stack-home-padding",
+    name="A leading unused local changes stack-home packing without changing frame size",
+    kind="solver",
+    looks_like="The entire residual is unambiguously paired lw/sw of one stack word at an eight-byte-aligned target offset versus target+4 in the candidate; opcode/register/order/frame already agree.",
+    means="IDO stack-home placement can depend on preceding local allocation even when the total frame is unchanged. In three related ending callbacks, a leading four-byte unused volatile array or eight-byte-aligned union restored the exact object; register qualification or trailing padding did not. This does not establish the original source declaration.",
+    prescription="Use rewrites.stack_home_padding_rewrites for one bounded leading-array experiment on a sole uninitialized 32-bit integer local with no explicit address-taking (including parentheses); macro expansion is not analyzed. Decline mixed residuals, ambiguous pairs, multiple homes/locals and existing pad names. Compile/frontend/semantic/exactness gates remain authoritative; broader transfer is unproven.",
+    confirmed_on=[
+        "eval/results/residual-patterns-20260912/stack-home-v1/report.json:startEndingSlashRepeatAnim:44872",
+        "eval/results/residual-patterns-20260912/stack-home-v1/report.json:updateEndingJamPhase3DPrep:44877",
+        "eval/results/residual-patterns-20260912/stack-home-v1/report.json:updateEndingJamPhase3FAnim3:44882",
+    ],
+))
+
+register(Pattern(
+    id="target-call-parameter-byte-units",
+    name="Outer pointer casts can hide element-scaled call addresses",
+    kind="solver",
+    looks_like="A constant offset on an unchanged typed parameter or simple alias is passed through an outer pointer cast; the target call consumes the same root plus that offset in bytes.",
+    means="An outer cast does not change the units of the inner pointer addition. Target call values can justify a byte-address candidate even when frontend compilation already passes.",
+    prescription="Use address_units.parameter_call_views for o32 source-bound calls. Preserve outer pointer casts, require all target callee occurrences to agree on root/offset, decline ambiguous or mutated roots, and compile every candidate through the normal gates. Arithmetic ratios alone are not type-size evidence.",
+    confirmed_on=["eval/results/pointer-units-pilot-20260910-v1/report.json:func_800643B4", "eval/results/pointer-units-pilot-20260910-v1/report.json:updateMenuSpriteActorDebugControls", "eval/results/pointer-units-pilot-20260910-v1/report.json:initThrownTrailImpactProjectile"],
+))
+
+register(Pattern(
+    id="rom-bound-equivalent-relocation-pairing",
+    name="Different intact HI16/LO16 pairings can link to identical function bytes",
+    kind="review",
+    looks_like="GNU target and IDO candidate have the same function bytes and relocation sites, but different pairings or trailing zero extent.",
+    means="Raw object-layout or pairing inequality need not imply different bytes in the bound ROM link environment.",
+    prescription="Use function_boundary.certify to validate both extents and resolve each object's intact pairs independently against hashed symbol/ROM inputs. Keep data/BSS, unknown relocations and whole-TU integration outside this certificate; never normalize pairing globally or promote object exactness.",
+    confirmed_on=["eval/results/function-boundary-recheck-20260910/report-v2.json:waitEndingTommyPhase39", "tests/test_function_boundary.py:test_each_objects_hi_lo_pairing_is_resolved_independently"],
+))
+
+register(Pattern(
+    id="o32-loaded-byte-address-call-view",
+    name="Header pointer view of a loaded address plus byte displacement",
+    kind="solver",
+    looks_like="One o32 call argument is a 32-bit load from param0+field plus a constant byte step; draft passes s32 to a header-declared pointer.",
+    means="The pointer conversion can follow the entire byte-address expression without introducing pointee-size scaling.",
+    prescription="Use frontend_repair's diagnostic/source-bound rule only with one matching header signature, one matching target call, a four-byte load, unchanged first parameter and matching displacement. Recompile with frontend and exact object checks; this is target-specific, not portable integer/pointer equivalence.",
+    confirmed_on=["eval/results/frontend-exact-pilot-20260910/func_80064414/general_rule.json"],
+))
+
+register(Pattern(
+    id="mips3-o32-closed-wide-arithmetic",
+    name="Closed MIPS III/o32 arithmetic helpers",
+    kind="solver",
+    looks_like="Complete four-word argument stores, two 64-bit loads, arithmetic/trap sequence, and two-word return.",
+    means="Under the project's explicit -mips3 -32 -O1 recipe, ordinary wide C arithmetic can reproduce these complete helper objects.",
+    prescription="Use wide_runtime_interfaces.reconstruct_helper only after full instruction recognition and o32 checks; retain frontend and object certificates. Do not infer signedness from helper names or admit interpreter execution.",
+    confirmed_on=["eval/results/resume-blockers-mips3-v3/report.json: " + name for name in (
+        "__ull_rshift", "__ull_rem", "__ull_div", "__ll_lshift",
+        "__ll_rem", "__ll_div", "__ll_mul", "__ll_rshift")],
+))
+
+# The queued community claims were checked individually. These review entries
+# preserve measured scope; they deliberately have no automatic hint detector.
+# Original guide: https://github.com/n64decomp/oot/blob/master/docs/guides/
+# -O2%20decompilation%20(for%20IDO%205.3).md
+for _guide_id, _name, _shape, _finding, _advice, _receipt in [
+    ("guide-comparison-threshold", "Constant comparison normalization",
+     "Signed x > 7 versus x >= 8.",
+     "These two spellings produced identical .text under the pinned SBK1 recipe.",
+     "Use equivalent threshold spellings as candidates only within the integer type's range; do not generalize across overflow.",
+     "queued-v1: comparison-normalization"),
+    ("guide-loop-continue-shape", "Continue can change induction-variable shape",
+     "An eight-element copy/add loop with or without a trailing continue.",
+     "Both loops remained unrolled by four; the counter changed from element units to byte units.",
+     "Compare loop stride and bound together. Do not assume continue disables unrolling.",
+     "queued-v1: loop-continue"),
+    ("guide-array-address-spelling", "Array address spelling is context-dependent",
+     "Array-address syntax versus pointer addition.",
+     "The simple loop probe was identical. Two compression address edits were inert; the third worsened the score.",
+     "Retain both source forms as hypotheses; neither predicts an extra loop counter by itself.",
+     "queued-v1: array-address and attempts 29708-29711"),
+    ("guide-aggregate-copy-shape", "Aggregate copy can change register choice",
+     "Four-int struct assignment versus four explicit member copies.",
+     "The probe preserved memory-access order but selected different registers.",
+     "Check copy size, padding and alias semantics before proposing aggregate/member rewrites. Reordering is not guaranteed.",
+     "queued-v1: struct-copy"),
+    ("guide-switch-default-placement", "Switch default source order can affect layout",
+     "Three disjoint cases with a breaking default first versus last.",
+     "The probe's default body moved and an extra branch appeared; this was a branch chain, not a jump table.",
+     "Check case fallthrough and actual residuals before trying label order. A jump-table relocation is a separate issue.",
+     "queued-v1: switch-default-order"),
+    ("guide-literal-hoisting", "Float literals can survive calls in a saved register",
+     "A loop repeatedly passes an extern const float versus a numeric literal to a callee.",
+     "The extern object reloaded each iteration; a nontrivial literal loaded from .rodata into f20 before the loop.",
+     "Distinguish numeric literals from named const storage. Saved-register hoisting does not explain every f0/f4 mismatch.",
+     "supplemental-v2: extern-const and literal-rodata-nontrivial"),
+]:
+    register(Pattern(id=_guide_id, name=_name, kind="review", looks_like=_shape,
+                     means=_finding, prescription=_advice,
+                     confirmed_on=["eval/experiments/decompedia/" + _receipt]))
+
+register(Pattern(
+    id="guide-branch-likely-cause", name="Branch-likely emission cause remains unconfirmed",
+    kind="review", looks_like="A conditional branch has a difficult delay slot.",
+    means="The guide labels its explanation tentative. Our probes did not establish a sufficient emission rule.",
+    prescription="Check the ISA, conditional branch and actual delay-slot execution. bootThreadMain has no conditional branch, so its unreachable nop residual is not this case.",
+))
+
+register(Pattern(
+    id="constant-display-list-packets", name="Constant Gfx command pairs in CPU stores",
+    kind="review", looks_like="Paired word stores through a loaded display-list buffer pointer.",
+    means="Some command words can be recovered without reconstructing the entire CPU function.",
+    prescription="Use tools.gfx_packet_audit with an explicit buffer symbol and microcode. Keep dynamic words unknown; verify decoded macro bytes with the target GBI header.",
+    confirmed_on=["eval/experiments/decompedia/graphics-v2/receipt.json: two DEV graphics functions, 39 candidate pairs, 18 macro instances round-trip to the target-derived packet bytes; 20 dynamic pairs and one raw constant packet remain unresolved."],
+))
+
+register(Pattern(
+    id="prototype-spelling-not-fixed-frame-delta",
+    name="Prototype spelling does not impose a fixed stack-frame delta",
+    kind="review",
+    looks_like="A frame mismatch invites changing a no-argument definition "
+               "between (void) and ().",
+    means="The old guide's four-byte rule is not universal under the installed "
+          "SBK1 compiler recipe. Naming a temporary also need not add a slot.",
+    prescription="Measure each source change with the actual compiler and "
+                 "frontend. Do not weaken the prototype policy for byte equality.",
+    confirmed_on=[
+        "eval/experiments/decompedia/results-v1/receipt.json: five paired "
+        "synthetic probes have identical .text and frame sizes; DEV "
+        "fadeInEndingCreditsFlow attempts 29694/29695 are both object-exact, "
+        "but the empty parameter list fails strict-prototypes."
+    ],
+))
+
+register(Pattern(
+    id="independent-relocation-group-order",
+    name="Independent relocation groups differ in table order, not meaning",
+    kind="review",
+    looks_like="Identical allocated section bytes/layout, with the same external "
+               "scalar relocations or intact HI16/LO16 pairs in different orders.",
+    means="GNU-as and IDO can serialize disjoint relocation groups differently. "
+          "This is not a source-code mismatch. HI16/LO16 pairing itself remains significant.",
+    prescription="Compare disjoint complete groups in solver.byte_certificate, never "
+                 "sort individual relocation entries. Decline overlapping writes, orphan "
+                 "LO16s and multi-HI extensions. Require isolated full-ROM integration. "
+                 "ABI rationale: https://sourceware.org/pipermail/binutils/2023-February/125959.html",
+    confirmed_on=[
+        "SBK1 initCharacterSelectCourseStatsBadge: identical 64-byte text and intact "
+        "callback HI16/LO16 pair listed before/after independent jal; autonomy-wavefront-24-v2",
+        "SBK1 initCharacterSelectCoursePreviewPanel6: identical 80-byte text, same "
+        "independent callback pair/jal ordering difference; autonomy-wavefront-24-v2",
+        "SBK1 waitRaceIntroFlyoverShortPanFinal: identical 80-byte text and relocation "
+        "groups, callback pair/jal permutation; autonomy-wavefront-24-v2",
+    ],
+))
+
+register(Pattern(
     id="bulk-struct-copy",
     name="Struct assignment compiled to a word-wise copy run",
     kind="evidence",
@@ -238,6 +401,143 @@ register(Pattern(
                   "'Verified exact match: no'"],
 ))
 
+register(Pattern(
+    id="isolated-register-web-source-shape",
+    name="One connected temporary web uses different registers",
+    kind="solver",
+    looks_like="Target and candidate have equal instruction and text lengths, "
+               "matching opcodes/immediates/relocations, and a residual "
+               "confined to register operands in one short def-use web.",
+    means="The semantics and broad expression graph may already agree, while "
+          "temporary type, lifetime, declaration order, expression grouping, "
+          "or coalescing changes IDO's register coloring.",
+    prescription="Preserve control flow and instruction selection. Search a "
+                 "small semantics-preserving family: make the old/new/masked "
+                 "values explicit or implicit, vary their justified C widths "
+                 "and signedness, reorder declarations, and regroup the "
+                 "expression. Do not assume C variable names select registers.",
+    confirmed_on=[
+        "SBK1 randomNextObject: a 2-register-fault residual became verified "
+        "exact when `u8 idx=field; idx++; field=idx; return table[field]` "
+        "was regrouped as `field++; return table[field]` (attempt 27917; "
+        "80/80 semantic cases passed)",
+        "SBK1 fixedCosine: reusing the normalized angle parameter and naming "
+        "the complete s16 table/shift result reached verified exactness "
+        "(attempt 27979; 80/80 semantic cases). Naming only the table load "
+        "stopped at 99.167; completing the sibling panel exposed the match.",
+    ],
+))
+
+register(Pattern(
+    id="early-byte-load-return-postincrement",
+    name="Early byte load and returned pointer share a postincrement",
+    kind="solver",
+    looks_like="A byte-pointer input is loaded, two disjoint fields are "
+               "written, and the input pointer plus one is returned. The "
+               "target loads before the first potentially aliasing write.",
+    means="Pointer aliasing can expose a real read/write ordering defect "
+          "despite complete branch coverage. After restoring the early read, "
+          "postincrement source grouping can also recover the allocation.",
+    prescription="Replay aliases into the target's written fields. Propose "
+                 "an early RHS temporary, then a direct destination store "
+                 "using *input++ followed by the disjoint write and return "
+                 "input. Compile and replay every candidate; alias ordering "
+                 "is behavioral and cannot be inferred from field names alone.",
+    confirmed_on=[
+        "SBK1 Fendit: alias-aware root 65/70; early read repaired semantics; "
+        "inlined postincrement store reached exact attempt 27959, 70/70.",
+        "SBK1 Fvelocity: transferred early-read/postincrement family reached "
+        "exact attempt 27965, 70/70, without a model call.",
+    ],
+))
+
+register(Pattern(
+    id="signed-comparison-type-family",
+    name="slt target emitted as sltu by a C89 type family",
+    kind="solver",
+    looks_like="The residual pairs `slt` with `sltu` using identical register "
+               "operands; the source compares a u32 value to a high-bit "
+               "32-bit literal.",
+    means="Signedness is wrong in more than one place. In C89 a literal such "
+          "as 0xFFCE0000 is unsigned, so changing only the field to s32 still "
+          "emits sltu. The field, related call prototype, and every clamp "
+          "literal may need to change as one type family.",
+    prescription="Propose both surgical edits and one bounded atomic family: "
+                 "u32 declarations/prototype positions to s32, and high-bit "
+                 "literals to their negative two's-complement spelling. "
+                 "Compile every proposal; these edits can change semantics.",
+    confirmed_on=[
+        "SBK1 updateEndingSlashSlideRightToMarker: field-only and literal-only "
+        "edits stayed non-exact; the six-u32/two-literal family plus the "
+        "callback relocation reproduced all 31 instructions exactly in a "
+        "12-compile replay",
+    ],
+))
+
+register(Pattern(
+    id="pointer-table-slot-address",
+    name="Address of a pointer-table slot instead of its stored pointer",
+    kind="solver",
+    looks_like="Target has `lw r,%lo(table)(base)` after indexed address "
+               "formation; candidate materializes `%lo(table)` with addiu and "
+               "has no corresponding load.",
+    means="The candidate wrote `&table[index]`, computing the slot address. "
+          "The target wrote `table[index]`, loading the pointer stored there.",
+    prescription="When the relocation symbol agrees and source contains the "
+                 "exact `&table[index]` spelling, propose removing only `&`; "
+                 "the oracle verifies the inferred dereference.",
+    confirmed_on=[
+        "SBK1 hasPendingRaceReplayCourseGridEntry: removing & added the target "
+        "relocation-bearing lw and raised the candidate from 88.250% to "
+        "99.000%",
+    ],
+))
+
+register(Pattern(
+    id="explicit-branch-sentinel-local",
+    name="Explicit signed sentinel local controls symmetric beq operand order",
+    kind="solver",
+    looks_like="Target and candidate have the same beq/bne and branch target, "
+               "but the first two registers are reversed. Mirroring a literal "
+               "comparison in C recompiles to the same candidate order.",
+    means="IDO canonicalizes literal comparisons, so `-2 != status` is not a "
+          "strong enough source lever. Assigning -2 to an explicit s16 local "
+          "and comparing `sentinel != status` creates a distinct live web and "
+          "preserves sentinel-register-first encoding.",
+    prescription="For simple non-zero equality sentinels, declare C89 locals, "
+                 "assign them before the enclosing loop/comparison, place the "
+                 "sentinel on the left, and try both declaration orders. "
+                 "Use only after the semantics-preserving comparison mirror "
+                 "fails; verify every variant with the oracle.",
+    confirmed_on=[
+        "SBK1 hasPendingRaceReplayCourseGridEntry: constant-left source stayed "
+        "at 99.000%; two explicit s16 locals ordered -1 then -2 changed only "
+        "the two beq operands and produced a 21-instruction exact match",
+    ],
+))
+
+register(Pattern(
+    id="prior-result-in-call-delay-slot",
+    name="A prior result is stored in the next call's delay slot",
+    kind="solver",
+    looks_like="`jal laterFunction` immediately followed by `sb/sh/sw v0, "
+               "offset(base)` in its delay slot.",
+    means="The store executes BEFORE laterFunction. Therefore v0 cannot be "
+          "that function's return value; it is a result kept live from an "
+          "earlier call or computation while the later call is prepared.",
+    prescription="Trace v0 backward across the call setup. Assign the field "
+                 "from the earlier producer, then call the later function as "
+                 "a separate statement. Correct both extern return types. Do "
+                 "not write `field = laterFunction(...)`—that forces a "
+                 "post-call reload/store and cannot match the delay slot.",
+    confirmed_on=[
+        "SBK1 initTimeTrialRecordDeltaPopup: v0 returned by "
+        "calculateRaceTimerDelta is stored to actor+0x30 in the delay slot of "
+        "setCallbackTaskCallback; reassigning result ownership plus the "
+        "layout/order fixes produced all 30 instructions exactly",
+    ],
+))
+
 
 # --------------------------------------------------------------- detectors
 #
@@ -276,9 +576,20 @@ def detect_signed_div(asm: str) -> bool:
                               asm, re.IGNORECASE))
 
 
+_CALL_DELAY_V0_STORE = re.compile(
+    r"(?m)^\s*(?:/\*.*?\*/\s*)?jal\s+[^\n]+\n"
+    r"\s*(?:/\*.*?\*/\s*)?s[bhw]\s+\$?v0\s*,")
+
+
+def detect_prior_result_in_call_delay_slot(asm: str) -> bool:
+    return bool(_CALL_DELAY_V0_STORE.search(asm))
+
+
 CATALOG["repeated-store-same-address"].detector = detect_repeated_store
 CATALOG["s16-sign-extend"].detector = detect_s16_sign_extend
 CATALOG["signed-div-power-of-2"].detector = detect_signed_div
+CATALOG["prior-result-in-call-delay-slot"].detector = \
+    detect_prior_result_in_call_delay_slot
 
 
 register(Pattern(
@@ -370,9 +681,9 @@ def decode_array_stride(asm: str) -> list[int]:
     element is twenty bytes. That is not a hint or a heuristic -- the stride is
     arithmetically encoded in the instructions and can be read straight out.
 
-    This matters because getting it wrong is invisible to the permuter, which
-    permutes register allocation and never touches types. A struct declared 18
-    bytes instead of 20 sits at 99% forever: SBK1 unlockRelocatableHeapBlock
+    A stride mismatch needs a layout hypothesis. The permuter can mutate types,
+    but that does not guarantee recovery of a missing struct layout. SBK1
+    unlockRelocatableHeapBlock declared 18 bytes instead of 20 and
     produced exactly that, `sll 3; addu; sll 1` (=18) against a target of
     `sll 2; addu; sll 2` (=20), and 300s of permuting moved it nowhere.
 
@@ -419,30 +730,23 @@ def stride_hint(asm: str) -> str:
             f"never match, no matter how the rest is written.\n")
 
 
-_FRAME_RE = re.compile(r"\baddiu\s+\$?sp,\s*\$?sp,\s*-(\d+)")
+_FRAME_RE = re.compile(r"\baddiu\s+\$?sp,\s*\$?sp,\s*-(0[xX][0-9a-fA-F]+|\d+)\b")
 
 
 def target_frame_size(asm: str) -> int | None:
     """Bytes of stack frame the target allocates, from its prologue."""
     m = _FRAME_RE.search(asm)
-    return int(m.group(1)) if m else None
+    return int(m.group(1), 16 if m.group(1).lower().startswith("0x") else 10) if m else None
 
 
 def frame_hint(asm: str) -> str:
-    """State the target's frame size and the levers that move it.
+    """State the observed frame size without inventing source-level causes.
 
-    Frame size is a hard structural mismatch: get it wrong and every stack
-    offset in the function shifts, so the diff looks like pervasive
-    register/offset noise rather than one localisable error. It is also
-    invisible to the permuter, which never resolves stack differences --
-    decomp-permuter's own README says `--stack-diffs` is "quite bad at
-    resolving stack differences".
-
-    1,874 of SBK1's functions allocate a frame, so this applies nearly
-    everywhere, unlike byte-cast shifts which occur 15 times in the whole game.
-
-    Levers are from the OoT IDO 5.3 -O2 guide, which targets this exact
-    compiler and optimisation level.
+    Decompedia follow-up probes with the installed SBK1 compiler disproved
+    unconditional prototype-spelling and named-temporary stack-cost rules.
+    Receipts: eval/experiments/decompedia/results-v1/receipt.json.
+    The permuter ignores stack positions by default; its optional stack-aware
+    scoring is documented as weak, not categorically incapable of improvement.
     """
     size = target_frame_size(asm)
     if size is None:
@@ -451,17 +755,14 @@ def frame_hint(asm: str) -> str:
                 "and avoid calls.\n")
 
     return (f"\nTARGET STACK FRAME: {size} bytes (`addiu sp,sp,-{size}`).\n"
-            f"  Your frame must be exactly {size}. If it differs, fix that "
-            f"FIRST -- every stack offset shifts with it and the diff becomes "
-            f"unreadable noise. Known levers, in order of likelihood:\n"
-            f"  - number and width of declared locals (each spilled local costs "
-            f"a slot; IDO rounds the frame to 8 bytes)\n"
-            f"  - `void f(void)` uses 4 MORE bytes than `void f()`\n"
-            f"  - an unused local declared LAST does not affect sp\n"
-            f"  - naming a common subexpression forces it to a stack home; "
-            f"leaving it anonymous can keep it in a register\n"
-            f"  Do not try to permute a frame-size mismatch away; the permuter "
-            f"does not resolve stack differences.\n")
+            f"  Compare the candidate frame and stack accesses with the target. "
+            f"A frame mismatch can shift several offsets at once.\n"
+            f"  Inspect saved registers, address-taken locals, spills and outgoing "
+            f"call arguments; test each proposed source change with the compiler.\n"
+            f"  Prototype spelling and naming a temporary do not imply a fixed "
+            f"stack-size change.\n"
+            f"  The permuter ignores stack positions by default; --stack-diffs "
+            f"enables stack scoring but is documented as weak.\n")
 
 
 def hints_for_asm(asm: str) -> str:

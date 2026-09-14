@@ -1,0 +1,541 @@
+{
+  "schema_version": 1,
+  "kind": "n64_public_provenance_hypotheses",
+  "policy": {
+    "source_bodies_stored": false,
+    "source_in_solver_prompt": false,
+    "role": "ranking and provenance hypothesis only",
+    "promotion": "target compile plus byte-exact oracle"
+  },
+  "hypotheses": [
+    {
+      "hypothesis_id": "b11dbe08973e90be",
+      "target_function": "__MusIntPowerOf2",
+      "corpus_source": {
+        "repo_id": "pokestadium",
+        "repo_head": "2d2649e59167c9f57d1c2dde73206ca8b9fc32b8",
+        "evaluation_policy": "dev_only",
+        "path": "src/libnumus/player.c",
+        "line": 2107,
+        "function": "__MusIntPowerOf2",
+        "source_body_stored": false
+      },
+      "discovery": {
+        "exact_symbol_hit": true,
+        "indexed_normalized_sha256": "6f64d9dd093fa3155790ff4cdab2165f2c0aa0492f11bae562f8e53811839a41",
+        "indexed_token_count": 169,
+        "source_sketch_similarity": 0.547368
+      },
+      "compiled_artifact": {
+        "path": ".tools/corpus-build/pokestadium/libnumus_power.elf",
+        "sha256": "d9e1b66edee502e9505994d9db49a2f93e73a5ea9959125b4f8970092a6323e5",
+        "bytes": 63072,
+        "compiled": true
+      },
+      "ghidra": {
+        "target_evidence": ".tools/ghidra-output/sbk1-libnumus-power-bsim.json",
+        "target_evidence_sha256": "caccdeda56bd5eaf0dd8d4e75daa7097b98e9f22e98b04d704a74f3e4e699835",
+        "candidate_evidence": ".tools/ghidra-output/corpus-pokestadium-libnumus-power-linked-bsim.json",
+        "candidate_evidence_sha256": "7b4fe863ab7727e3d587fd7db9009639eda554f0f44c1732189bd8d9a56b51a8",
+        "comparison": {
+          "schema_version": 2,
+          "role": "provenance ranking only; never an exactness oracle",
+          "bsim": {
+            "metric": "unweighted_bsim_feature_multiset_proxy",
+            "settings": 77,
+            "left_entry": "8009f194",
+            "right_entry": "8009f1a0",
+            "left_feature_count": 74,
+            "right_feature_count": 48,
+            "shared_feature_occurrences": 21,
+            "shared_unique_features": 21,
+            "multiset_jaccard": 0.2079207920792079,
+            "dice": 0.3442622950819672,
+            "cosine": 0.1694430213965745,
+            "left_containment": 0.28378378378378377,
+            "right_containment": 0.4375,
+            "identical_multiset": false
+          },
+          "semantic": {
+            "metric": "address_independent_ghidra_semantic_proxy_v1",
+            "role": "provenance ranking only; compile and byte-exact oracle required",
+            "left_entry": "8009f194",
+            "right_entry": "8009f1a0",
+            "provenance_rank_score": 0.9177753312326792,
+            "operation_shape": {
+              "left_count": 142,
+              "right_count": 142,
+              "positional_matches": 134,
+              "positional_agreement": 0.9436619718309859,
+              "sequence_ratio": 0.971830985915493,
+              "identical_sequence": false,
+              "trigram": {
+                "left_count": 140,
+                "right_count": 140,
+                "shared": 124,
+                "jaccard": 0.7948717948717948,
+                "dice": 0.8857142857142857,
+                "left_containment": 0.8857142857142857,
+                "right_containment": 0.8857142857142857,
+                "identical_multiset": false
+              }
+            },
+            "operation_literals": {
+              "left_count": 142,
+              "right_count": 142,
+              "positional_matches": 134,
+              "positional_agreement": 0.9436619718309859,
+              "sequence_ratio": 0.971830985915493,
+              "identical_sequence": false,
+              "trigram": {
+                "left_count": 140,
+                "right_count": 140,
+                "shared": 124,
+                "jaccard": 0.7948717948717948,
+                "dice": 0.8857142857142857,
+                "left_containment": 0.8857142857142857,
+                "right_containment": 0.8857142857142857,
+                "identical_multiset": false
+              }
+            },
+            "opcode_sequence": {
+              "left_count": 142,
+              "right_count": 142,
+              "positional_matches": 134,
+              "positional_agreement": 0.9436619718309859,
+              "sequence_ratio": 0.971830985915493,
+              "identical_sequence": false,
+              "trigram": {
+                "left_count": 140,
+                "right_count": 140,
+                "shared": 124,
+                "jaccard": 0.7948717948717948,
+                "dice": 0.8857142857142857,
+                "left_containment": 0.8857142857142857,
+                "right_containment": 0.8857142857142857,
+                "identical_multiset": false
+              }
+            },
+            "mnemonic_sequence": {
+              "left_count": 108,
+              "right_count": 108,
+              "positional_matches": 90,
+              "positional_agreement": 0.8333333333333334,
+              "sequence_ratio": 0.9444444444444444,
+              "identical_sequence": false,
+              "trigram": {
+                "left_count": 106,
+                "right_count": 106,
+                "shared": 82,
+                "jaccard": 0.6307692307692307,
+                "dice": 0.7735849056603774,
+                "left_containment": 0.7735849056603774,
+                "right_containment": 0.7735849056603774,
+                "identical_multiset": false
+              }
+            },
+            "cfg_shape": {
+              "left_count": 5,
+              "right_count": 5,
+              "shared": 5,
+              "jaccard": 1.0,
+              "dice": 1.0,
+              "left_containment": 1.0,
+              "right_containment": 1.0,
+              "identical_multiset": true,
+              "left_blocks": 5,
+              "right_blocks": 5,
+              "left_edges": 4,
+              "right_edges": 4
+            }
+          }
+        }
+      },
+      "promotion": {
+        "target_candidate_compiled": true,
+        "target_oracle_tested": true,
+        "target_oracle_exact": true,
+        "status": "oracle_promoted_relocated_exact",
+        "requirement": "compile as target candidate plus byte-exact oracle",
+        "oracle_receipt": ".tools/corpus-build/pokestadium/sbk1-power-relocated-oracle.json",
+        "oracle_receipt_sha256": "46bfb9310aa6c7a0ba395a09f3586e6b22fcbdd555be9ab25139a4132c251643",
+        "oracle_kind": "mips_relocated_function_oracle_receipt",
+        "oracle_status": "relocated_text_and_data_exact",
+        "candidate_sha256": "3a13ee16de327922662db0e06c114c455596ea4adff40ae84b78c7cfc1a39717",
+        "relocated_text": {
+          "bytes": 432,
+          "target_sha256": "ca7e14d0c0c5b4e0b7f0f654a9174c1521f2117b187c180c262ca9b255a09b7a",
+          "candidate_sha256": "ca7e14d0c0c5b4e0b7f0f654a9174c1521f2117b187c180c262ca9b255a09b7a",
+          "equal": true
+        },
+        "data_sections": [
+          {
+            "section": ".rodata",
+            "runtime_address": "0x800E1A80",
+            "rom_offset": "0xE2680",
+            "bytes": 96,
+            "candidate_sha256": "3d63b3195e6abb42d4b7acc6447a8d5c510f68bdb68ca1657851a2b382d14ca2",
+            "rom_sha256": "3d63b3195e6abb42d4b7acc6447a8d5c510f68bdb68ca1657851a2b382d14ca2",
+            "equal": true
+          }
+        ]
+      },
+      "history": {
+        "public_history": [
+          {
+            "repo_id": "pokestadium",
+            "commit": "a1922e5fc705095bcf87a4b80b29d779a4b2a60f",
+            "author_date": "2024-09-12T07:28:43+01:00",
+            "author": "Kelebek1",
+            "subject": "various",
+            "path": "src/38BB0.c",
+            "symbol": "func_8003BBA4",
+            "event": "first_public_decompiled_body_found"
+          },
+          {
+            "repo_id": "pokestadium",
+            "commit": "969c424ad8de7f9ad6de0ddf19d9d85b7af65807",
+            "author_date": "2026-08-14T19:53:55-05:00",
+            "author": "Diamond Lewis",
+            "subject": "Add `libnumus`",
+            "path": "src/libnumus/player.c",
+            "symbol": "__MusIntPowerOf2",
+            "event": "identified_and_renamed_as_libnumus"
+          }
+        ],
+        "target_history": [
+          {
+            "commit": "cf04c7081087b847ab6cceb23d88cc5fcefe709d",
+            "author_date": "2026-07-06T22:09:38-04:00",
+            "author": "Chris Lewis",
+            "subject": "Match func_8009F194",
+            "path": "src/player_commands.c",
+            "symbol": "func_8009F194",
+            "event": "target_match_with_named_rodata_constants"
+          },
+          {
+            "commit": "9f74ba0068c2355f5c48f90a630d06858fdc7c10",
+            "author_date": "2026-07-08T11:04:56-04:00",
+            "author": "Chris Lewis",
+            "subject": "Match menu and UI rodata segments",
+            "path": "src/player_commands.c",
+            "symbol": "func_8009F194",
+            "event": "named_constants_replaced_by_inline_literals"
+          },
+          {
+            "commit": "223b7cf2ce6892a071212320ddbe06522c018ddf",
+            "author_date": "2026-07-19T10:27:41-04:00",
+            "author": "Chris Lewis",
+            "subject": "Organize libmus audio code",
+            "path": "src/libmus/player.c",
+            "symbol": "__MusIntPowerOf2",
+            "event": "identified_and_renamed_as_libmus"
+          }
+        ],
+        "interpretation": "The public generic body predates the target match and the transferred body is relocated-byte exact. The target match commit used named target constants and does not say it copied public source, so common library lineage is proven but author-to-author copying is not."
+      }
+    },
+    {
+      "hypothesis_id": "ddeac8ce4b6b1e5e",
+      "target_function": "__MusIntRandom",
+      "corpus_source": {
+        "repo_id": "pokestadium",
+        "repo_head": "2d2649e59167c9f57d1c2dde73206ca8b9fc32b8",
+        "evaluation_policy": "dev_only",
+        "path": "src/libnumus/player.c",
+        "line": 2191,
+        "function": "__MusIntRandom",
+        "source_body_stored": false
+      },
+      "discovery": {
+        "exact_symbol_hit": true,
+        "indexed_normalized_sha256": "b8f80f7cdd10bf5cb3d6e6e583844e0d4959b0de82228e1053c740283f64d667",
+        "indexed_token_count": 71,
+        "source_sketch_similarity": 0.569231
+      },
+      "compiled_artifact": {
+        "path": ".tools/corpus-build/pokestadium/libnumus_random.elf",
+        "sha256": "cb1490d3c36eef68ab928d6d1eeb345991a3b6a5c87eabdbf622fe0e29105cbf",
+        "bytes": 64816,
+        "compiled": true
+      },
+      "ghidra": {
+        "target_evidence": ".tools/ghidra-output/sbk1-libnumus-random-bsim.json",
+        "target_evidence_sha256": "cde35c6fc086be8de23ced106a850892a8750c37ac7ee18af9e0de2432b21a55",
+        "candidate_evidence": ".tools/ghidra-output/corpus-pokestadium-libnumus-random-linked-bsim.json",
+        "candidate_evidence_sha256": "2c50a256d78d68cfce3922190d92bbf8bcf530fceb8968ce20fdf8af94923769",
+        "comparison": {
+          "schema_version": 2,
+          "role": "provenance ranking only; never an exactness oracle",
+          "bsim": {
+            "metric": "unweighted_bsim_feature_multiset_proxy",
+            "settings": 77,
+            "left_entry": "8009f4c8",
+            "right_entry": "8009f4d0",
+            "left_feature_count": 70,
+            "right_feature_count": 70,
+            "shared_feature_occurrences": 70,
+            "shared_unique_features": 42,
+            "multiset_jaccard": 1.0,
+            "dice": 1.0,
+            "cosine": 0.9999999999999999,
+            "left_containment": 1.0,
+            "right_containment": 1.0,
+            "identical_multiset": true
+          },
+          "semantic": {
+            "metric": "address_independent_ghidra_semantic_proxy_v1",
+            "role": "provenance ranking only; compile and byte-exact oracle required",
+            "left_entry": "8009f4c8",
+            "right_entry": "8009f4d0",
+            "provenance_rank_score": 0.9999999999999999,
+            "operation_shape": {
+              "left_count": 56,
+              "right_count": 56,
+              "positional_matches": 56,
+              "positional_agreement": 1.0,
+              "sequence_ratio": 1.0,
+              "identical_sequence": true,
+              "trigram": {
+                "left_count": 54,
+                "right_count": 54,
+                "shared": 54,
+                "jaccard": 1.0,
+                "dice": 1.0,
+                "left_containment": 1.0,
+                "right_containment": 1.0,
+                "identical_multiset": true
+              }
+            },
+            "operation_literals": {
+              "left_count": 56,
+              "right_count": 56,
+              "positional_matches": 56,
+              "positional_agreement": 1.0,
+              "sequence_ratio": 1.0,
+              "identical_sequence": true,
+              "trigram": {
+                "left_count": 54,
+                "right_count": 54,
+                "shared": 54,
+                "jaccard": 1.0,
+                "dice": 1.0,
+                "left_containment": 1.0,
+                "right_containment": 1.0,
+                "identical_multiset": true
+              }
+            },
+            "opcode_sequence": {
+              "left_count": 56,
+              "right_count": 56,
+              "positional_matches": 56,
+              "positional_agreement": 1.0,
+              "sequence_ratio": 1.0,
+              "identical_sequence": true,
+              "trigram": {
+                "left_count": 54,
+                "right_count": 54,
+                "shared": 54,
+                "jaccard": 1.0,
+                "dice": 1.0,
+                "left_containment": 1.0,
+                "right_containment": 1.0,
+                "identical_multiset": true
+              }
+            },
+            "mnemonic_sequence": {
+              "left_count": 79,
+              "right_count": 79,
+              "positional_matches": 79,
+              "positional_agreement": 1.0,
+              "sequence_ratio": 1.0,
+              "identical_sequence": true,
+              "trigram": {
+                "left_count": 77,
+                "right_count": 77,
+                "shared": 77,
+                "jaccard": 1.0,
+                "dice": 1.0,
+                "left_containment": 1.0,
+                "right_containment": 1.0,
+                "identical_multiset": true
+              }
+            },
+            "cfg_shape": {
+              "left_count": 18,
+              "right_count": 18,
+              "shared": 18,
+              "jaccard": 1.0,
+              "dice": 1.0,
+              "left_containment": 1.0,
+              "right_containment": 1.0,
+              "identical_multiset": true,
+              "left_blocks": 18,
+              "right_blocks": 18,
+              "left_edges": 27,
+              "right_edges": 27
+            }
+          }
+        }
+      },
+      "promotion": {
+        "target_candidate_compiled": true,
+        "target_oracle_tested": true,
+        "target_oracle_exact": true,
+        "status": "oracle_promoted_relocated_exact",
+        "requirement": "compile as target candidate plus byte-exact oracle",
+        "oracle_receipt": ".tools/corpus-build/pokestadium/sbk1-random-relocated-oracle.json",
+        "oracle_receipt_sha256": "126624e739fc80e2f45f99b97f8c89b08306ecfb6b005b435645cc9ef40dc2c0",
+        "oracle_kind": "mips_relocated_function_oracle_receipt",
+        "oracle_status": "relocated_text_and_data_exact",
+        "candidate_sha256": "74bc44ed0894122980c2bd89894c310f1cfd72ad7595fa63e12160c153b13654",
+        "relocated_text": {
+          "bytes": 320,
+          "target_sha256": "0b53e30ee50a2ef8386ca34f9dc567d4cc2562bc406937d347ddf7f7dc3dcf8a",
+          "candidate_sha256": "0b53e30ee50a2ef8386ca34f9dc567d4cc2562bc406937d347ddf7f7dc3dcf8a",
+          "equal": true
+        },
+        "data_sections": []
+      },
+      "history": {
+        "public_history": [
+          {
+            "repo_id": "pokestadium",
+            "commit": "a1922e5fc705095bcf87a4b80b29d779a4b2a60f",
+            "author_date": "2024-09-12T07:28:43+01:00",
+            "author": "Kelebek1",
+            "subject": "various",
+            "path": "src/38BB0.c",
+            "symbol": "func_8003BEF4",
+            "event": "first_public_decompiled_body_found"
+          },
+          {
+            "repo_id": "pokestadium",
+            "commit": "969c424ad8de7f9ad6de0ddf19d9d85b7af65807",
+            "author_date": "2026-08-14T19:53:55-05:00",
+            "author": "Diamond Lewis",
+            "subject": "Add `libnumus`",
+            "path": "src/libnumus/player.c",
+            "symbol": "__MusIntRandom",
+            "event": "identified_and_renamed_as_libnumus"
+          }
+        ],
+        "target_history": [
+          {
+            "commit": "940370a8cebdffc03fa06e63eeef7ef71067b61a",
+            "author_date": "2026-07-06T06:07:10-04:00",
+            "author": "Chris Lewis",
+            "subject": "Match func_8009F4C8",
+            "path": "src/player_commands.c",
+            "symbol": "func_8009F4C8",
+            "event": "target_match_with_manually_unrolled_source"
+          },
+          {
+            "commit": "223b7cf2ce6892a071212320ddbe06522c018ddf",
+            "author_date": "2026-07-19T10:27:41-04:00",
+            "author": "Chris Lewis",
+            "subject": "Organize libmus audio code",
+            "path": "src/libmus/player.c",
+            "symbol": "__MusIntRandom",
+            "event": "identified_and_renamed_as_libmus"
+          }
+        ],
+        "interpretation": "The public eight-iteration loop predates the target match and compiles byte-exact because IDO unrolls it into the target form. The target commit used an explicitly four-way-unrolled loop, so the public source is a cleaner exact alternative but direct copying is not established."
+      }
+    }
+  ],
+  "corpus_index": {
+    "path": ".tools/n64-corpus.sqlite",
+    "sha256": "7cac9f2ca8bec5cb088e629546b4923d5b3d422f990b62fd8967d2698e6fb7ef",
+    "stats": {
+      "schema_version": 1,
+      "repositories": [
+        {
+          "id": "dkr",
+          "url": "https://github.com/davidsm64/diddy-kong-racing.git",
+          "head": "84f0ea569b07903ba8a4f9f252e8dc8e4ba54bdc",
+          "shallow": 1,
+          "evaluation_policy": "dev_only",
+          "source_files": 199,
+          "function_count": 1457
+        },
+        {
+          "id": "fzerox",
+          "url": "https://github.com/inspectredc/fzerox.git",
+          "head": "4fd50c7ca6b44f996aa0fbb68ec86df75855d5b8",
+          "shallow": 1,
+          "evaluation_policy": "dev_only",
+          "source_files": 385,
+          "function_count": 2564
+        },
+        {
+          "id": "mk64",
+          "url": "https://github.com/n64decomp/mk64.git",
+          "head": "58cfcb022e10f83bc3b889d7e97508cae6837098",
+          "shallow": 1,
+          "evaluation_policy": "exclude_headline_famous",
+          "source_files": 223,
+          "function_count": 2832
+        },
+        {
+          "id": "mm",
+          "url": "https://github.com/zeldaret/mm.git",
+          "head": "395be304f21cbbbde989591bdd6855f566f11261",
+          "shallow": 1,
+          "evaluation_policy": "exclude_headline_famous",
+          "source_files": 967,
+          "function_count": 16942
+        },
+        {
+          "id": "oot",
+          "url": "https://github.com/zeldaret/oot.git",
+          "head": "6809439703d6e666c8d6c058edcbd4c7bf640aae",
+          "shallow": 1,
+          "evaluation_policy": "exclude_headline_famous",
+          "source_files": 957,
+          "function_count": 13269
+        },
+        {
+          "id": "pokemonsnap",
+          "url": "https://github.com/ethteck/pokemonsnap.git",
+          "head": "1978bb520be7752ff13ea70dd91694e64caab51f",
+          "shallow": 1,
+          "evaluation_policy": "dev_only",
+          "source_files": 1074,
+          "function_count": 3442
+        },
+        {
+          "id": "pokestadium",
+          "url": "https://github.com/pret/pokestadium.git",
+          "head": "2d2649e59167c9f57d1c2dde73206ca8b9fc32b8",
+          "shallow": 0,
+          "evaluation_policy": "dev_only",
+          "source_files": 345,
+          "function_count": 7121
+        },
+        {
+          "id": "pokestadiumgs",
+          "url": "https://github.com/pret/pokestadiumgs.git",
+          "head": "c0e10f23d90cc4f335b654711f13e53c2c07323b",
+          "shallow": 1,
+          "evaluation_policy": "dev_only",
+          "source_files": 870,
+          "function_count": 383
+        },
+        {
+          "id": "sm64",
+          "url": "https://github.com/n64decomp/sm64.git",
+          "head": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+          "shallow": 1,
+          "evaluation_policy": "exclude_headline_famous",
+          "source_files": 451,
+          "function_count": 4328
+        }
+      ],
+      "repository_count": 9,
+      "source_files": 5471,
+      "functions": 52338,
+      "bytes": 48472064
+    }
+  }
+}

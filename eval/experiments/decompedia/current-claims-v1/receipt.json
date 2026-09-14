@@ -1,0 +1,144 @@
+{
+  "scope": "read-only current state; stored scores are not fresh verification",
+  "state_counts": [
+    {
+      "state": "matched",
+      "count": 2113
+    }
+  ],
+  "tools": {
+    "spimdisasm": "1.42.4",
+    "splat64": "0.39.1",
+    "m2c": "0.1.0",
+    "pygfxd": "1.0.5",
+    "n64img": "0.3.3"
+  },
+  "functions": [
+    {
+      "name": "checkMainMenuSecretCode",
+      "addr": 2147495328,
+      "state": "matched",
+      "best_score": null,
+      "attempts": 0,
+      "tu": "build/src/menu/main_menu/controller_main_menu_flow.o",
+      "heldout": false,
+      "actual_attempt_count": 158,
+      "best_stored": {
+        "id": 9388,
+        "score": 100.0,
+        "strategy": "relocated-oracle-exact",
+        "compiled": 1,
+        "source_sha256": "6ae242fd46b2d91e4e26b5039b86b8e6be6e6760f38c543f68c1179f54966568"
+      },
+      "workspace_exists": true
+    },
+    {
+      "name": "updateCourseSelectCourseDescription",
+      "addr": 2147643852,
+      "state": "matched",
+      "best_score": null,
+      "attempts": 0,
+      "tu": "build/src/menu/course_select/course_select_ui.o",
+      "heldout": false,
+      "actual_attempt_count": 2057,
+      "best_stored": {
+        "id": 23888,
+        "score": 99.64,
+        "strategy": "dag-pipeline-census-root",
+        "compiled": 1,
+        "source_sha256": "d0e878752d6548ccdbc9f9e3794cb7df626570f4018308fdf3b4b0619d9ea45f"
+      },
+      "workspace_exists": true
+    },
+    {
+      "name": "bootThreadMain",
+      "addr": 2148112124,
+      "state": "matched",
+      "best_score": null,
+      "attempts": 0,
+      "tu": "build/src/engine/system_runtime.o",
+      "heldout": false,
+      "actual_attempt_count": 55,
+      "best_stored": {
+        "id": 24073,
+        "score": 97.222,
+        "strategy": "dag-pipeline-census-root",
+        "compiled": 1,
+        "source_sha256": "d397c15d3ccf96ff390374ab043bcc5f7c411a49722c3e6fadb68528e9471665"
+      },
+      "workspace_exists": true
+    },
+    {
+      "name": "initControllerPakRaceRecordSaveFlow",
+      "addr": 2147519840,
+      "state": "matched",
+      "best_score": null,
+      "attempts": 0,
+      "tu": "build/src/menu/controller_pak/controller_pak_race_record_save_flow.o",
+      "heldout": false,
+      "actual_attempt_count": 2694,
+      "best_stored": {
+        "id": 23545,
+        "score": 99.912,
+        "strategy": "semantic-stress-audit",
+        "compiled": 1,
+        "source_sha256": "758d06c4b3c092817e4af14642521151cdb0908d3fe6818d5f6eea0de1edd9d3"
+      },
+      "workspace_exists": true
+    },
+    {
+      "name": "compressRaceRecordReplayData",
+      "addr": 2147748992,
+      "state": "matched",
+      "best_score": null,
+      "attempts": 0,
+      "tu": "build/src/menu/main_menu/main_menu_scene_model.o",
+      "heldout": false,
+      "actual_attempt_count": 3958,
+      "best_stored": {
+        "id": 27898,
+        "score": 98.478,
+        "strategy": "differential-repair-root",
+        "compiled": 1,
+        "source_sha256": "3d35660d11236c9ac03da9e664dde5ddfb6a359af31b3159f1166aa340de0bad"
+      },
+      "workspace_exists": true
+    },
+    {
+      "name": "drawPulsingAssetTableSprite",
+      "addr": 2147769988,
+      "state": "matched",
+      "best_score": null,
+      "attempts": 0,
+      "tu": "build/src/menu/renderer/menu_render_utils.o",
+      "heldout": false,
+      "actual_attempt_count": 37,
+      "best_stored": {
+        "id": 1820,
+        "score": 0.874,
+        "strategy": "pipeline-sample",
+        "compiled": 1,
+        "source_sha256": "f9e2c96cfc6167f2f1b77b05482dab5b03999b4919a79dc1af7b954f7221a8f6"
+      },
+      "workspace_exists": true
+    },
+    {
+      "name": "drawMenuSpriteWithAlphaClipped",
+      "addr": 2147547504,
+      "state": "matched",
+      "best_score": null,
+      "attempts": 0,
+      "tu": "build/src/menu/renderer/menu_renderer.o",
+      "heldout": false,
+      "actual_attempt_count": 28,
+      "best_stored": {
+        "id": 1757,
+        "score": 0.624,
+        "strategy": "pipeline-reshape",
+        "compiled": 1,
+        "source_sha256": "4db0a363c36369a8a86a2d71ecce539a37bda0b6e201a812f2e78b107e7e2d69"
+      },
+      "workspace_exists": true
+    }
+  ]
+}

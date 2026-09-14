@@ -1,0 +1,13 @@
+# Callback agent experiment
+
+The verified callback score improved from **93.702 to 94.723**. Candidate [06.c](06.c) passes **76/76 structured differential cases**, including all seven allocation types, counter/pool exhaustion, list insertion positions, priority boundaries, and upper selector bits. See [replay.json](replay.json).
+
+The winning change is a combination: narrow the `type` parameter and its prototype from `u32` to `u16`, and express the existing truncation as `type = (u16)type` instead of `type &= 0xFFFF`. The pair makes IDO emit the target's previously missing parameter-home `sw a1,4(sp)` in the correct instruction position. Narrowing alone lowered the score to 92.667; casting alone left it at 93.702. This is measured evidence that independently pruning regressing edits can hide productive combinations.
+
+The two bounded batches compiled 80 sources, including repeated controls. Declaration ordering and index local types were inert. Guarded list traversal variants, parameter address exposure, and volatile parameter storage did not beat the winner. A guarded bottom-tested loop combined with the winning parameter repair scored 94.191 and also passed 76/76 cases. No compiler flags, forbidden loop guards, assembly, production source integration, or reference implementation were used.
+
+The remaining structural residual includes a separate target sentinel-head reload (`lui/addiu/lw/nop`) before traversal. The candidate reuses the already loaded head. There are also register allocation differences throughout dispatch and list handling. Guarding the loop alone did not reproduce that source memory/alias shape. The remaining work should target that reload and its value lifetimes together, rather than continue declaration permutations.
+
+The deterministic candidate family is in `solver/callback_alternatives.py`; its generic `masked_parameter_casts` operator recognizes any named function's first-use full-width unsigned mask and emits the winning pair. Balanced parameter parsing updates matching prototypes, including unnamed scalar parameters, while preserving nested callback types. Premask uses, nested masks, nonparameter locals, conflicting prototypes and pointer parameters are rejected. Four focused regression tests pass. Every production integration still requires ABI/prototype compatibility review and a full build; the artifacts here are independently compiled candidates only.
+
+Raw batches: [focused scores](scores.json), [initial scores](../swarm-callback-v1/scores.json). Reproducers: `eval/experiments/code-shape-search/swarm_callback.py` and `swarm_callback_replay.py`.

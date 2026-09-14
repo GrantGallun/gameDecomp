@@ -1,0 +1,146 @@
+[
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/disassembler/spimdisasm_disassembler.py",
+    "line": 2,
+    "text": "import spimdisasm"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/disassembler/disassembler_section.py",
+    "line": 4,
+    "text": "import spimdisasm"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/platforms/ps2.py",
+    "line": 1,
+    "text": "import spimdisasm"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/util/symbols.py",
+    "line": 5,
+    "text": "import spimdisasm"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/util/relocs.py",
+    "line": 4,
+    "text": "import spimdisasm"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/rgba32.py",
+    "line": 1,
+    "text": "import n64img.image"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/i1.py",
+    "line": 1,
+    "text": "import n64img.image"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/ia4.py",
+    "line": 1,
+    "text": "import n64img.image"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/gfx.py",
+    "line": 11,
+    "text": "from pygfxd import ("
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/ia8.py",
+    "line": 1,
+    "text": "import n64img.image"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/i8.py",
+    "line": 1,
+    "text": "import n64img.image"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/ci4.py",
+    "line": 1,
+    "text": "import n64img.image"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/rgba16.py",
+    "line": 1,
+    "text": "import n64img.image"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/img.py",
+    "line": 4,
+    "text": "from n64img.image import Image"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/i4.py",
+    "line": 1,
+    "text": "import n64img.image"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/ia16.py",
+    "line": 1,
+    "text": "import n64img.image"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/n64/ci8.py",
+    "line": 1,
+    "text": "import n64img.image"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/common/codesubsegment.py",
+    "line": 4,
+    "text": "import spimdisasm"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/common/c.py",
+    "line": 7,
+    "text": "import spimdisasm"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/segtypes/common/rodata.py",
+    "line": 2,
+    "text": "import spimdisasm"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/util/n64/find_code_length.py",
+    "line": 7,
+    "text": "import spimdisasm"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/util/n64/rominfo.py",
+    "line": 17,
+    "text": "import spimdisasm"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/util/ps2/ps2elfinfo.py",
+    "line": 7,
+    "text": "import spimdisasm"
+  },
+  {
+    "package": "splat",
+    "file": "/home/grant/decomp/sbk1/.venv/lib/python3.12/site-packages/splat/util/ps2/ps2elfinfo.py",
+    "line": 8,
+    "text": "from spimdisasm.elf32 import ("
+  }
+]

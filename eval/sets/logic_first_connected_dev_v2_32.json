@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "kind": "logic-first-connected-dev-cluster",
+  "created_at": 1788479951,
+  "selection": {
+    "target_source_inspected": false,
+    "inputs": [
+      "binary call edges",
+      "function/TU metadata",
+      "existing compiled non-exact DEV attempt provenance"
+    ],
+    "heldout_excluded_across_all_manifests": true,
+    "already_exact_excluded": true,
+    "requested_size": 32,
+    "eligible_candidates": 71
+  },
+  "cluster": [
+    {
+      "function": "updateRacePlayerLeanAngle",
+      "tu_id": 329,
+      "instruction_count": 60,
+      "attempt_id": 23248,
+      "source_sha256": "82ef169b29f2fb68c4e8abee8b3e59351a5c61a65e3420dc5df48c62dd05665c",
+      "stored_weighted_score": 87.338
+    },
+    {
+      "function": "updateRacePlayerMode16AerialTrick",
+      "tu_id": 333,
+      "instruction_count": 104,
+      "attempt_id": 22626,
+      "source_sha256": "f6dddcc6d3169080cc6d85e443aef7d91329a680c12c1871295ff49b023556dd",
+      "stored_weighted_score": 99.712
+    },
+    {
+      "function": "updateRacePlayerMode37AerialTrick",
+      "tu_id": 333,
+      "instruction_count": 146,
+      "attempt_id": 23408,
+      "source_sha256": "42f4227a8cf279a620410ac7c3562e12d1ecb0b13dbb48515ba1e29da1f4cb9f",
+      "stored_weighted_score": 96.149
+    },
+    {
+      "function": "fixedSine",
+      "tu_id": 277,
+      "instruction_count": 24,
+      "attempt_id": 23384,
+      "source_sha256": "fbc90a25153174300704302db7ecc053932ab318682717aba0ed35ce9d5540e6",
+      "stored_weighted_score": 84.043
+    },
+    {
+      "function": "updateRacePlayerMode40Stun",
+      "tu_id": 333,
+      "instruction_count": 103,
+      "attempt_id": 23390,
+      "source_sha256": "6127afbc2753629f41396e6d4737a7077fbca5f6e4e63402d13acc30ebf5e7ac",
+      "stored_weighted_score": 91.563
+    },
+    {
+      "function": "randomNextMain",
+      "tu_id": 266,
+      "instruction_count": 20,
+      "attempt_id": 23380,
+      "source_sha256": "43c819b10531f3769aaaa67b592d80a281529b79af428fe1dec714b0fdd6cf1c",
+      "stored_weighted_score": 88.45
+    },
+    {
+      "function": "updateRacePickupIdle",
+      "tu_id": 316,
+      "instruction_count": 202,
+      "attempt_id": 19676,
+      "source_sha256": "dfe87719de9c31888f7a11637b8221d16d133f6371afe9de8e7d9060ac77085e",
+      "stored_weighted_score": 91.064
+    },
+    {
+      "function": "randomNextObject",
+      "tu_id": 266,
+      "instruction_count": 9,
+      "attempt_id": 22455,
+      "source_sha256": "76080664fc493bf9ab8de54fae7ff5ec834a6d067172e6331b616c9264619b64",
+      "stored_weighted_score": 98.75
+    }
+  ],
+  "binary_call_edges": [
+    {
+      "caller": "updateRacePickupIdle",
+      "callee": "randomNextMain"
+    },
+    {
+      "caller": "updateRacePickupIdle",
+      "callee": "randomNextObject"
+    },
+    {
+      "caller": "updateRacePlayerMode16AerialTrick",
+      "callee": "fixedSine"
+    },
+    {
+      "caller": "updateRacePlayerMode16AerialTrick",
+      "callee": "updateRacePlayerLeanAngle"
+    },
+    {
+      "caller": "updateRacePlayerMode37AerialTrick",
+      "callee": "fixedSine"
+    },
+    {
+      "caller": "updateRacePlayerMode37AerialTrick",
+      "callee": "updateRacePlayerLeanAngle"
+    },
+    {
+      "caller": "updateRacePlayerMode40Stun",
+      "callee": "randomNextMain"
+    },
+    {
+      "caller": "updateRacePlayerMode40Stun",
+      "callee": "updateRacePlayerLeanAngle"
+    }
+  ],
+  "shortfall": 24,
+  "manifest_digest": "3e1c7184e47d8ecdb8b15f8e31f3cc34fcb6ce17d526be9cf7c7fe3e1e0c9f2d"
+}

@@ -1,0 +1,2711 @@
+{
+  "schema_version": 1,
+  "scope": "synthetic probes plus inspected header-assisted DEV",
+  "heldout_used": false,
+  "target_c_bodies_read": false,
+  "model_calls": 0,
+  "runner_sha256": "2b5f65a53b7920c60b86e197f53080050b85dee55d73f8884f93a4abbd8458c4",
+  "panel_sha256": "9c47ab25eae2e3ea43545aef75e170e601715cfc28fbc6e0a597fbd41ffa4576",
+  "recipe": {
+    "schema_version": 1,
+    "target": "build/src/race/effects/race_intro_effects.o",
+    "settings": {
+      "IDO_CC": "python3 tools/asm-processor/build.py tools/ido-recomp/linux/cc -- mips-linux-gnu-as -G 0 -I include -mips3 -mabi=32 --",
+      "CFLAGS": "-c -mips1 -G 0 -non_shared -fullwarn -Xcpluscomm  -nostdinc -Wab,-r4300_mul -woff 649,838,712,516  -I. -Iinclude -Iinclude/PR -Isrc/ultra/audio -Isrc/ultra/libc  -DLANGUAGE_C -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DNDEBUG  -DCOMPILING_LIBULTRA -DBUILD_VERSION=VERSION_I -DF3DEX_GBI",
+      "C_OPT": "-O2",
+      "C_MIPS": "-mips1",
+      "ASFLAGS": "-G 0 -I include -mips3 -mabi=32",
+      "C_OBJ_POSTPROCESS": ":"
+    },
+    "command": [
+      "python3",
+      "tools/asm-processor/build.py",
+      "tools/ido-recomp/linux/cc",
+      "--",
+      "mips-linux-gnu-as",
+      "-G",
+      "0",
+      "-I",
+      "include",
+      "-mips3",
+      "-mabi=32",
+      "--",
+      "-c",
+      "-mips1",
+      "-G",
+      "0",
+      "-non_shared",
+      "-fullwarn",
+      "-Xcpluscomm",
+      "-nostdinc",
+      "-Wab,-r4300_mul",
+      "-woff",
+      "649,838,712,516",
+      "-I.",
+      "-Iinclude",
+      "-Iinclude/PR",
+      "-Isrc/ultra/audio",
+      "-Isrc/ultra/libc",
+      "-DLANGUAGE_C",
+      "-D_LANGUAGE_C",
+      "-D_MIPS_SZLONG=32",
+      "-DNDEBUG",
+      "-DCOMPILING_LIBULTRA",
+      "-DBUILD_VERSION=VERSION_I",
+      "-DF3DEX_GBI",
+      "-O2",
+      "-Isrc/race/effects"
+    ],
+    "makefile_sha256": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+    "projection_sha256": "0d61a440ef30138adeb453b08c5f891dfd711e57bcad3a4dd81a7ad4d55c7b2b",
+    "authority": "existing project build configuration, not inferred original compiler settings",
+    "source_origin": "C TU",
+    "scope": "C code generation; full TU syntax checking and final ROM integration are separate"
+  },
+  "tool_hashes": {
+    "as0": "8097e4bde2731d9b0cf8e385f962044a102ee367f3d337b6b15ef9d6d6aebb5e",
+    "ugen": "326d919dd3f78f9a67cd8d4ed0e7bfad1dfe60bce508474a9198d9eb17741ff9",
+    "uopt": "56f8c312ccffac08e531dd41c6bb5e6c4a0114e260461c348173b13219e0f4b0",
+    "cc": "8ba3154946a3691d80eba5a7aecdb8181494b3e7339f231e176eba40d1ba9952",
+    "cfe": "d9c00d8ddc801d1bd48a6f9fd13fe61df5913ab6c77bd35b744f19c281877699",
+    "as1": "73b4522a61b5d735790e4bb71168647bfa22be125ce7e2b45ea3c35df5b9dc04"
+  },
+  "frozen": [
+    {
+      "function": "waitRaceIntroFlyoverShortPanFinal",
+      "parent_attempt_id": 29590,
+      "source_sha256": "5dcb6521a4e8df9e5aa45fe01be59d928bb7ab17d225882127617317b71ae442",
+      "tu": "build/src/race/effects/race_intro_effects.o"
+    },
+    {
+      "function": "initCharacterSelectCourseStatsBadge",
+      "parent_attempt_id": 29585,
+      "source_sha256": "7f80798a64df9a327baa75e6ffe4500512fd3b739c55dc954eea1eeaff8253cc",
+      "tu": "build/src/menu/character_select/character_select_course_ui.o"
+    },
+    {
+      "function": "initCharacterSelectCoursePreviewPanel6",
+      "parent_attempt_id": 29586,
+      "source_sha256": "e875af51ac30beae595c090c7af785b847aaf3ed1ed6af450c5820c87cd98719",
+      "tu": "build/src/menu/character_select/character_select_course_ui.o"
+    },
+    {
+      "function": "fadeInEndingCreditsFlow",
+      "parent_attempt_id": 29601,
+      "source_sha256": "ca8b596906098d45143298138e77acdafa04d8f86b2a8b8cbe593e73005ca3e6",
+      "tu": "build/src/ending/ending_credits_flow.o"
+    }
+  ],
+  "probes": [
+    {
+      "hypothesis": "definition-leaf",
+      "arms": {
+        "baseline": {
+          "source_sha256": "08960c87147d874e2ab1764e1fd1816b80ad1482ffd8b647fc827e874e2a6690",
+          "returncode": 0,
+          "diagnostics": "",
+          "command": [
+            "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc",
+            "-c",
+            "-mips1",
+            "-G",
+            "0",
+            "-non_shared",
+            "-fullwarn",
+            "-Xcpluscomm",
+            "-nostdinc",
+            "-Wab,-r4300_mul",
+            "-woff",
+            "649,838,712,516",
+            "-I.",
+            "-Iinclude",
+            "-Iinclude/PR",
+            "-Isrc/ultra/audio",
+            "-Isrc/ultra/libc",
+            "-DLANGUAGE_C",
+            "-D_LANGUAGE_C",
+            "-D_MIPS_SZLONG=32",
+            "-DNDEBUG",
+            "-DCOMPILING_LIBULTRA",
+            "-DBUILD_VERSION=VERSION_I",
+            "-DF3DEX_GBI",
+            "-O2"
+          ],
+          "text_sha256": "289c8f10025b4132463f1e055957a4bd3cac0571edef25510a23f91da8d78946",
+          "frame_bytes": 0
+        },
+        "variant": {
+          "source_sha256": "40f8aaa8b23df9b04e71a05e8f4401ff94b663c6fa6a1de2f4ea7887244c7a2b",
+          "returncode": 0,
+          "diagnostics": "",
+          "command": [
+            "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc",
+            "-c",
+            "-mips1",
+            "-G",
+            "0",
+            "-non_shared",
+            "-fullwarn",
+            "-Xcpluscomm",
+            "-nostdinc",
+            "-Wab,-r4300_mul",
+            "-woff",
+            "649,838,712,516",
+            "-I.",
+            "-Iinclude",
+            "-Iinclude/PR",
+            "-Isrc/ultra/audio",
+            "-Isrc/ultra/libc",
+            "-DLANGUAGE_C",
+            "-D_LANGUAGE_C",
+            "-D_MIPS_SZLONG=32",
+            "-DNDEBUG",
+            "-DCOMPILING_LIBULTRA",
+            "-DBUILD_VERSION=VERSION_I",
+            "-DF3DEX_GBI",
+            "-O2"
+          ],
+          "text_sha256": "289c8f10025b4132463f1e055957a4bd3cac0571edef25510a23f91da8d78946",
+          "frame_bytes": 0
+        }
+      }
+    },
+    {
+      "hypothesis": "definition-calling",
+      "arms": {
+        "baseline": {
+          "source_sha256": "a8bca976da338013c9f618c71f52419904e741a2e55ea3604679eb331a42f33b",
+          "returncode": 0,
+          "diagnostics": "",
+          "command": [
+            "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc",
+            "-c",
+            "-mips1",
+            "-G",
+            "0",
+            "-non_shared",
+            "-fullwarn",
+            "-Xcpluscomm",
+            "-nostdinc",
+            "-Wab,-r4300_mul",
+            "-woff",
+            "649,838,712,516",
+            "-I.",
+            "-Iinclude",
+            "-Iinclude/PR",
+            "-Isrc/ultra/audio",
+            "-Isrc/ultra/libc",
+            "-DLANGUAGE_C",
+            "-D_LANGUAGE_C",
+            "-D_MIPS_SZLONG=32",
+            "-DNDEBUG",
+            "-DCOMPILING_LIBULTRA",
+            "-DBUILD_VERSION=VERSION_I",
+            "-DF3DEX_GBI",
+            "-O2"
+          ],
+          "text_sha256": "2f5842174abf17f53503ee26c64a59e12facdd95009e98f40780b7266b7a1e66",
+          "frame_bytes": 24
+        },
+        "variant": {
+          "source_sha256": "b5a0079cb6aac9c7e0547609eb37f59bb56595a3a29be8811f0ef63a31a9dda9",
+          "returncode": 0,
+          "diagnostics": "",
+          "command": [
+            "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc",
+            "-c",
+            "-mips1",
+            "-G",
+            "0",
+            "-non_shared",
+            "-fullwarn",
+            "-Xcpluscomm",
+            "-nostdinc",
+            "-Wab,-r4300_mul",
+            "-woff",
+            "649,838,712,516",
+            "-I.",
+            "-Iinclude",
+            "-Iinclude/PR",
+            "-Isrc/ultra/audio",
+            "-Isrc/ultra/libc",
+            "-DLANGUAGE_C",
+            "-D_LANGUAGE_C",
+            "-D_MIPS_SZLONG=32",
+            "-DNDEBUG",
+            "-DCOMPILING_LIBULTRA",
+            "-DBUILD_VERSION=VERSION_I",
+            "-DF3DEX_GBI",
+            "-O2"
+          ],
+          "text_sha256": "2f5842174abf17f53503ee26c64a59e12facdd95009e98f40780b7266b7a1e66",
+          "frame_bytes": 24
+        }
+      }
+    },
+    {
+      "hypothesis": "callee-prototype",
+      "arms": {
+        "baseline": {
+          "source_sha256": "a89c56025f8ee20f1ab2801f077491d600c72aca2669596a99b5880cad018d09",
+          "returncode": 0,
+          "diagnostics": "cfe: Warning 835: /tmp/decompedia-probe-ukydh9n7/probe.c, line 2: No prototype for the call to sink\n void probe(void) { sink(); }\n -----------------------^\nTo achieve better type-checking, there should be a full prototype for\nthe function being called.\n",
+          "command": [
+            "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc",
+            "-c",
+            "-mips1",
+            "-G",
+            "0",
+            "-non_shared",
+            "-fullwarn",
+            "-Xcpluscomm",
+            "-nostdinc",
+            "-Wab,-r4300_mul",
+            "-woff",
+            "649,838,712,516",
+            "-I.",
+            "-Iinclude",
+            "-Iinclude/PR",
+            "-Isrc/ultra/audio",
+            "-Isrc/ultra/libc",
+            "-DLANGUAGE_C",
+            "-D_LANGUAGE_C",
+            "-D_MIPS_SZLONG=32",
+            "-DNDEBUG",
+            "-DCOMPILING_LIBULTRA",
+            "-DBUILD_VERSION=VERSION_I",
+            "-DF3DEX_GBI",
+            "-O2"
+          ],
+          "text_sha256": "ddf3cf630113e6dc13d6a5a25cc98407fdb47a5c5332c0696bc73db1568a16e8",
+          "frame_bytes": 24
+        },
+        "variant": {
+          "source_sha256": "2a59d18606a6cb95df41f067734d9a0eca6cfd316c2f677125d8c122c9accad7",
+          "returncode": 0,
+          "diagnostics": "",
+          "command": [
+            "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc",
+            "-c",
+            "-mips1",
+            "-G",
+            "0",
+            "-non_shared",
+            "-fullwarn",
+            "-Xcpluscomm",
+            "-nostdinc",
+            "-Wab,-r4300_mul",
+            "-woff",
+            "649,838,712,516",
+            "-I.",
+            "-Iinclude",
+            "-Iinclude/PR",
+            "-Isrc/ultra/audio",
+            "-Isrc/ultra/libc",
+            "-DLANGUAGE_C",
+            "-D_LANGUAGE_C",
+            "-D_MIPS_SZLONG=32",
+            "-DNDEBUG",
+            "-DCOMPILING_LIBULTRA",
+            "-DBUILD_VERSION=VERSION_I",
+            "-DF3DEX_GBI",
+            "-O2"
+          ],
+          "text_sha256": "ddf3cf630113e6dc13d6a5a25cc98407fdb47a5c5332c0696bc73db1568a16e8",
+          "frame_bytes": 24
+        }
+      }
+    },
+    {
+      "hypothesis": "ignored-return",
+      "arms": {
+        "baseline": {
+          "source_sha256": "2a59d18606a6cb95df41f067734d9a0eca6cfd316c2f677125d8c122c9accad7",
+          "returncode": 0,
+          "diagnostics": "",
+          "command": [
+            "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc",
+            "-c",
+            "-mips1",
+            "-G",
+            "0",
+            "-non_shared",
+            "-fullwarn",
+            "-Xcpluscomm",
+            "-nostdinc",
+            "-Wab,-r4300_mul",
+            "-woff",
+            "649,838,712,516",
+            "-I.",
+            "-Iinclude",
+            "-Iinclude/PR",
+            "-Isrc/ultra/audio",
+            "-Isrc/ultra/libc",
+            "-DLANGUAGE_C",
+            "-D_LANGUAGE_C",
+            "-D_MIPS_SZLONG=32",
+            "-DNDEBUG",
+            "-DCOMPILING_LIBULTRA",
+            "-DBUILD_VERSION=VERSION_I",
+            "-DF3DEX_GBI",
+            "-O2"
+          ],
+          "text_sha256": "ddf3cf630113e6dc13d6a5a25cc98407fdb47a5c5332c0696bc73db1568a16e8",
+          "frame_bytes": 24
+        },
+        "variant": {
+          "source_sha256": "46e4289682e0c10f2d7eda94da19458a58a13ae08c32445064967ccb6e4fcb0f",
+          "returncode": 0,
+          "diagnostics": "",
+          "command": [
+            "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc",
+            "-c",
+            "-mips1",
+            "-G",
+            "0",
+            "-non_shared",
+            "-fullwarn",
+            "-Xcpluscomm",
+            "-nostdinc",
+            "-Wab,-r4300_mul",
+            "-woff",
+            "649,838,712,516",
+            "-I.",
+            "-Iinclude",
+            "-Iinclude/PR",
+            "-Isrc/ultra/audio",
+            "-Isrc/ultra/libc",
+            "-DLANGUAGE_C",
+            "-D_LANGUAGE_C",
+            "-D_MIPS_SZLONG=32",
+            "-DNDEBUG",
+            "-DCOMPILING_LIBULTRA",
+            "-DBUILD_VERSION=VERSION_I",
+            "-DF3DEX_GBI",
+            "-O2"
+          ],
+          "text_sha256": "ddf3cf630113e6dc13d6a5a25cc98407fdb47a5c5332c0696bc73db1568a16e8",
+          "frame_bytes": 24
+        }
+      }
+    },
+    {
+      "hypothesis": "named-expression",
+      "arms": {
+        "baseline": {
+          "source_sha256": "75786007e6dddc71c21f545caa53756ad7f84a942500cf43f56e9f55fca21fab",
+          "returncode": 0,
+          "diagnostics": "",
+          "command": [
+            "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc",
+            "-c",
+            "-mips1",
+            "-G",
+            "0",
+            "-non_shared",
+            "-fullwarn",
+            "-Xcpluscomm",
+            "-nostdinc",
+            "-Wab,-r4300_mul",
+            "-woff",
+            "649,838,712,516",
+            "-I.",
+            "-Iinclude",
+            "-Iinclude/PR",
+            "-Isrc/ultra/audio",
+            "-Isrc/ultra/libc",
+            "-DLANGUAGE_C",
+            "-D_LANGUAGE_C",
+            "-D_MIPS_SZLONG=32",
+            "-DNDEBUG",
+            "-DCOMPILING_LIBULTRA",
+            "-DBUILD_VERSION=VERSION_I",
+            "-DF3DEX_GBI",
+            "-O2"
+          ],
+          "text_sha256": "5c57002dfb72802e9238bc3cff7c44f9362e0708edf004c660723a4526a1a65a",
+          "frame_bytes": 24
+        },
+        "variant": {
+          "source_sha256": "1183f33a161f07b60d03c15d4b1ce95e46680791a4e7cfffa6581b3a10ab1b18",
+          "returncode": 0,
+          "diagnostics": "",
+          "command": [
+            "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc",
+            "-c",
+            "-mips1",
+            "-G",
+            "0",
+            "-non_shared",
+            "-fullwarn",
+            "-Xcpluscomm",
+            "-nostdinc",
+            "-Wab,-r4300_mul",
+            "-woff",
+            "649,838,712,516",
+            "-I.",
+            "-Iinclude",
+            "-Iinclude/PR",
+            "-Isrc/ultra/audio",
+            "-Isrc/ultra/libc",
+            "-DLANGUAGE_C",
+            "-D_LANGUAGE_C",
+            "-D_MIPS_SZLONG=32",
+            "-DNDEBUG",
+            "-DCOMPILING_LIBULTRA",
+            "-DBUILD_VERSION=VERSION_I",
+            "-DF3DEX_GBI",
+            "-O2"
+          ],
+          "text_sha256": "5c57002dfb72802e9238bc3cff7c44f9362e0708edf004c660723a4526a1a65a",
+          "frame_bytes": 24
+        }
+      }
+    }
+  ],
+  "dev": [
+    {
+      "function": "waitRaceIntroFlyoverShortPanFinal",
+      "status": "declined-nonzero-or-ambiguous-parameters"
+    },
+    {
+      "function": "initCharacterSelectCourseStatsBadge",
+      "status": "declined-nonzero-or-ambiguous-parameters"
+    },
+    {
+      "function": "initCharacterSelectCoursePreviewPanel6",
+      "status": "declined-nonzero-or-ambiguous-parameters"
+    },
+    {
+      "function": "fadeInEndingCreditsFlow",
+      "parent_attempt_id": 29601,
+      "target_sha256": "f083fb906218fdb51f47d9dfaf629e67fe45faf9d0df6dbe9adac01188bf05ef",
+      "arms": {
+        "baseline": {
+          "source_sha256": "ca8b596906098d45143298138e77acdafa04d8f86b2a8b8cbe593e73005ca3e6",
+          "attempt_id": 29694,
+          "compiled": true,
+          "exact": true,
+          "score": 100.0,
+          "frontend": {
+            "kind": "project-policy-candidate-frontend",
+            "passed": true,
+            "source_sha256": "ad09a1f4deefdde7e76c9c39dc120817e8c8eec702ae57e5b1c5ebc3129ba1d2",
+            "scope": "candidate and included headers; not full TU or whole-ROM verification",
+            "status": "passed",
+            "returncode": 0,
+            "diagnostics": "",
+            "recipe": {
+              "command": [
+                "/usr/bin/clang",
+                "-fsyntax-only",
+                "-ffreestanding",
+                "-fno-builtin",
+                "-funsigned-char",
+                "-fdiagnostics-color",
+                "-std=gnu89",
+                "-m32",
+                "-D__builtin_classof(type)=0",
+                "-D__builtin_alignof(type)=__alignof__(type)",
+                "-Wall",
+                "-Wextra",
+                "-Wno-unknown-pragmas",
+                "-Wno-unused-parameter",
+                "-Wno-unused-variable",
+                "-Wno-unused-but-set-variable",
+                "-Wno-unused-value",
+                "-Wno-unused-label",
+                "-Wno-missing-braces",
+                "-Wno-sign-compare",
+                "-Wno-tautological-compare",
+                "-Wno-pointer-bool-conversion",
+                "-Wno-array-bounds",
+                "-Wno-unsequenced",
+                "-Wno-pointer-sign",
+                "-Wno-constant-conversion",
+                "-Wno-multichar",
+                "-Werror=implicit-int",
+                "-Werror=implicit-function-declaration",
+                "-Werror=int-conversion",
+                "-Werror=incompatible-pointer-types",
+                "-Werror=incompatible-function-pointer-types",
+                "-Werror=strict-prototypes",
+                "-Werror=deprecated-non-prototype",
+                "-Werror=return-type",
+                "-I.",
+                "-Iinclude",
+                "-Iinclude/PR",
+                "-Isrc/ultra/audio",
+                "-Isrc/ultra/libc",
+                "-DLANGUAGE_C",
+                "-D_LANGUAGE_C",
+                "-D_MIPS_SZLONG=32",
+                "-DNDEBUG",
+                "-DCOMPILING_LIBULTRA",
+                "-DBUILD_VERSION=VERSION_I",
+                "-DF3DEX_GBI",
+                "-DMIPSEB",
+                "-D_MIPS_FPSET=16",
+                "-D_MIPS_ISA_MIPS2=2",
+                "-D_MIPS_ISA=_MIPS_ISA_MIPS2",
+                "-D_ABIO32=1",
+                "-D_MIPS_SIM=_ABIO32",
+                "-D_MIPS_SZINT=32",
+                "-D_MIPS_SZPTR=32",
+                "-D__sgi=1",
+                "-fno-color-diagnostics",
+                "-iquote",
+                "src/ending"
+              ],
+              "settings": {
+                "CC_CHECK": "clang",
+                "CC_CHECK_FLAGS": "-fsyntax-only -ffreestanding -fno-builtin -funsigned-char  -fdiagnostics-color -std=gnu89 -m32  '-D__builtin_classof(type)=0'  '-D__builtin_alignof(type)=__alignof__(type)'",
+                "CC_CHECK_WARNINGS": "-Wall -Wextra -Wno-unknown-pragmas  -Wno-unused-parameter -Wno-unused-variable  -Wno-unused-but-set-variable -Wno-unused-value  -Wno-unused-label -Wno-missing-braces -Wno-sign-compare  -Wno-tautological-compare -Wno-pointer-bool-conversion  -Wno-array-bounds -Wno-unsequenced -Wno-pointer-sign  -Wno-constant-conversion -Wno-multichar  -Werror=implicit-int  -Werror=implicit-function-declaration  -Werror=int-conversion  -Werror=incompatible-pointer-types  -Werror=incompatible-function-pointer-types  -Werror=strict-prototypes  -Werror=deprecated-non-prototype  -Werror=return-type",
+                "CC_CHECK_INCLUDES": "-I. -Iinclude -Iinclude/PR -Isrc/ultra/audio -Isrc/ultra/libc",
+                "C_DEFINES": "-DLANGUAGE_C -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DNDEBUG  -DCOMPILING_LIBULTRA -DBUILD_VERSION=VERSION_I -DF3DEX_GBI",
+                "CC_CHECK_MIPS_DEFINES": "-DMIPSEB -D_MIPS_FPSET=16 -D_MIPS_ISA_MIPS2=2  -D_MIPS_ISA=_MIPS_ISA_MIPS2 -D_ABIO32=1  -D_MIPS_SIM=_ABIO32 -D_MIPS_SZINT=32  -D_MIPS_SZPTR=32 -D__sgi=1"
+              },
+              "target": "build/src/ending/ending_credits_flow.o",
+              "makefile_sha256": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+              "checker_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+              "warning_policy": "project default WERROR=0; explicit error classes preserved"
+            }
+          },
+          "verification": {
+            "schema_version": 1,
+            "kind": "mips_object_section_certificate",
+            "scope": "allocated text/data/BSS and relocation expressions; same link environment",
+            "excluded": [
+              "debug and ABI metadata",
+              "final link layout",
+              "whole ROM"
+            ],
+            "whole_rom_verified": false,
+            "source_sha256": "ad09a1f4deefdde7e76c9c39dc120817e8c8eec702ae57e5b1c5ebc3129ba1d2",
+            "build_inputs": {
+              "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/build.sh": "0f3bc1016f658335bc36e0b4496bd5c6c42ccbf6c79ee92369ef2fa55f510619",
+              "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/prelude.inc": "19a0906a233ba6036a19fe6be4eb6dd44c6f4c90f0a8e6531fa23c244158c9ae",
+              "/home/grant/decomp/sbk1/Makefile": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+              "/home/grant/decomp/sbk1/tools/textconv.py": "33ea36cd7c779f2a1870510c8066589036288758dd6373b6f3b343b337a51144",
+              "/home/grant/decomp/sbk1/tools/charmap.txt": "6fde88542f6267fe243bcc771a6f49bddd03b44a6e62d78d2fd1cf9c13f7bc6f",
+              "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.sh": "a121d10c79f30e796b9c6422f0dcb0f3b610148754cfcd8f4e7fb56a29077df7",
+              "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.json": "cd7c4305317e76fe49b0d97759b187f8894ac1ed392070d7e010c2c420f5b3e1",
+              "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-target.json": "c602b715dda545c81d4a5a36d113372cb35fe9615b7de5d09ff6c9efccaf4d3d",
+              "/home/grant/decomp/sbk1/src/ultra/os/threadasm.h": "49cc58f647832597bcfccdb28a88c06521842e2917c1edf478f3d37bf3bee0aa",
+              "/home/grant/decomp/sbk1/src/ultra/os/exceptasm.h": "2abdf2eda1e227ce5235cebdb461ce17bfdced29ba1ca9ebfb1b10d94d2ffca3",
+              "/home/grant/decomp/sbk1/src/ultra/libc/xstdio.h": "0f0e8acb8f02049cce3e0945323bf74d226eb0cb342c67a3fc72b78a8073cf71",
+              "/usr/bin/clang": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+              "/home/grant/decomp/sbk1/include/PR/R4300.h": "67281afc2b8eb92422072fdc05f5f973222ee16b6b4567b2ab7b52dd9b8fd3d0",
+              "/home/grant/decomp/sbk1/include/PR/abi.h": "fcb49b2036ea2d466c095a39d2befdbabcaf21de339535d26e3acfe22f9c40e4",
+              "/home/grant/decomp/sbk1/include/PR/gbi.h": "69a37c33267834f6cae9a808ac087bb051dc211249eb96e5cbd7a3cb48d0d138",
+              "/home/grant/decomp/sbk1/include/PR/gs2dex.h": "9c8b19ba530770819eef0aa28e5f3149cd7491e19163421234e6c4ac2b4de518",
+              "/home/grant/decomp/sbk1/include/PR/gt.h": "e08704d88046aa79cfa0e23da7452d485d11e0efeaf1e7f8d06d6032fd1b8bcb",
+              "/home/grant/decomp/sbk1/include/PR/gu.h": "1986a3837296dd1a4bfe42f1c2fb4c8692ded4b8e2ecd7ab171f03a4007c6a87",
+              "/home/grant/decomp/sbk1/include/PR/guint.h": "17521fe5d43315500108356d8b2167b1b04009e3f9bed6cb6cd6fd69981e2965",
+              "/home/grant/decomp/sbk1/include/PR/libaudio.h": "e356c54ebbb3dd37392cb2144695562491276eaaa8f22c129ece6bed970a8f4b",
+              "/home/grant/decomp/sbk1/include/PR/mbi.h": "b41d9c33aee262c864f460cd045fada19ce50dc9c02c6b37b740b5de50900302",
+              "/home/grant/decomp/sbk1/include/PR/os.h": "bbe895a34cc3d44467bed3b86265b3be686650f9e195c637472d428c243f0679",
+              "/home/grant/decomp/sbk1/include/PR/os_ai.h": "d844eb3a2a76e58b4067da9842295be8e75dcbee5ecf881cd19c5318971e073a",
+              "/home/grant/decomp/sbk1/include/PR/os_cache.h": "b4559fc6e78959aaf5c4655bb6270ab021f4e3bf493b35d55fae802f78b3a02e",
+              "/home/grant/decomp/sbk1/include/PR/os_cont.h": "0ded3724653de3c98a15836d72e1add6f6ae26b345c40d86dfd8671929c7e978",
+              "/home/grant/decomp/sbk1/include/PR/os_convert.h": "9434374bf3e8fd1f41aead44f762fa3e789e30ad056ff276b609701826c182ca",
+              "/home/grant/decomp/sbk1/include/PR/os_debug.h": "d00368fbeabc8bd32a1e527b1df4512a93b77dfc378ed4e5e82a0f2ac9b17d0e",
+              "/home/grant/decomp/sbk1/include/PR/os_eeprom.h": "ada58ec432e11cc76df3887fae2ebd428e6cbdcca0410b5185744f1ba602d146",
+              "/home/grant/decomp/sbk1/include/PR/os_error.h": "c393b18dca7afd0a6d15dd20ac27c7ea41cd63541b321ea20ff0db1cf168dc17",
+              "/home/grant/decomp/sbk1/include/PR/os_exception.h": "f1ae2712ed62640e0efbc76064f74e93247f661dacb07dd12291fe502d41a870",
+              "/home/grant/decomp/sbk1/include/PR/os_flash.h": "869a9093b658b364c3977fb296ec875683fc522d290ee2561c2f52af1b45d033",
+              "/home/grant/decomp/sbk1/include/PR/os_gbpak.h": "772ccae2c4b77496a2d89158b5a78b7e022aff1710008d3684bbe9bc52a1f236",
+              "/home/grant/decomp/sbk1/include/PR/os_gio.h": "525a99647f284acb981458a2d3ab7ac8579ab890534e1702ef55aa2ba5de5864",
+              "/home/grant/decomp/sbk1/include/PR/os_host.h": "9a45031ec8de762433e27e6bcb1a90264058bf38cfde8b06d95962692bcb7258",
+              "/home/grant/decomp/sbk1/include/PR/os_internal.h": "2b3fe240c00a8a72d90a26f5a0c44d4712a77b42f1d372b5dcfeb4b8bf6fbef7",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_debug.h": "dbc54a58fc8f56e4bfda8bac671c29d1b50ee54a4acee730700c0c7cf3c88bdf",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_error.h": "f01da9cbe63307ad64ae5a9af1c09968918129b1d76b1256ad2808326bb256c9",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_exception.h": "7c7f477b937cd86c4e54082e0cf9cac30c9866b3c30dc9c4ed2ecb192c053331",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_flash.h": "455a2c2f3b009659ec3ed6eba745091883c3a0bb04bd05b6ca77f0b414a3ed45",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_gio.h": "d1b1b5a145936dc856ca7fd96dc332718e68cc32f8036ac9b5e38298f52ad84b",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_host.h": "e546e9cd5e021b788476870c795b38229eec133086100f3588aef1700cd907d7",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_reg.h": "01620c1a8a1e8c95b32194354111e86b4c9169f01d3d8ec01ae4056786a9dadc",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_rsp.h": "4e53403015722451a812773a635e6d240463c675a4c50a11340891b574cbb965",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_si.h": "bd2ba83fdd44630c21ecdfe293a611a28827a08da44ed5c1d4fbff8e31ba5128",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_thread.h": "1314f1c82593fd07d5caa03056693346bcbf9d5ee88e43aa4e9b8497caa624c3",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_tlb.h": "c29a008d11801a46c5c4fcbc45014a19077085f117a8ddf1884605a9e24fe888",
+              "/home/grant/decomp/sbk1/include/PR/os_libc.h": "d0aa7818cbad654944a8f82acb1e2da92fe7db79dac465c785619af7801c961f",
+              "/home/grant/decomp/sbk1/include/PR/os_message.h": "dded6321c7b9fdc3fefef81c3c685ba688c5d6592445cfdcf921f7d3117409ba",
+              "/home/grant/decomp/sbk1/include/PR/os_motor.h": "c6dcea4127af27484cc9bd29ad718fe871b642364efab402c76d03177ea2dc25",
+              "/home/grant/decomp/sbk1/include/PR/os_pfs.h": "1f4f6209a6a18af5090c8bdd021cc3a8f00c59bcc4e05ddc1ca6bf7a707b3a00",
+              "/home/grant/decomp/sbk1/include/PR/os_pi.h": "8f71c735f1887003bd47d3fa9f8c61ca4a591a52f0cd74b4c5a42a7d449855fc",
+              "/home/grant/decomp/sbk1/include/PR/os_rdp.h": "25d4e8be77c034f5cc503e7ed0f7f222f7223f97f9e8a43439964d8119adc43c",
+              "/home/grant/decomp/sbk1/include/PR/os_reg.h": "78d6241e388b2690bd4319eaca873ada14b3833858bc17285412f65807988503",
+              "/home/grant/decomp/sbk1/include/PR/os_rsp.h": "2f0de811e5246e5162aebf3fcfd25989c5a2446d288a3cbc53a7dbadd9124899",
+              "/home/grant/decomp/sbk1/include/PR/os_si.h": "bbb4705eebbb5062f3ebdf3fa78e714565f639831bfc87b15a449fd8747a996e",
+              "/home/grant/decomp/sbk1/include/PR/os_system.h": "52b94d0b420c7b550141c45802d07eb0802fa321e71baf7cf6322d441c2c53f5",
+              "/home/grant/decomp/sbk1/include/PR/os_thread.h": "43e55963a3ed7d9647b979f3bb0f617cac0c597b6375d8e1f8645475c2e9623e",
+              "/home/grant/decomp/sbk1/include/PR/os_time.h": "4b50d96c672559b481e67c3b976c430c7ed836c56a2fa1de31ae8a48d0701841",
+              "/home/grant/decomp/sbk1/include/PR/os_tlb.h": "7a14e826302a2ec312856ade7128e693f53420a1f1e19bb742937a9ef992450b",
+              "/home/grant/decomp/sbk1/include/PR/os_version.h": "42a447fccfe59a0e22817db4eb6cbb504bfa23125d1e801ea1c8ad1c32e8e05a",
+              "/home/grant/decomp/sbk1/include/PR/os_vi.h": "ff291375cbf7217bc6258fc3639ef8717d857c38599fa19365bf6d5a70b5ceb3",
+              "/home/grant/decomp/sbk1/include/PR/os_voice.h": "ad9059336cf4a9097f45255da72a18989537d9dd19d348c07651dcaf37c7d57f",
+              "/home/grant/decomp/sbk1/include/PR/ramrom.h": "87efd3393f07c20eb596f75bd4ce87abe74ef4b91d49847c81034aae5f0b8980",
+              "/home/grant/decomp/sbk1/include/PR/rcp.h": "49ff686b0b3d7cb7e468d65015872e6edf85f4733c9f7a3a4a2e4cac538e9e77",
+              "/home/grant/decomp/sbk1/include/PR/rdb.h": "4218e8e32b80dcde1aa1820e3ac9a896dc859b47bba3812482412acd3df6cc33",
+              "/home/grant/decomp/sbk1/include/PR/region.h": "18bb95ef6b1945e92017d0c6e6eb8bbca5680da0509d8417c91fc1139cdb21b9",
+              "/home/grant/decomp/sbk1/include/PR/rmon.h": "b28415d8639bcf6c4b5a12e61737d699dd31fb49aca3ae44a764f31ef699c7f5",
+              "/home/grant/decomp/sbk1/include/PR/sched.h": "518b98629b021ddf3f769b205c20fd8cf9b08b61e9ce1d725fe20392eb625c64",
+              "/home/grant/decomp/sbk1/include/PR/sp.h": "af317e9676fe6fca53762214a479d6f104ff2257bb66a1ba49d842cf53d9713c",
+              "/home/grant/decomp/sbk1/include/PR/sptask.h": "c22fc2ac2f56d947b11217da2e5cc5d9e849cb69496ac21404ee70d763bceb5c",
+              "/home/grant/decomp/sbk1/include/PR/ucode.h": "2581991d352396f823ee7106acfd5e1451138d6d072152d341ebfb7d5af6b0c3",
+              "/home/grant/decomp/sbk1/include/PR/ultraerror.h": "b40e4ef1f44b53637aaeb92329125c2191794d2c5440bbb6a24b6335c9116909",
+              "/home/grant/decomp/sbk1/include/PR/ultralog.h": "b33cdd2daf91548fabe3b416dfb9cf50c28445b2dac6c51181eefbfbbd18ffc7",
+              "/home/grant/decomp/sbk1/include/PR/ultratypes.h": "9d7fef48e105f75ea24c882f13d6111705519be75ae2c4f2a9539047363603ae",
+              "/home/grant/decomp/sbk1/include/PRinternal/controller.h": "6f1e37fa45b355ee6a216d6cc153ab4f99163198d7a82207acd92453fd69c5c7",
+              "/home/grant/decomp/sbk1/include/PRinternal/controller_gbpak.h": "b65f160e18c168b8e46eb163572c1ccc6a40019236fa91ac42f06b9d850a78a9",
+              "/home/grant/decomp/sbk1/include/PRinternal/controller_voice.h": "342f0f7b17d35e8db3899675b092a3636c1e81f91f581754c2597902a8cab612",
+              "/home/grant/decomp/sbk1/include/PRinternal/dbgdefs.h": "6167cbafc0f45bc61c288f78afef5b92626353e13b32779ba9bfffa2010a31d1",
+              "/home/grant/decomp/sbk1/include/PRinternal/dbgproto.h": "7d03696e694ada01e6fa2fadb8db8727b03e4c1820e03d0e7a05640987c96b80",
+              "/home/grant/decomp/sbk1/include/PRinternal/macros.h": "df282128a020c116d6af3ed6bd26028313cf5dbe4da23d22f69af888fcfa7da3",
+              "/home/grant/decomp/sbk1/include/PRinternal/osint.h": "1ba990d64ba61a6d9de6e1356e0c59a0d263fd0d392cb6ac387bf01b9bc47a13",
+              "/home/grant/decomp/sbk1/include/PRinternal/piint.h": "5baca097f05f19956f5533c28d085105bad4803a31f2bd07f6052c9bfbb103b8",
+              "/home/grant/decomp/sbk1/include/PRinternal/rmonint.h": "b7ee79db08f86cecacf7fa4268dcb2b79a4500432b20835f58e66ff7b48ca8eb",
+              "/home/grant/decomp/sbk1/include/PRinternal/siint.h": "9f0c99c8652d36023162bfd8722dbb5117ca03f6b97d958af81b883f7a12de87",
+              "/home/grant/decomp/sbk1/include/PRinternal/viint.h": "67639f0549c546e3e093f69a9ff9b72c93b4896fa489bae60f278d56b1f8a7ea",
+              "/home/grant/decomp/sbk1/include/assert.h": "90e58fa971e5f7d3a235e01e5076915eab729595b19007fb936bf6bc965fa2d6",
+              "/home/grant/decomp/sbk1/include/assets.h": "9fa64fe19ab83a5cb9d0a043e62ba6b5957eac235329267c1998b74eeedeb5f0",
+              "/home/grant/decomp/sbk1/include/common.h": "f0c10bc9cd057250689412f9fa5a28a9018a051073addd38d66eec58dd701aa5",
+              "/home/grant/decomp/sbk1/include/compiler_diagnostics.h": "30e2f0311d21101eae900bbcb34a9c8ff4d3d38a5a04742ca746906c591d7ce4",
+              "/home/grant/decomp/sbk1/include/font_encoding.h": "c851e9e3cfdeda59c6dad4b2e3c9787dc395ae1557e2a46ebea0f27976650e6d",
+              "/home/grant/decomp/sbk1/include/game/audio/audio_engine.h": "43b2651d7c4ca177558e298880b890550c6b62d90b6815838853dd209f8e3aad",
+              "/home/grant/decomp/sbk1/include/game/audio/audio_engine_internal.h": "3ab21399c1dec6803fa75e0a5850bfac6ac4e4a86069255927ddeedd1f243e6c",
+              "/home/grant/decomp/sbk1/include/game/audio/sound_manager.h": "8b66c6610e80e5d5f8a26c0f80309796c00a37063070c17e26f565f507f2e180",
+              "/home/grant/decomp/sbk1/include/game/demo/main_menu_demo_race_intro.h": "ba26e639fb2563b63c3aaf716bd7979ce4ade65a819334574939791c4637a3e5",
+              "/home/grant/decomp/sbk1/include/game/demo/race_demo_intro.h": "d871d1f875fa0654fc40ac9bd448388947ed6d53c88c8367b797c2b036f0a195",
+              "/home/grant/decomp/sbk1/include/game/demo/title_demo_race_intro.h": "dc1fd959a6ab296ed16c671b40871f3012ca5a42a48eacbd8d2ca9779487751c",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_effects.h": "b63579ffcbb56d755c1666a1700714848126238e3c957ee93ba32eb09d048f51",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_flow.h": "d5444b408013c7696e6772960617ddf2e11f47918658b9294e468277c3b9c8e5",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_jam.h": "be9b75919fe71c3729467b7ea222d977273d8426eb7db97a782fb9dfd8604e4b",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_linda.h": "c8aece1997592a98f4bfc1139b38768305358e7c1dc7a4c48d63f0851b81fbaa",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_nancy.h": "cadb50d5c7127c30525489f98f054a760c959ed90f12676e805df4f4bd5b8187",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_slash.h": "6ff0b7bf29db33a46cc7108a0b22295e3d645737f7e9ce0da0ba7cd81f22a436",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_tommy.h": "68f8071470d6e1197b3a2ce2bff34df0d7c83ea871cfbb1f493008be31ae8be4",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_ui.h": "b90552b08df254b4b45168e7c106d6fbbc2db5f99ab9aee1d5e84bbe347c1a13",
+              "/home/grant/decomp/sbk1/include/game/engine/asset_manager.h": "4714db136024a5224f7c198068f2360f3723e343a183ef5a91d888475e241b58",
+              "/home/grant/decomp/sbk1/include/game/engine/callback_task_scheduler.h": "87232be7281cbd809dea2c6f94f4f1257cd74f35a4044553168ab308e6aff768",
+              "/home/grant/decomp/sbk1/include/game/engine/controller_input.h": "d66f53bdc88c5f7a73099a65952ebb0f0e4a9dd9c670e282a30e6df94bfbca22",
+              "/home/grant/decomp/sbk1/include/game/engine/frame_render_task.h": "82ed0dd7731f76d94605168508a6e55e8ef3fc601589934ff0eb86586de76c9a",
+              "/home/grant/decomp/sbk1/include/game/engine/game_task_scheduler.h": "d049d39e2f4e98ba0246e61556306da2c1fa4c441c7edfaa09c1b0ef39e55334",
+              "/home/grant/decomp/sbk1/include/game/engine/relocatable_heap.h": "fd4fba0525f4f09d8cdedc8ff5358f8bb1e8c35db51a3a59feb5a87518f36fd6",
+              "/home/grant/decomp/sbk1/include/game/engine/render_callback.h": "558f01c437cf2c6b0986565c4b4d1491610c87f4b40e8d891e4155a363abcdce",
+              "/home/grant/decomp/sbk1/include/game/engine/system_runtime.h": "74fc7c624856e0a54e81fa07025e2dd2bae0f14e5cc3bbdeb6bb26cca322d28c",
+              "/home/grant/decomp/sbk1/include/game/engine/viewport_manager.h": "18331997c877fa63dace2b28d3f3228df8f95806620f54f91ec17457fc3fcdd8",
+              "/home/grant/decomp/sbk1/include/game/math/fixed_matrix_multiply.h": "74e838e5e439e679f66b9c45905798a74f21b9d6b94e8768add3ae33643d4b2e",
+              "/home/grant/decomp/sbk1/include/game/math/fixed_point_math.h": "ff64c59e41ace7ed1979b2e365e31d8b8f416847617f6f00eca192abccce9285",
+              "/home/grant/decomp/sbk1/include/game/math/geometry.h": "02b96b7d87810ca4c67764234258a291ee0b48f4c3c859feb934c6ede805f216",
+              "/home/grant/decomp/sbk1/include/game/math/spatial_math.h": "e80480adabdd5bd2f8caeac752abf30b3dd4026dfb86a41cf6145dd6ae2b0531",
+              "/home/grant/decomp/sbk1/include/game/menu/character_select/character_select_course_menu.h": "29e7cac756fcb08ea7c2f516fb9d10063b3269ad8a5666bdf756b18d9da7dbce",
+              "/home/grant/decomp/sbk1/include/game/menu/character_select/character_select_course_ui.h": "f98d58abc08ad9bd9e767bd3d9fef5fff91617c73bba5aa3d035f0d188436737",
+              "/home/grant/decomp/sbk1/include/game/menu/character_select/character_select_menu.h": "9bb08ce186c9bdbb4d9f8037a56caf0445e1c40419384c9fe00332738b608ff8",
+              "/home/grant/decomp/sbk1/include/game/menu/character_select/character_select_ui.h": "64608e6e5a50591ba4c51671e21f825e035f170ab889b948e01aee6ea51a3d6c",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_continue_prompt_flow.h": "13e257efdb071d9aae99f7395685530a47bdfbf536777b3d45da22524d2a2d66",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_file_delete_flow.h": "18a0941fe67372d902fdea988184f8957a99138c86b9aeab3d814bbab2e9d01e",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_menu.h": "9c462128e95c05080f3a9d5dc0b6bdf2a52222162537f262556a0e89f763af7d",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_race_record_save_flow.h": "583473d8892c7f9b40cbfc9468033136833a76efcbd479c1b06b2a086e0d9846",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_race_record_save_ui.h": "8351b95f69a9ad127aba4af470e715d016a02f17bc38de2fcbcd9cf8222218a7",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_replay_save_message_flow.h": "8c6a7dc8579c2d8c9f47512fa3285b560b3085df1b87625ed1924ae19274fbb0",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_ui.h": "9edd8f4521686dbd634a1a523eedb0f1a1ebfebb48b867f8461496f664d230c8",
+              "/home/grant/decomp/sbk1/include/game/menu/course_select/course_select_menu.h": "a3de5b761c08e8601e206c63ec7bb7d57189da5f89f5459abb95630478a6f6e3",
+              "/home/grant/decomp/sbk1/include/game/menu/course_select/course_select_shop_ui.h": "4a47de979ba4713bc9e69deace1b4eaaf11c734eae1ff97d5aa01d91c4e4876d",
+              "/home/grant/decomp/sbk1/include/game/menu/course_select/course_select_ui.h": "3096570d08a1aa8e91725dfd0dcffe581839c7ec94b16c1fdfc20b281757ff6f",
+              "/home/grant/decomp/sbk1/include/game/menu/course_select/multiplayer_course_select_menu.h": "f2c833f1b393cea6ee922117f439e247f50679a5f997e4f4dbf3ef1338f93fa4",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/controller_main_menu_flow.h": "c2f20b9ab88d81411a4894473782680e519eff570940c8272a89766118678333",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/main_menu_panel_ui.h": "773bf649fa7ceb3f1d8c1cb119c125ef69cb15855da455209c8b2cfbd475aad7",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/main_menu_race_flow.h": "b4a8b09d0bec539e3a6ec64a20e78683709276fd2aae08d6ee231b497d9f33a7",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/main_menu_scene_model.h": "cc2a3c78612b75c4adf09b4f845ba3cc9ad62dedd8e117b33166e7490618e806",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/main_menu_scene_model_renderer.h": "7011d8c45bda0ef6010fb81843413222438a17d47fe2f05896c49b571f46fe70",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/main_menu_title_ui.h": "13a67ae88ceb84ce9a8b82d89adefab5960f2b50e71a9be36fa0227472a7269f",
+              "/home/grant/decomp/sbk1/include/game/menu/race_setup/race_setup_menu.h": "037b4357508c5ec5d7337cc930e73387533617e1f31617a0f942ce60cad5ebe6",
+              "/home/grant/decomp/sbk1/include/game/menu/race_setup/race_setup_ui.h": "4a2d1154e1060585ed5d9cd1f0a6420f22869c50507dc862b977b177bdac095d",
+              "/home/grant/decomp/sbk1/include/game/menu/race_type_select/race_type_select_menu.h": "b77be101073ede9b4d719f3bb89acefeff3be13e125fbae936dd7b7d0bbadc0e",
+              "/home/grant/decomp/sbk1/include/game/menu/race_type_select/race_type_select_ui.h": "23c8792b222d3c03ac958e9fdd44eeee2e6b6cbfb229078d42802a98151cbd65",
+              "/home/grant/decomp/sbk1/include/game/menu/renderer/menu_render_utils.h": "e196722f95c3fe3829b8dceb6257b0302b9b58dbb1f6ccaaadb77aa4a938c778",
+              "/home/grant/decomp/sbk1/include/game/menu/renderer/menu_renderer.h": "5a88617e289c3f7052a802e1c64038487336127bd969455a800aa0012d0b36b5",
+              "/home/grant/decomp/sbk1/include/game/menu/renderer/menu_screen_effects.h": "7ac0e6b4b634358d7e61d39b3bda49633fa6de2db984200b393995017d2c4928",
+              "/home/grant/decomp/sbk1/include/game/menu/splitscreen_select/race_splitscreen_select_menu.h": "202e5cc153a9f585592b6b934f5dbc93730a9882f5ffccbf19b0144cda65eecf",
+              "/home/grant/decomp/sbk1/include/game/menu/splitscreen_select/race_splitscreen_select_ui.h": "120cd0306797c56bf9377f9a340b11f53c6739a0c4e6c0a5989942df7b7a3c74",
+              "/home/grant/decomp/sbk1/include/game/menu/training/training_course_ui.h": "5ad79cad3080abe300badfef4464315cb57dc62930afff9c83c8c885e30ffb4e",
+              "/home/grant/decomp/sbk1/include/game/race/camera/race_camera.h": "ad98ef317337402d1444af51750dd847b65c4efe0c847d8a0ed528a42a2a907f",
+              "/home/grant/decomp/sbk1/include/game/race/course/race_course_effects.h": "d25aa06f3457ee8f16b24b10f112fcfe0b36925859eb700540a72b5e96a02af6",
+              "/home/grant/decomp/sbk1/include/game/race/course/race_course_props_and_pickups.h": "b5dd80a4115cd557b313ee5741622313661d5d944f040aca12eac5660fe6cbdd",
+              "/home/grant/decomp/sbk1/include/game/race/course/race_surface_cues.h": "a932af42c47aaa6e729d3ba334f384f77be41eaa3b3a8a5006a33014dff3e447",
+              "/home/grant/decomp/sbk1/include/game/race/effects/race_intro_effects.h": "c0f0076bcd6d77fd645f2e93f506b8342233c8b815c3bfb24cbb0dd3b000d9e6",
+              "/home/grant/decomp/sbk1/include/game/race/effects/race_start_transition.h": "938f45c18a3792cd3d763f267ea5697d395e145a5795a8d9401aa781512d092b",
+              "/home/grant/decomp/sbk1/include/game/race/effects/snowboard_trail_effects.h": "d090e9cba18f3f40eb3e16aca64585c30a55f397baac9b888cf4e3b7983a23c4",
+              "/home/grant/decomp/sbk1/include/game/race/flow/race_flow.h": "17f266d6e76191403755169cc7f28e0ddcb00fe77189b13ef63d3a17fbc10711",
+              "/home/grant/decomp/sbk1/include/game/race/items/race_item_effects.h": "31540b8e587ab438aec5ffff9322e4fad4ff2ad3b0d202910c0adb9b79622e56",
+              "/home/grant/decomp/sbk1/include/game/race/items/race_item_hit_flags.h": "d292d24d5128471a99af23b2a4995bc9dec9082b53772ff216a6585cb94bed9c",
+              "/home/grant/decomp/sbk1/include/game/race/items/race_item_projectiles.h": "1496b26ce85206c75fb5dfe35c89615c02be784cdb025b4b556d93bd0eb91cf8",
+              "/home/grant/decomp/sbk1/include/game/race/motion/race_motion.h": "de0d5c7e328138e13cf9dfabcacf5b3018515e8ce4bf5de61bff82ca9a31eb7e",
+              "/home/grant/decomp/sbk1/include/game/race/motion/race_motion_animation_debug_viewer.h": "2a99d489c7d31b19c2718e322c7ed28db894e3dff596895068eed5e12c340b07",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_collision.h": "6b784e2057c1d89c15bf3b8a49005bf5c4ecc80d9b77d2f536a99a6b1f86cb6d",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_input.h": "1d1717ea4ab80c0550e5d5bf62a8427c0889464b9d71b22434af642b421d2688",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_model_renderer.h": "184e881cc46f79bc2039d5d6d72c27e38e95a56049f280eaada442511bf040eb",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_movement.h": "36c384684d467531003e0215e60423909d2a14bc065f77d9c05f3037b80099f8",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_pickup_effects.h": "dac64f1dcdc6dab548b9de00d1a368306e8faaa29bc95f74c3d54b19d82773c0",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_progress.h": "063c812c3f2e885f0e1f39aeea735f5687cddadb8710b5386e003852ab93f751",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_rumble.h": "782cacbd92113cd18b1008e2c895cf54b1ecc1890997ed2f9f2793d431760293",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_update.h": "c4761a2ae1f95a6248b3e2d8ecc411edbad9eb7ed1ea662e34e228fa5082e55a",
+              "/home/grant/decomp/sbk1/include/game/race/race_replay.h": "0f9ef469e3df8482fda4bfc2070ab63593a6c748e72a6a38f9331a079224725e",
+              "/home/grant/decomp/sbk1/include/game/race/race_state.h": "8345ed9747150b44292ba2661b191b0b9efcc067e8ad2990fef8d461738bbde3",
+              "/home/grant/decomp/sbk1/include/game/race/scene/race_scene_setup.h": "d8b6f31f901314011e79887affe3cd0546444118de3d21cdedc50e06b20055f6",
+              "/home/grant/decomp/sbk1/include/game/race/ui/race_hud.h": "6e3d965123c9eae94ce665f93f3008f3484c8921ff03854412fc2bd16e66e4a5",
+              "/home/grant/decomp/sbk1/include/game/race/ui/race_ui_effects.h": "2bd6d7c60bca3b8369fbc539d9b3c6b42915ad984c47980ad4b57ce03ce31e54",
+              "/home/grant/decomp/sbk1/include/game/save_data.h": "bb402a4850181aebe5847227e41cc3893f5bb47f730b08fce583c1efc4da1490",
+              "/home/grant/decomp/sbk1/include/hasm.h": "fd23f74eced66bd6fcd64cec63a813cc2b034def9275e254f30be86e146b7c5f",
+              "/home/grant/decomp/sbk1/include/include_asm.h": "dac1810bf4a2bc6bce18de1098188b72dee4f4d057fc7c3a6042e08e398614b5",
+              "/home/grant/decomp/sbk1/include/initfx.h": "4a17cca508b2779fdc41e5435f8b6a2398c32b0313e968d4db249a6d280eedad",
+              "/home/grant/decomp/sbk1/include/libmus/libmus.h": "55a1d6a0e8d061871b11b19cb0b2e80128294b8aa8c718d76d7fedddcc6f3cbb",
+              "/home/grant/decomp/sbk1/include/synthInternals.h": "79c46fa822326e137e17d2dfb1e8cc41d4d1c854c0e980adbed3b06b90b9af23",
+              "/home/grant/decomp/sbk1/include/sys/asm.h": "0e5e5e1562fb488b49b92dcccba09e94462ba6a545a6887656b03b7ccdc13cd0",
+              "/home/grant/decomp/sbk1/include/sys/regdef.h": "69af9e251c38c0f347d56673bca52496937a12ef3739c8a99080fd18215dbb40",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/acpp": "d36b55f0d9ba0410431936720edd938f620cb91041a4c5a5555bb89eb28c9b19",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/as0": "8097e4bde2731d9b0cf8e385f962044a102ee367f3d337b6b15ef9d6d6aebb5e",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/as1": "73b4522a61b5d735790e4bb71168647bfa22be125ce7e2b45ea3c35df5b9dc04",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/c++filt": "eb1729d3470fb25c478ace168fdc9cd7cf32da15a6591ac5e8c907c6ae569ec4",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc": "8ba3154946a3691d80eba5a7aecdb8181494b3e7339f231e176eba40d1ba9952",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cfe": "d9c00d8ddc801d1bd48a6f9fd13fe61df5913ab6c77bd35b744f19c281877699",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/copt": "a95a11af6d061946307bca914334b9b08ed08fa5055a94fe64488368792245d9",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/crt1.o": "95bd24880e95e102bbdf2a1cfa2e10d391cb57784a42db19afd609c0904aee28",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/crtn.o": "62197e97a5e56e21c6a4e76ffe9f634cf90b47046ebe4841086108101ce496eb",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/err.english.cc": "6f2d777730f0a70328bb932c116c1c195da765cb9bbdee8c6d3eaf7d6ad77e78",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/ld": "bf2af6a04840699c1d6b5615f2b64d9df464ebab2fd3bbd5a6e64b01af4bec5c",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/libc.so": "803f8b127194a79d92c5caea62fd39097be16d3fcd9870b4470123cebd5d27fe",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/libc.so.1": "803f8b127194a79d92c5caea62fd39097be16d3fcd9870b4470123cebd5d27fe",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/libexc.so": "b59bf75bcbff1526ad4e3b2b49b313788a6e4c97df5b69b4bc2ddbd6726c5864",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/libgen.so": "bb66dea1242000f648e890252cbe47037310559cc0ecda8ed212c0e545bf8063",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/libm.so": "8acc66c2d1315b90f38a280fe04a26d0e61b5ca377976ed5d7f88bb064bd2e35",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/strip": "ebcf655fcbf719c810717104217ddb4b4ab6d1314c6846d6fafb5e25efd78036",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/ugen": "326d919dd3f78f9a67cd8d4ed0e7bfad1dfe60bce508474a9198d9eb17741ff9",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/ujoin": "a4ca37b1201115cbaa5e6d37b321277fbf2d13c97dd098a4623be6dbb0f499da",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/uld": "046b865bb5234273f581b5f3169a07384c6f0d0a98e1a87310d03da830b6f837",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/umerge": "2462932d5b3153f045382aa345dfaa130c6b87183156857771dfacb2f52474bc",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/uopt": "56f8c312ccffac08e531dd41c6bb5e6c4a0114e260461c348173b13219e0f4b0",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/upas": "e8c9474df2c1f6ac266140440b44c921906ebc5066af9b8e57f74f45984bb963",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/usplit": "1c0b2d367c3e42f4dd4a7919585e880b704bfebd409031d2777c09781aa09888"
+            },
+            "exact": true,
+            "target_sha256": "7a141bf0572f08d3885e91649cd1785f1682e93207e501e28acf3ac7c37c2823",
+            "candidate_sha256": "3eecc66f44ff2d605e0b226eb9c9777686b8100623c920f280c648372f211cd0",
+            "target_image": {
+              "elf_flags": 536875265,
+              "sections": {
+                ".text": {
+                  "size": 256,
+                  "type": 1,
+                  "flags": 6,
+                  "alignment": 16,
+                  "sha256": "3cb519039f03a701d3aca0f55905c830ac9d9c7785de8213553df6c1e68c169c",
+                  "relocations": [
+                    [
+                      0,
+                      5,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      4,
+                      6,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      44,
+                      5,
+                      [
+                        "external",
+                        "updateEndingCreditsFlow",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      52,
+                      6,
+                      [
+                        "external",
+                        "updateEndingCreditsFlow",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      72,
+                      4,
+                      [
+                        "external",
+                        "stepMenuFadeAlpha",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      80,
+                      5,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      84,
+                      6,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      96,
+                      4,
+                      [
+                        "external",
+                        "setCurrentGameTaskCallback",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      104,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsPageTextActor",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      108,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsPageTextActor",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      116,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      124,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsSlash",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      128,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsSlash",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      136,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      144,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsNancy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      148,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsNancy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      156,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      164,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsTommy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      168,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsTommy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      176,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      184,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsJam",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      188,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsJam",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      196,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      204,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsLinda",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      208,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsLinda",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      216,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      224,
+                      4,
+                      [
+                        "external",
+                        "requestMusicSequenceBank",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      232,
+                      4,
+                      [
+                        "external",
+                        "updateCallbackTasks",
+                        1,
+                        0
+                      ]
+                    ]
+                  ]
+                }
+              }
+            },
+            "candidate_image": {
+              "elf_flags": 0,
+              "sections": {
+                ".text": {
+                  "size": 256,
+                  "type": 1,
+                  "flags": 6,
+                  "alignment": 16,
+                  "sha256": "3cb519039f03a701d3aca0f55905c830ac9d9c7785de8213553df6c1e68c169c",
+                  "relocations": [
+                    [
+                      0,
+                      5,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      4,
+                      6,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      72,
+                      4,
+                      [
+                        "external",
+                        "stepMenuFadeAlpha",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      80,
+                      5,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      84,
+                      6,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      44,
+                      5,
+                      [
+                        "external",
+                        "updateEndingCreditsFlow",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      52,
+                      6,
+                      [
+                        "external",
+                        "updateEndingCreditsFlow",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      96,
+                      4,
+                      [
+                        "external",
+                        "setCurrentGameTaskCallback",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      104,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsPageTextActor",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      108,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsPageTextActor",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      116,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      124,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsSlash",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      128,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsSlash",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      136,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      144,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsNancy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      148,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsNancy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      156,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      164,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsTommy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      168,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsTommy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      176,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      184,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsJam",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      188,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsJam",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      196,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      204,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsLinda",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      208,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsLinda",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      216,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      224,
+                      4,
+                      [
+                        "external",
+                        "requestMusicSequenceBank",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      232,
+                      4,
+                      [
+                        "external",
+                        "updateCallbackTasks",
+                        1,
+                        0
+                      ]
+                    ]
+                  ]
+                }
+              }
+            },
+            "relocation_order_equivalent": true,
+            "relocation_comparison": "raw order or disjoint external scalar/intact HI16-LO16 groups; pairing preserved",
+            "status": "object_sections_exact",
+            "normalized_assembly_exact": true,
+            "build_manifest_scope": "build script, prelude, Makefile, project headers, text conversion inputs, IDO/checker binaries; not a hermetic dependency or final-link certificate",
+            "candidate_source_sha256": "ca8b596906098d45143298138e77acdafa04d8f86b2a8b8cbe593e73005ca3e6",
+            "compiler_recipe": {
+              "schema_version": 1,
+              "target": "build/src/ending/ending_credits_flow.o",
+              "settings": {
+                "IDO_CC": "python3 tools/asm-processor/build.py tools/ido-recomp/linux/cc -- mips-linux-gnu-as -G 0 -I include -mips3 -mabi=32 --",
+                "CFLAGS": "-c -mips1 -G 0 -non_shared -fullwarn -Xcpluscomm  -nostdinc -Wab,-r4300_mul -woff 649,838,712,516  -I. -Iinclude -Iinclude/PR -Isrc/ultra/audio -Isrc/ultra/libc  -DLANGUAGE_C -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DNDEBUG  -DCOMPILING_LIBULTRA -DBUILD_VERSION=VERSION_I -DF3DEX_GBI",
+                "C_OPT": "-O2",
+                "C_MIPS": "-mips1",
+                "ASFLAGS": "-G 0 -I include -mips3 -mabi=32",
+                "C_OBJ_POSTPROCESS": ":"
+              },
+              "command": [
+                "python3",
+                "tools/asm-processor/build.py",
+                "tools/ido-recomp/linux/cc",
+                "--",
+                "mips-linux-gnu-as",
+                "-G",
+                "0",
+                "-I",
+                "include",
+                "-mips3",
+                "-mabi=32",
+                "--",
+                "-c",
+                "-mips1",
+                "-G",
+                "0",
+                "-non_shared",
+                "-fullwarn",
+                "-Xcpluscomm",
+                "-nostdinc",
+                "-Wab,-r4300_mul",
+                "-woff",
+                "649,838,712,516",
+                "-I.",
+                "-Iinclude",
+                "-Iinclude/PR",
+                "-Isrc/ultra/audio",
+                "-Isrc/ultra/libc",
+                "-DLANGUAGE_C",
+                "-D_LANGUAGE_C",
+                "-D_MIPS_SZLONG=32",
+                "-DNDEBUG",
+                "-DCOMPILING_LIBULTRA",
+                "-DBUILD_VERSION=VERSION_I",
+                "-DF3DEX_GBI",
+                "-O2",
+                "-Isrc/ending"
+              ],
+              "makefile_sha256": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+              "projection_sha256": "266b57030fbb423c0ba26aef634272200e1e36aee5ce76e2dd2b019e26a52239",
+              "authority": "existing project build configuration, not inferred original compiler settings",
+              "source_origin": "C TU",
+              "scope": "C code generation; full TU syntax checking and final ROM integration are separate",
+              "helper_sha256": "0f3bc1016f658335bc36e0b4496bd5c6c42ccbf6c79ee92369ef2fa55f510619",
+              "script": "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.sh",
+              "manifest": "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.json"
+            },
+            "frontend": {
+              "kind": "project-policy-candidate-frontend",
+              "passed": true,
+              "source_sha256": "ad09a1f4deefdde7e76c9c39dc120817e8c8eec702ae57e5b1c5ebc3129ba1d2",
+              "scope": "candidate and included headers; not full TU or whole-ROM verification",
+              "status": "passed",
+              "returncode": 0,
+              "diagnostics": "",
+              "recipe": {
+                "command": [
+                  "/usr/bin/clang",
+                  "-fsyntax-only",
+                  "-ffreestanding",
+                  "-fno-builtin",
+                  "-funsigned-char",
+                  "-fdiagnostics-color",
+                  "-std=gnu89",
+                  "-m32",
+                  "-D__builtin_classof(type)=0",
+                  "-D__builtin_alignof(type)=__alignof__(type)",
+                  "-Wall",
+                  "-Wextra",
+                  "-Wno-unknown-pragmas",
+                  "-Wno-unused-parameter",
+                  "-Wno-unused-variable",
+                  "-Wno-unused-but-set-variable",
+                  "-Wno-unused-value",
+                  "-Wno-unused-label",
+                  "-Wno-missing-braces",
+                  "-Wno-sign-compare",
+                  "-Wno-tautological-compare",
+                  "-Wno-pointer-bool-conversion",
+                  "-Wno-array-bounds",
+                  "-Wno-unsequenced",
+                  "-Wno-pointer-sign",
+                  "-Wno-constant-conversion",
+                  "-Wno-multichar",
+                  "-Werror=implicit-int",
+                  "-Werror=implicit-function-declaration",
+                  "-Werror=int-conversion",
+                  "-Werror=incompatible-pointer-types",
+                  "-Werror=incompatible-function-pointer-types",
+                  "-Werror=strict-prototypes",
+                  "-Werror=deprecated-non-prototype",
+                  "-Werror=return-type",
+                  "-I.",
+                  "-Iinclude",
+                  "-Iinclude/PR",
+                  "-Isrc/ultra/audio",
+                  "-Isrc/ultra/libc",
+                  "-DLANGUAGE_C",
+                  "-D_LANGUAGE_C",
+                  "-D_MIPS_SZLONG=32",
+                  "-DNDEBUG",
+                  "-DCOMPILING_LIBULTRA",
+                  "-DBUILD_VERSION=VERSION_I",
+                  "-DF3DEX_GBI",
+                  "-DMIPSEB",
+                  "-D_MIPS_FPSET=16",
+                  "-D_MIPS_ISA_MIPS2=2",
+                  "-D_MIPS_ISA=_MIPS_ISA_MIPS2",
+                  "-D_ABIO32=1",
+                  "-D_MIPS_SIM=_ABIO32",
+                  "-D_MIPS_SZINT=32",
+                  "-D_MIPS_SZPTR=32",
+                  "-D__sgi=1",
+                  "-fno-color-diagnostics",
+                  "-iquote",
+                  "src/ending"
+                ],
+                "settings": {
+                  "CC_CHECK": "clang",
+                  "CC_CHECK_FLAGS": "-fsyntax-only -ffreestanding -fno-builtin -funsigned-char  -fdiagnostics-color -std=gnu89 -m32  '-D__builtin_classof(type)=0'  '-D__builtin_alignof(type)=__alignof__(type)'",
+                  "CC_CHECK_WARNINGS": "-Wall -Wextra -Wno-unknown-pragmas  -Wno-unused-parameter -Wno-unused-variable  -Wno-unused-but-set-variable -Wno-unused-value  -Wno-unused-label -Wno-missing-braces -Wno-sign-compare  -Wno-tautological-compare -Wno-pointer-bool-conversion  -Wno-array-bounds -Wno-unsequenced -Wno-pointer-sign  -Wno-constant-conversion -Wno-multichar  -Werror=implicit-int  -Werror=implicit-function-declaration  -Werror=int-conversion  -Werror=incompatible-pointer-types  -Werror=incompatible-function-pointer-types  -Werror=strict-prototypes  -Werror=deprecated-non-prototype  -Werror=return-type",
+                  "CC_CHECK_INCLUDES": "-I. -Iinclude -Iinclude/PR -Isrc/ultra/audio -Isrc/ultra/libc",
+                  "C_DEFINES": "-DLANGUAGE_C -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DNDEBUG  -DCOMPILING_LIBULTRA -DBUILD_VERSION=VERSION_I -DF3DEX_GBI",
+                  "CC_CHECK_MIPS_DEFINES": "-DMIPSEB -D_MIPS_FPSET=16 -D_MIPS_ISA_MIPS2=2  -D_MIPS_ISA=_MIPS_ISA_MIPS2 -D_ABIO32=1  -D_MIPS_SIM=_ABIO32 -D_MIPS_SZINT=32  -D_MIPS_SZPTR=32 -D__sgi=1"
+                },
+                "target": "build/src/ending/ending_credits_flow.o",
+                "makefile_sha256": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+                "checker_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+                "warning_policy": "project default WERROR=0; explicit error classes preserved"
+              }
+            }
+          },
+          "compiler_recipe": {
+            "schema_version": 1,
+            "target": "build/src/ending/ending_credits_flow.o",
+            "settings": {
+              "IDO_CC": "python3 tools/asm-processor/build.py tools/ido-recomp/linux/cc -- mips-linux-gnu-as -G 0 -I include -mips3 -mabi=32 --",
+              "CFLAGS": "-c -mips1 -G 0 -non_shared -fullwarn -Xcpluscomm  -nostdinc -Wab,-r4300_mul -woff 649,838,712,516  -I. -Iinclude -Iinclude/PR -Isrc/ultra/audio -Isrc/ultra/libc  -DLANGUAGE_C -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DNDEBUG  -DCOMPILING_LIBULTRA -DBUILD_VERSION=VERSION_I -DF3DEX_GBI",
+              "C_OPT": "-O2",
+              "C_MIPS": "-mips1",
+              "ASFLAGS": "-G 0 -I include -mips3 -mabi=32",
+              "C_OBJ_POSTPROCESS": ":"
+            },
+            "command": [
+              "python3",
+              "tools/asm-processor/build.py",
+              "tools/ido-recomp/linux/cc",
+              "--",
+              "mips-linux-gnu-as",
+              "-G",
+              "0",
+              "-I",
+              "include",
+              "-mips3",
+              "-mabi=32",
+              "--",
+              "-c",
+              "-mips1",
+              "-G",
+              "0",
+              "-non_shared",
+              "-fullwarn",
+              "-Xcpluscomm",
+              "-nostdinc",
+              "-Wab,-r4300_mul",
+              "-woff",
+              "649,838,712,516",
+              "-I.",
+              "-Iinclude",
+              "-Iinclude/PR",
+              "-Isrc/ultra/audio",
+              "-Isrc/ultra/libc",
+              "-DLANGUAGE_C",
+              "-D_LANGUAGE_C",
+              "-D_MIPS_SZLONG=32",
+              "-DNDEBUG",
+              "-DCOMPILING_LIBULTRA",
+              "-DBUILD_VERSION=VERSION_I",
+              "-DF3DEX_GBI",
+              "-O2",
+              "-Isrc/ending"
+            ],
+            "makefile_sha256": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+            "projection_sha256": "266b57030fbb423c0ba26aef634272200e1e36aee5ce76e2dd2b019e26a52239",
+            "authority": "existing project build configuration, not inferred original compiler settings",
+            "source_origin": "C TU",
+            "scope": "C code generation; full TU syntax checking and final ROM integration are separate",
+            "helper_sha256": "0f3bc1016f658335bc36e0b4496bd5c6c42ccbf6c79ee92369ef2fa55f510619",
+            "script": "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.sh",
+            "manifest": "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.json"
+          },
+          "diff": "",
+          "diagnostics": ""
+        },
+        "variant": {
+          "source_sha256": "4211440862c599df8b1d2be01749bfb5c08e2216ea0861e2b3a9f5e6bb4952a6",
+          "attempt_id": 29695,
+          "compiled": true,
+          "exact": true,
+          "score": 100.0,
+          "frontend": {
+            "kind": "project-policy-candidate-frontend",
+            "passed": false,
+            "source_sha256": "d1c874afc6d20630c6eb6242222fcd397e58fde0d04a4b9d874ee71a6df3f03a",
+            "scope": "candidate and included headers; not full TU or whole-ROM verification",
+            "status": "rejected",
+            "returncode": 1,
+            "diagnostics": "candidate.c:24:29: error: a function declaration without a prototype is deprecated in all versions of C [-Werror,-Wstrict-prototypes]\n   24 | void fadeInEndingCreditsFlow() {\n      |                             ^\n      |                              void\n1 error generated.\n",
+            "recipe": {
+              "command": [
+                "/usr/bin/clang",
+                "-fsyntax-only",
+                "-ffreestanding",
+                "-fno-builtin",
+                "-funsigned-char",
+                "-fdiagnostics-color",
+                "-std=gnu89",
+                "-m32",
+                "-D__builtin_classof(type)=0",
+                "-D__builtin_alignof(type)=__alignof__(type)",
+                "-Wall",
+                "-Wextra",
+                "-Wno-unknown-pragmas",
+                "-Wno-unused-parameter",
+                "-Wno-unused-variable",
+                "-Wno-unused-but-set-variable",
+                "-Wno-unused-value",
+                "-Wno-unused-label",
+                "-Wno-missing-braces",
+                "-Wno-sign-compare",
+                "-Wno-tautological-compare",
+                "-Wno-pointer-bool-conversion",
+                "-Wno-array-bounds",
+                "-Wno-unsequenced",
+                "-Wno-pointer-sign",
+                "-Wno-constant-conversion",
+                "-Wno-multichar",
+                "-Werror=implicit-int",
+                "-Werror=implicit-function-declaration",
+                "-Werror=int-conversion",
+                "-Werror=incompatible-pointer-types",
+                "-Werror=incompatible-function-pointer-types",
+                "-Werror=strict-prototypes",
+                "-Werror=deprecated-non-prototype",
+                "-Werror=return-type",
+                "-I.",
+                "-Iinclude",
+                "-Iinclude/PR",
+                "-Isrc/ultra/audio",
+                "-Isrc/ultra/libc",
+                "-DLANGUAGE_C",
+                "-D_LANGUAGE_C",
+                "-D_MIPS_SZLONG=32",
+                "-DNDEBUG",
+                "-DCOMPILING_LIBULTRA",
+                "-DBUILD_VERSION=VERSION_I",
+                "-DF3DEX_GBI",
+                "-DMIPSEB",
+                "-D_MIPS_FPSET=16",
+                "-D_MIPS_ISA_MIPS2=2",
+                "-D_MIPS_ISA=_MIPS_ISA_MIPS2",
+                "-D_ABIO32=1",
+                "-D_MIPS_SIM=_ABIO32",
+                "-D_MIPS_SZINT=32",
+                "-D_MIPS_SZPTR=32",
+                "-D__sgi=1",
+                "-fno-color-diagnostics",
+                "-iquote",
+                "src/ending"
+              ],
+              "settings": {
+                "CC_CHECK": "clang",
+                "CC_CHECK_FLAGS": "-fsyntax-only -ffreestanding -fno-builtin -funsigned-char  -fdiagnostics-color -std=gnu89 -m32  '-D__builtin_classof(type)=0'  '-D__builtin_alignof(type)=__alignof__(type)'",
+                "CC_CHECK_WARNINGS": "-Wall -Wextra -Wno-unknown-pragmas  -Wno-unused-parameter -Wno-unused-variable  -Wno-unused-but-set-variable -Wno-unused-value  -Wno-unused-label -Wno-missing-braces -Wno-sign-compare  -Wno-tautological-compare -Wno-pointer-bool-conversion  -Wno-array-bounds -Wno-unsequenced -Wno-pointer-sign  -Wno-constant-conversion -Wno-multichar  -Werror=implicit-int  -Werror=implicit-function-declaration  -Werror=int-conversion  -Werror=incompatible-pointer-types  -Werror=incompatible-function-pointer-types  -Werror=strict-prototypes  -Werror=deprecated-non-prototype  -Werror=return-type",
+                "CC_CHECK_INCLUDES": "-I. -Iinclude -Iinclude/PR -Isrc/ultra/audio -Isrc/ultra/libc",
+                "C_DEFINES": "-DLANGUAGE_C -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DNDEBUG  -DCOMPILING_LIBULTRA -DBUILD_VERSION=VERSION_I -DF3DEX_GBI",
+                "CC_CHECK_MIPS_DEFINES": "-DMIPSEB -D_MIPS_FPSET=16 -D_MIPS_ISA_MIPS2=2  -D_MIPS_ISA=_MIPS_ISA_MIPS2 -D_ABIO32=1  -D_MIPS_SIM=_ABIO32 -D_MIPS_SZINT=32  -D_MIPS_SZPTR=32 -D__sgi=1"
+              },
+              "target": "build/src/ending/ending_credits_flow.o",
+              "makefile_sha256": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+              "checker_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+              "warning_policy": "project default WERROR=0; explicit error classes preserved"
+            }
+          },
+          "verification": {
+            "schema_version": 1,
+            "kind": "mips_object_section_certificate",
+            "scope": "allocated text/data/BSS and relocation expressions; same link environment",
+            "excluded": [
+              "debug and ABI metadata",
+              "final link layout",
+              "whole ROM"
+            ],
+            "whole_rom_verified": false,
+            "source_sha256": "d1c874afc6d20630c6eb6242222fcd397e58fde0d04a4b9d874ee71a6df3f03a",
+            "build_inputs": {
+              "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/build.sh": "0f3bc1016f658335bc36e0b4496bd5c6c42ccbf6c79ee92369ef2fa55f510619",
+              "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/prelude.inc": "19a0906a233ba6036a19fe6be4eb6dd44c6f4c90f0a8e6531fa23c244158c9ae",
+              "/home/grant/decomp/sbk1/Makefile": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+              "/home/grant/decomp/sbk1/tools/textconv.py": "33ea36cd7c779f2a1870510c8066589036288758dd6373b6f3b343b337a51144",
+              "/home/grant/decomp/sbk1/tools/charmap.txt": "6fde88542f6267fe243bcc771a6f49bddd03b44a6e62d78d2fd1cf9c13f7bc6f",
+              "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.sh": "a121d10c79f30e796b9c6422f0dcb0f3b610148754cfcd8f4e7fb56a29077df7",
+              "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.json": "cd7c4305317e76fe49b0d97759b187f8894ac1ed392070d7e010c2c420f5b3e1",
+              "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-target.json": "c602b715dda545c81d4a5a36d113372cb35fe9615b7de5d09ff6c9efccaf4d3d",
+              "/home/grant/decomp/sbk1/src/ultra/os/threadasm.h": "49cc58f647832597bcfccdb28a88c06521842e2917c1edf478f3d37bf3bee0aa",
+              "/home/grant/decomp/sbk1/src/ultra/os/exceptasm.h": "2abdf2eda1e227ce5235cebdb461ce17bfdced29ba1ca9ebfb1b10d94d2ffca3",
+              "/home/grant/decomp/sbk1/src/ultra/libc/xstdio.h": "0f0e8acb8f02049cce3e0945323bf74d226eb0cb342c67a3fc72b78a8073cf71",
+              "/usr/bin/clang": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+              "/home/grant/decomp/sbk1/include/PR/R4300.h": "67281afc2b8eb92422072fdc05f5f973222ee16b6b4567b2ab7b52dd9b8fd3d0",
+              "/home/grant/decomp/sbk1/include/PR/abi.h": "fcb49b2036ea2d466c095a39d2befdbabcaf21de339535d26e3acfe22f9c40e4",
+              "/home/grant/decomp/sbk1/include/PR/gbi.h": "69a37c33267834f6cae9a808ac087bb051dc211249eb96e5cbd7a3cb48d0d138",
+              "/home/grant/decomp/sbk1/include/PR/gs2dex.h": "9c8b19ba530770819eef0aa28e5f3149cd7491e19163421234e6c4ac2b4de518",
+              "/home/grant/decomp/sbk1/include/PR/gt.h": "e08704d88046aa79cfa0e23da7452d485d11e0efeaf1e7f8d06d6032fd1b8bcb",
+              "/home/grant/decomp/sbk1/include/PR/gu.h": "1986a3837296dd1a4bfe42f1c2fb4c8692ded4b8e2ecd7ab171f03a4007c6a87",
+              "/home/grant/decomp/sbk1/include/PR/guint.h": "17521fe5d43315500108356d8b2167b1b04009e3f9bed6cb6cd6fd69981e2965",
+              "/home/grant/decomp/sbk1/include/PR/libaudio.h": "e356c54ebbb3dd37392cb2144695562491276eaaa8f22c129ece6bed970a8f4b",
+              "/home/grant/decomp/sbk1/include/PR/mbi.h": "b41d9c33aee262c864f460cd045fada19ce50dc9c02c6b37b740b5de50900302",
+              "/home/grant/decomp/sbk1/include/PR/os.h": "bbe895a34cc3d44467bed3b86265b3be686650f9e195c637472d428c243f0679",
+              "/home/grant/decomp/sbk1/include/PR/os_ai.h": "d844eb3a2a76e58b4067da9842295be8e75dcbee5ecf881cd19c5318971e073a",
+              "/home/grant/decomp/sbk1/include/PR/os_cache.h": "b4559fc6e78959aaf5c4655bb6270ab021f4e3bf493b35d55fae802f78b3a02e",
+              "/home/grant/decomp/sbk1/include/PR/os_cont.h": "0ded3724653de3c98a15836d72e1add6f6ae26b345c40d86dfd8671929c7e978",
+              "/home/grant/decomp/sbk1/include/PR/os_convert.h": "9434374bf3e8fd1f41aead44f762fa3e789e30ad056ff276b609701826c182ca",
+              "/home/grant/decomp/sbk1/include/PR/os_debug.h": "d00368fbeabc8bd32a1e527b1df4512a93b77dfc378ed4e5e82a0f2ac9b17d0e",
+              "/home/grant/decomp/sbk1/include/PR/os_eeprom.h": "ada58ec432e11cc76df3887fae2ebd428e6cbdcca0410b5185744f1ba602d146",
+              "/home/grant/decomp/sbk1/include/PR/os_error.h": "c393b18dca7afd0a6d15dd20ac27c7ea41cd63541b321ea20ff0db1cf168dc17",
+              "/home/grant/decomp/sbk1/include/PR/os_exception.h": "f1ae2712ed62640e0efbc76064f74e93247f661dacb07dd12291fe502d41a870",
+              "/home/grant/decomp/sbk1/include/PR/os_flash.h": "869a9093b658b364c3977fb296ec875683fc522d290ee2561c2f52af1b45d033",
+              "/home/grant/decomp/sbk1/include/PR/os_gbpak.h": "772ccae2c4b77496a2d89158b5a78b7e022aff1710008d3684bbe9bc52a1f236",
+              "/home/grant/decomp/sbk1/include/PR/os_gio.h": "525a99647f284acb981458a2d3ab7ac8579ab890534e1702ef55aa2ba5de5864",
+              "/home/grant/decomp/sbk1/include/PR/os_host.h": "9a45031ec8de762433e27e6bcb1a90264058bf38cfde8b06d95962692bcb7258",
+              "/home/grant/decomp/sbk1/include/PR/os_internal.h": "2b3fe240c00a8a72d90a26f5a0c44d4712a77b42f1d372b5dcfeb4b8bf6fbef7",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_debug.h": "dbc54a58fc8f56e4bfda8bac671c29d1b50ee54a4acee730700c0c7cf3c88bdf",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_error.h": "f01da9cbe63307ad64ae5a9af1c09968918129b1d76b1256ad2808326bb256c9",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_exception.h": "7c7f477b937cd86c4e54082e0cf9cac30c9866b3c30dc9c4ed2ecb192c053331",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_flash.h": "455a2c2f3b009659ec3ed6eba745091883c3a0bb04bd05b6ca77f0b414a3ed45",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_gio.h": "d1b1b5a145936dc856ca7fd96dc332718e68cc32f8036ac9b5e38298f52ad84b",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_host.h": "e546e9cd5e021b788476870c795b38229eec133086100f3588aef1700cd907d7",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_reg.h": "01620c1a8a1e8c95b32194354111e86b4c9169f01d3d8ec01ae4056786a9dadc",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_rsp.h": "4e53403015722451a812773a635e6d240463c675a4c50a11340891b574cbb965",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_si.h": "bd2ba83fdd44630c21ecdfe293a611a28827a08da44ed5c1d4fbff8e31ba5128",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_thread.h": "1314f1c82593fd07d5caa03056693346bcbf9d5ee88e43aa4e9b8497caa624c3",
+              "/home/grant/decomp/sbk1/include/PR/os_internal_tlb.h": "c29a008d11801a46c5c4fcbc45014a19077085f117a8ddf1884605a9e24fe888",
+              "/home/grant/decomp/sbk1/include/PR/os_libc.h": "d0aa7818cbad654944a8f82acb1e2da92fe7db79dac465c785619af7801c961f",
+              "/home/grant/decomp/sbk1/include/PR/os_message.h": "dded6321c7b9fdc3fefef81c3c685ba688c5d6592445cfdcf921f7d3117409ba",
+              "/home/grant/decomp/sbk1/include/PR/os_motor.h": "c6dcea4127af27484cc9bd29ad718fe871b642364efab402c76d03177ea2dc25",
+              "/home/grant/decomp/sbk1/include/PR/os_pfs.h": "1f4f6209a6a18af5090c8bdd021cc3a8f00c59bcc4e05ddc1ca6bf7a707b3a00",
+              "/home/grant/decomp/sbk1/include/PR/os_pi.h": "8f71c735f1887003bd47d3fa9f8c61ca4a591a52f0cd74b4c5a42a7d449855fc",
+              "/home/grant/decomp/sbk1/include/PR/os_rdp.h": "25d4e8be77c034f5cc503e7ed0f7f222f7223f97f9e8a43439964d8119adc43c",
+              "/home/grant/decomp/sbk1/include/PR/os_reg.h": "78d6241e388b2690bd4319eaca873ada14b3833858bc17285412f65807988503",
+              "/home/grant/decomp/sbk1/include/PR/os_rsp.h": "2f0de811e5246e5162aebf3fcfd25989c5a2446d288a3cbc53a7dbadd9124899",
+              "/home/grant/decomp/sbk1/include/PR/os_si.h": "bbb4705eebbb5062f3ebdf3fa78e714565f639831bfc87b15a449fd8747a996e",
+              "/home/grant/decomp/sbk1/include/PR/os_system.h": "52b94d0b420c7b550141c45802d07eb0802fa321e71baf7cf6322d441c2c53f5",
+              "/home/grant/decomp/sbk1/include/PR/os_thread.h": "43e55963a3ed7d9647b979f3bb0f617cac0c597b6375d8e1f8645475c2e9623e",
+              "/home/grant/decomp/sbk1/include/PR/os_time.h": "4b50d96c672559b481e67c3b976c430c7ed836c56a2fa1de31ae8a48d0701841",
+              "/home/grant/decomp/sbk1/include/PR/os_tlb.h": "7a14e826302a2ec312856ade7128e693f53420a1f1e19bb742937a9ef992450b",
+              "/home/grant/decomp/sbk1/include/PR/os_version.h": "42a447fccfe59a0e22817db4eb6cbb504bfa23125d1e801ea1c8ad1c32e8e05a",
+              "/home/grant/decomp/sbk1/include/PR/os_vi.h": "ff291375cbf7217bc6258fc3639ef8717d857c38599fa19365bf6d5a70b5ceb3",
+              "/home/grant/decomp/sbk1/include/PR/os_voice.h": "ad9059336cf4a9097f45255da72a18989537d9dd19d348c07651dcaf37c7d57f",
+              "/home/grant/decomp/sbk1/include/PR/ramrom.h": "87efd3393f07c20eb596f75bd4ce87abe74ef4b91d49847c81034aae5f0b8980",
+              "/home/grant/decomp/sbk1/include/PR/rcp.h": "49ff686b0b3d7cb7e468d65015872e6edf85f4733c9f7a3a4a2e4cac538e9e77",
+              "/home/grant/decomp/sbk1/include/PR/rdb.h": "4218e8e32b80dcde1aa1820e3ac9a896dc859b47bba3812482412acd3df6cc33",
+              "/home/grant/decomp/sbk1/include/PR/region.h": "18bb95ef6b1945e92017d0c6e6eb8bbca5680da0509d8417c91fc1139cdb21b9",
+              "/home/grant/decomp/sbk1/include/PR/rmon.h": "b28415d8639bcf6c4b5a12e61737d699dd31fb49aca3ae44a764f31ef699c7f5",
+              "/home/grant/decomp/sbk1/include/PR/sched.h": "518b98629b021ddf3f769b205c20fd8cf9b08b61e9ce1d725fe20392eb625c64",
+              "/home/grant/decomp/sbk1/include/PR/sp.h": "af317e9676fe6fca53762214a479d6f104ff2257bb66a1ba49d842cf53d9713c",
+              "/home/grant/decomp/sbk1/include/PR/sptask.h": "c22fc2ac2f56d947b11217da2e5cc5d9e849cb69496ac21404ee70d763bceb5c",
+              "/home/grant/decomp/sbk1/include/PR/ucode.h": "2581991d352396f823ee7106acfd5e1451138d6d072152d341ebfb7d5af6b0c3",
+              "/home/grant/decomp/sbk1/include/PR/ultraerror.h": "b40e4ef1f44b53637aaeb92329125c2191794d2c5440bbb6a24b6335c9116909",
+              "/home/grant/decomp/sbk1/include/PR/ultralog.h": "b33cdd2daf91548fabe3b416dfb9cf50c28445b2dac6c51181eefbfbbd18ffc7",
+              "/home/grant/decomp/sbk1/include/PR/ultratypes.h": "9d7fef48e105f75ea24c882f13d6111705519be75ae2c4f2a9539047363603ae",
+              "/home/grant/decomp/sbk1/include/PRinternal/controller.h": "6f1e37fa45b355ee6a216d6cc153ab4f99163198d7a82207acd92453fd69c5c7",
+              "/home/grant/decomp/sbk1/include/PRinternal/controller_gbpak.h": "b65f160e18c168b8e46eb163572c1ccc6a40019236fa91ac42f06b9d850a78a9",
+              "/home/grant/decomp/sbk1/include/PRinternal/controller_voice.h": "342f0f7b17d35e8db3899675b092a3636c1e81f91f581754c2597902a8cab612",
+              "/home/grant/decomp/sbk1/include/PRinternal/dbgdefs.h": "6167cbafc0f45bc61c288f78afef5b92626353e13b32779ba9bfffa2010a31d1",
+              "/home/grant/decomp/sbk1/include/PRinternal/dbgproto.h": "7d03696e694ada01e6fa2fadb8db8727b03e4c1820e03d0e7a05640987c96b80",
+              "/home/grant/decomp/sbk1/include/PRinternal/macros.h": "df282128a020c116d6af3ed6bd26028313cf5dbe4da23d22f69af888fcfa7da3",
+              "/home/grant/decomp/sbk1/include/PRinternal/osint.h": "1ba990d64ba61a6d9de6e1356e0c59a0d263fd0d392cb6ac387bf01b9bc47a13",
+              "/home/grant/decomp/sbk1/include/PRinternal/piint.h": "5baca097f05f19956f5533c28d085105bad4803a31f2bd07f6052c9bfbb103b8",
+              "/home/grant/decomp/sbk1/include/PRinternal/rmonint.h": "b7ee79db08f86cecacf7fa4268dcb2b79a4500432b20835f58e66ff7b48ca8eb",
+              "/home/grant/decomp/sbk1/include/PRinternal/siint.h": "9f0c99c8652d36023162bfd8722dbb5117ca03f6b97d958af81b883f7a12de87",
+              "/home/grant/decomp/sbk1/include/PRinternal/viint.h": "67639f0549c546e3e093f69a9ff9b72c93b4896fa489bae60f278d56b1f8a7ea",
+              "/home/grant/decomp/sbk1/include/assert.h": "90e58fa971e5f7d3a235e01e5076915eab729595b19007fb936bf6bc965fa2d6",
+              "/home/grant/decomp/sbk1/include/assets.h": "9fa64fe19ab83a5cb9d0a043e62ba6b5957eac235329267c1998b74eeedeb5f0",
+              "/home/grant/decomp/sbk1/include/common.h": "f0c10bc9cd057250689412f9fa5a28a9018a051073addd38d66eec58dd701aa5",
+              "/home/grant/decomp/sbk1/include/compiler_diagnostics.h": "30e2f0311d21101eae900bbcb34a9c8ff4d3d38a5a04742ca746906c591d7ce4",
+              "/home/grant/decomp/sbk1/include/font_encoding.h": "c851e9e3cfdeda59c6dad4b2e3c9787dc395ae1557e2a46ebea0f27976650e6d",
+              "/home/grant/decomp/sbk1/include/game/audio/audio_engine.h": "43b2651d7c4ca177558e298880b890550c6b62d90b6815838853dd209f8e3aad",
+              "/home/grant/decomp/sbk1/include/game/audio/audio_engine_internal.h": "3ab21399c1dec6803fa75e0a5850bfac6ac4e4a86069255927ddeedd1f243e6c",
+              "/home/grant/decomp/sbk1/include/game/audio/sound_manager.h": "8b66c6610e80e5d5f8a26c0f80309796c00a37063070c17e26f565f507f2e180",
+              "/home/grant/decomp/sbk1/include/game/demo/main_menu_demo_race_intro.h": "ba26e639fb2563b63c3aaf716bd7979ce4ade65a819334574939791c4637a3e5",
+              "/home/grant/decomp/sbk1/include/game/demo/race_demo_intro.h": "d871d1f875fa0654fc40ac9bd448388947ed6d53c88c8367b797c2b036f0a195",
+              "/home/grant/decomp/sbk1/include/game/demo/title_demo_race_intro.h": "dc1fd959a6ab296ed16c671b40871f3012ca5a42a48eacbd8d2ca9779487751c",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_effects.h": "b63579ffcbb56d755c1666a1700714848126238e3c957ee93ba32eb09d048f51",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_flow.h": "d5444b408013c7696e6772960617ddf2e11f47918658b9294e468277c3b9c8e5",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_jam.h": "be9b75919fe71c3729467b7ea222d977273d8426eb7db97a782fb9dfd8604e4b",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_linda.h": "c8aece1997592a98f4bfc1139b38768305358e7c1dc7a4c48d63f0851b81fbaa",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_nancy.h": "cadb50d5c7127c30525489f98f054a760c959ed90f12676e805df4f4bd5b8187",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_slash.h": "6ff0b7bf29db33a46cc7108a0b22295e3d645737f7e9ce0da0ba7cd81f22a436",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_tommy.h": "68f8071470d6e1197b3a2ce2bff34df0d7c83ea871cfbb1f493008be31ae8be4",
+              "/home/grant/decomp/sbk1/include/game/ending/ending_credits_ui.h": "b90552b08df254b4b45168e7c106d6fbbc2db5f99ab9aee1d5e84bbe347c1a13",
+              "/home/grant/decomp/sbk1/include/game/engine/asset_manager.h": "4714db136024a5224f7c198068f2360f3723e343a183ef5a91d888475e241b58",
+              "/home/grant/decomp/sbk1/include/game/engine/callback_task_scheduler.h": "87232be7281cbd809dea2c6f94f4f1257cd74f35a4044553168ab308e6aff768",
+              "/home/grant/decomp/sbk1/include/game/engine/controller_input.h": "d66f53bdc88c5f7a73099a65952ebb0f0e4a9dd9c670e282a30e6df94bfbca22",
+              "/home/grant/decomp/sbk1/include/game/engine/frame_render_task.h": "82ed0dd7731f76d94605168508a6e55e8ef3fc601589934ff0eb86586de76c9a",
+              "/home/grant/decomp/sbk1/include/game/engine/game_task_scheduler.h": "d049d39e2f4e98ba0246e61556306da2c1fa4c441c7edfaa09c1b0ef39e55334",
+              "/home/grant/decomp/sbk1/include/game/engine/relocatable_heap.h": "fd4fba0525f4f09d8cdedc8ff5358f8bb1e8c35db51a3a59feb5a87518f36fd6",
+              "/home/grant/decomp/sbk1/include/game/engine/render_callback.h": "558f01c437cf2c6b0986565c4b4d1491610c87f4b40e8d891e4155a363abcdce",
+              "/home/grant/decomp/sbk1/include/game/engine/system_runtime.h": "74fc7c624856e0a54e81fa07025e2dd2bae0f14e5cc3bbdeb6bb26cca322d28c",
+              "/home/grant/decomp/sbk1/include/game/engine/viewport_manager.h": "18331997c877fa63dace2b28d3f3228df8f95806620f54f91ec17457fc3fcdd8",
+              "/home/grant/decomp/sbk1/include/game/math/fixed_matrix_multiply.h": "74e838e5e439e679f66b9c45905798a74f21b9d6b94e8768add3ae33643d4b2e",
+              "/home/grant/decomp/sbk1/include/game/math/fixed_point_math.h": "ff64c59e41ace7ed1979b2e365e31d8b8f416847617f6f00eca192abccce9285",
+              "/home/grant/decomp/sbk1/include/game/math/geometry.h": "02b96b7d87810ca4c67764234258a291ee0b48f4c3c859feb934c6ede805f216",
+              "/home/grant/decomp/sbk1/include/game/math/spatial_math.h": "e80480adabdd5bd2f8caeac752abf30b3dd4026dfb86a41cf6145dd6ae2b0531",
+              "/home/grant/decomp/sbk1/include/game/menu/character_select/character_select_course_menu.h": "29e7cac756fcb08ea7c2f516fb9d10063b3269ad8a5666bdf756b18d9da7dbce",
+              "/home/grant/decomp/sbk1/include/game/menu/character_select/character_select_course_ui.h": "f98d58abc08ad9bd9e767bd3d9fef5fff91617c73bba5aa3d035f0d188436737",
+              "/home/grant/decomp/sbk1/include/game/menu/character_select/character_select_menu.h": "9bb08ce186c9bdbb4d9f8037a56caf0445e1c40419384c9fe00332738b608ff8",
+              "/home/grant/decomp/sbk1/include/game/menu/character_select/character_select_ui.h": "64608e6e5a50591ba4c51671e21f825e035f170ab889b948e01aee6ea51a3d6c",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_continue_prompt_flow.h": "13e257efdb071d9aae99f7395685530a47bdfbf536777b3d45da22524d2a2d66",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_file_delete_flow.h": "18a0941fe67372d902fdea988184f8957a99138c86b9aeab3d814bbab2e9d01e",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_menu.h": "9c462128e95c05080f3a9d5dc0b6bdf2a52222162537f262556a0e89f763af7d",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_race_record_save_flow.h": "583473d8892c7f9b40cbfc9468033136833a76efcbd479c1b06b2a086e0d9846",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_race_record_save_ui.h": "8351b95f69a9ad127aba4af470e715d016a02f17bc38de2fcbcd9cf8222218a7",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_replay_save_message_flow.h": "8c6a7dc8579c2d8c9f47512fa3285b560b3085df1b87625ed1924ae19274fbb0",
+              "/home/grant/decomp/sbk1/include/game/menu/controller_pak/controller_pak_ui.h": "9edd8f4521686dbd634a1a523eedb0f1a1ebfebb48b867f8461496f664d230c8",
+              "/home/grant/decomp/sbk1/include/game/menu/course_select/course_select_menu.h": "a3de5b761c08e8601e206c63ec7bb7d57189da5f89f5459abb95630478a6f6e3",
+              "/home/grant/decomp/sbk1/include/game/menu/course_select/course_select_shop_ui.h": "4a47de979ba4713bc9e69deace1b4eaaf11c734eae1ff97d5aa01d91c4e4876d",
+              "/home/grant/decomp/sbk1/include/game/menu/course_select/course_select_ui.h": "3096570d08a1aa8e91725dfd0dcffe581839c7ec94b16c1fdfc20b281757ff6f",
+              "/home/grant/decomp/sbk1/include/game/menu/course_select/multiplayer_course_select_menu.h": "f2c833f1b393cea6ee922117f439e247f50679a5f997e4f4dbf3ef1338f93fa4",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/controller_main_menu_flow.h": "c2f20b9ab88d81411a4894473782680e519eff570940c8272a89766118678333",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/main_menu_panel_ui.h": "773bf649fa7ceb3f1d8c1cb119c125ef69cb15855da455209c8b2cfbd475aad7",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/main_menu_race_flow.h": "b4a8b09d0bec539e3a6ec64a20e78683709276fd2aae08d6ee231b497d9f33a7",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/main_menu_scene_model.h": "cc2a3c78612b75c4adf09b4f845ba3cc9ad62dedd8e117b33166e7490618e806",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/main_menu_scene_model_renderer.h": "7011d8c45bda0ef6010fb81843413222438a17d47fe2f05896c49b571f46fe70",
+              "/home/grant/decomp/sbk1/include/game/menu/main_menu/main_menu_title_ui.h": "13a67ae88ceb84ce9a8b82d89adefab5960f2b50e71a9be36fa0227472a7269f",
+              "/home/grant/decomp/sbk1/include/game/menu/race_setup/race_setup_menu.h": "037b4357508c5ec5d7337cc930e73387533617e1f31617a0f942ce60cad5ebe6",
+              "/home/grant/decomp/sbk1/include/game/menu/race_setup/race_setup_ui.h": "4a2d1154e1060585ed5d9cd1f0a6420f22869c50507dc862b977b177bdac095d",
+              "/home/grant/decomp/sbk1/include/game/menu/race_type_select/race_type_select_menu.h": "b77be101073ede9b4d719f3bb89acefeff3be13e125fbae936dd7b7d0bbadc0e",
+              "/home/grant/decomp/sbk1/include/game/menu/race_type_select/race_type_select_ui.h": "23c8792b222d3c03ac958e9fdd44eeee2e6b6cbfb229078d42802a98151cbd65",
+              "/home/grant/decomp/sbk1/include/game/menu/renderer/menu_render_utils.h": "e196722f95c3fe3829b8dceb6257b0302b9b58dbb1f6ccaaadb77aa4a938c778",
+              "/home/grant/decomp/sbk1/include/game/menu/renderer/menu_renderer.h": "5a88617e289c3f7052a802e1c64038487336127bd969455a800aa0012d0b36b5",
+              "/home/grant/decomp/sbk1/include/game/menu/renderer/menu_screen_effects.h": "7ac0e6b4b634358d7e61d39b3bda49633fa6de2db984200b393995017d2c4928",
+              "/home/grant/decomp/sbk1/include/game/menu/splitscreen_select/race_splitscreen_select_menu.h": "202e5cc153a9f585592b6b934f5dbc93730a9882f5ffccbf19b0144cda65eecf",
+              "/home/grant/decomp/sbk1/include/game/menu/splitscreen_select/race_splitscreen_select_ui.h": "120cd0306797c56bf9377f9a340b11f53c6739a0c4e6c0a5989942df7b7a3c74",
+              "/home/grant/decomp/sbk1/include/game/menu/training/training_course_ui.h": "5ad79cad3080abe300badfef4464315cb57dc62930afff9c83c8c885e30ffb4e",
+              "/home/grant/decomp/sbk1/include/game/race/camera/race_camera.h": "ad98ef317337402d1444af51750dd847b65c4efe0c847d8a0ed528a42a2a907f",
+              "/home/grant/decomp/sbk1/include/game/race/course/race_course_effects.h": "d25aa06f3457ee8f16b24b10f112fcfe0b36925859eb700540a72b5e96a02af6",
+              "/home/grant/decomp/sbk1/include/game/race/course/race_course_props_and_pickups.h": "b5dd80a4115cd557b313ee5741622313661d5d944f040aca12eac5660fe6cbdd",
+              "/home/grant/decomp/sbk1/include/game/race/course/race_surface_cues.h": "a932af42c47aaa6e729d3ba334f384f77be41eaa3b3a8a5006a33014dff3e447",
+              "/home/grant/decomp/sbk1/include/game/race/effects/race_intro_effects.h": "c0f0076bcd6d77fd645f2e93f506b8342233c8b815c3bfb24cbb0dd3b000d9e6",
+              "/home/grant/decomp/sbk1/include/game/race/effects/race_start_transition.h": "938f45c18a3792cd3d763f267ea5697d395e145a5795a8d9401aa781512d092b",
+              "/home/grant/decomp/sbk1/include/game/race/effects/snowboard_trail_effects.h": "d090e9cba18f3f40eb3e16aca64585c30a55f397baac9b888cf4e3b7983a23c4",
+              "/home/grant/decomp/sbk1/include/game/race/flow/race_flow.h": "17f266d6e76191403755169cc7f28e0ddcb00fe77189b13ef63d3a17fbc10711",
+              "/home/grant/decomp/sbk1/include/game/race/items/race_item_effects.h": "31540b8e587ab438aec5ffff9322e4fad4ff2ad3b0d202910c0adb9b79622e56",
+              "/home/grant/decomp/sbk1/include/game/race/items/race_item_hit_flags.h": "d292d24d5128471a99af23b2a4995bc9dec9082b53772ff216a6585cb94bed9c",
+              "/home/grant/decomp/sbk1/include/game/race/items/race_item_projectiles.h": "1496b26ce85206c75fb5dfe35c89615c02be784cdb025b4b556d93bd0eb91cf8",
+              "/home/grant/decomp/sbk1/include/game/race/motion/race_motion.h": "de0d5c7e328138e13cf9dfabcacf5b3018515e8ce4bf5de61bff82ca9a31eb7e",
+              "/home/grant/decomp/sbk1/include/game/race/motion/race_motion_animation_debug_viewer.h": "2a99d489c7d31b19c2718e322c7ed28db894e3dff596895068eed5e12c340b07",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_collision.h": "6b784e2057c1d89c15bf3b8a49005bf5c4ecc80d9b77d2f536a99a6b1f86cb6d",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_input.h": "1d1717ea4ab80c0550e5d5bf62a8427c0889464b9d71b22434af642b421d2688",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_model_renderer.h": "184e881cc46f79bc2039d5d6d72c27e38e95a56049f280eaada442511bf040eb",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_movement.h": "36c384684d467531003e0215e60423909d2a14bc065f77d9c05f3037b80099f8",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_pickup_effects.h": "dac64f1dcdc6dab548b9de00d1a368306e8faaa29bc95f74c3d54b19d82773c0",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_progress.h": "063c812c3f2e885f0e1f39aeea735f5687cddadb8710b5386e003852ab93f751",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_rumble.h": "782cacbd92113cd18b1008e2c895cf54b1ecc1890997ed2f9f2793d431760293",
+              "/home/grant/decomp/sbk1/include/game/race/player/race_player_update.h": "c4761a2ae1f95a6248b3e2d8ecc411edbad9eb7ed1ea662e34e228fa5082e55a",
+              "/home/grant/decomp/sbk1/include/game/race/race_replay.h": "0f9ef469e3df8482fda4bfc2070ab63593a6c748e72a6a38f9331a079224725e",
+              "/home/grant/decomp/sbk1/include/game/race/race_state.h": "8345ed9747150b44292ba2661b191b0b9efcc067e8ad2990fef8d461738bbde3",
+              "/home/grant/decomp/sbk1/include/game/race/scene/race_scene_setup.h": "d8b6f31f901314011e79887affe3cd0546444118de3d21cdedc50e06b20055f6",
+              "/home/grant/decomp/sbk1/include/game/race/ui/race_hud.h": "6e3d965123c9eae94ce665f93f3008f3484c8921ff03854412fc2bd16e66e4a5",
+              "/home/grant/decomp/sbk1/include/game/race/ui/race_ui_effects.h": "2bd6d7c60bca3b8369fbc539d9b3c6b42915ad984c47980ad4b57ce03ce31e54",
+              "/home/grant/decomp/sbk1/include/game/save_data.h": "bb402a4850181aebe5847227e41cc3893f5bb47f730b08fce583c1efc4da1490",
+              "/home/grant/decomp/sbk1/include/hasm.h": "fd23f74eced66bd6fcd64cec63a813cc2b034def9275e254f30be86e146b7c5f",
+              "/home/grant/decomp/sbk1/include/include_asm.h": "dac1810bf4a2bc6bce18de1098188b72dee4f4d057fc7c3a6042e08e398614b5",
+              "/home/grant/decomp/sbk1/include/initfx.h": "4a17cca508b2779fdc41e5435f8b6a2398c32b0313e968d4db249a6d280eedad",
+              "/home/grant/decomp/sbk1/include/libmus/libmus.h": "55a1d6a0e8d061871b11b19cb0b2e80128294b8aa8c718d76d7fedddcc6f3cbb",
+              "/home/grant/decomp/sbk1/include/synthInternals.h": "79c46fa822326e137e17d2dfb1e8cc41d4d1c854c0e980adbed3b06b90b9af23",
+              "/home/grant/decomp/sbk1/include/sys/asm.h": "0e5e5e1562fb488b49b92dcccba09e94462ba6a545a6887656b03b7ccdc13cd0",
+              "/home/grant/decomp/sbk1/include/sys/regdef.h": "69af9e251c38c0f347d56673bca52496937a12ef3739c8a99080fd18215dbb40",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/acpp": "d36b55f0d9ba0410431936720edd938f620cb91041a4c5a5555bb89eb28c9b19",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/as0": "8097e4bde2731d9b0cf8e385f962044a102ee367f3d337b6b15ef9d6d6aebb5e",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/as1": "73b4522a61b5d735790e4bb71168647bfa22be125ce7e2b45ea3c35df5b9dc04",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/c++filt": "eb1729d3470fb25c478ace168fdc9cd7cf32da15a6591ac5e8c907c6ae569ec4",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cc": "8ba3154946a3691d80eba5a7aecdb8181494b3e7339f231e176eba40d1ba9952",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/cfe": "d9c00d8ddc801d1bd48a6f9fd13fe61df5913ab6c77bd35b744f19c281877699",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/copt": "a95a11af6d061946307bca914334b9b08ed08fa5055a94fe64488368792245d9",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/crt1.o": "95bd24880e95e102bbdf2a1cfa2e10d391cb57784a42db19afd609c0904aee28",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/crtn.o": "62197e97a5e56e21c6a4e76ffe9f634cf90b47046ebe4841086108101ce496eb",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/err.english.cc": "6f2d777730f0a70328bb932c116c1c195da765cb9bbdee8c6d3eaf7d6ad77e78",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/ld": "bf2af6a04840699c1d6b5615f2b64d9df464ebab2fd3bbd5a6e64b01af4bec5c",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/libc.so": "803f8b127194a79d92c5caea62fd39097be16d3fcd9870b4470123cebd5d27fe",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/libc.so.1": "803f8b127194a79d92c5caea62fd39097be16d3fcd9870b4470123cebd5d27fe",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/libexc.so": "b59bf75bcbff1526ad4e3b2b49b313788a6e4c97df5b69b4bc2ddbd6726c5864",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/libgen.so": "bb66dea1242000f648e890252cbe47037310559cc0ecda8ed212c0e545bf8063",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/libm.so": "8acc66c2d1315b90f38a280fe04a26d0e61b5ca377976ed5d7f88bb064bd2e35",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/strip": "ebcf655fcbf719c810717104217ddb4b4ab6d1314c6846d6fafb5e25efd78036",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/ugen": "326d919dd3f78f9a67cd8d4ed0e7bfad1dfe60bce508474a9198d9eb17741ff9",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/ujoin": "a4ca37b1201115cbaa5e6d37b321277fbf2d13c97dd098a4623be6dbb0f499da",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/uld": "046b865bb5234273f581b5f3169a07384c6f0d0a98e1a87310d03da830b6f837",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/umerge": "2462932d5b3153f045382aa345dfaa130c6b87183156857771dfacb2f52474bc",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/uopt": "56f8c312ccffac08e531dd41c6bb5e6c4a0114e260461c348173b13219e0f4b0",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/upas": "e8c9474df2c1f6ac266140440b44c921906ebc5066af9b8e57f74f45984bb963",
+              "/home/grant/decomp/sbk1/tools/ido-recomp/linux/usplit": "1c0b2d367c3e42f4dd4a7919585e880b704bfebd409031d2777c09781aa09888"
+            },
+            "exact": true,
+            "target_sha256": "7a141bf0572f08d3885e91649cd1785f1682e93207e501e28acf3ac7c37c2823",
+            "candidate_sha256": "3eecc66f44ff2d605e0b226eb9c9777686b8100623c920f280c648372f211cd0",
+            "target_image": {
+              "elf_flags": 536875265,
+              "sections": {
+                ".text": {
+                  "size": 256,
+                  "type": 1,
+                  "flags": 6,
+                  "alignment": 16,
+                  "sha256": "3cb519039f03a701d3aca0f55905c830ac9d9c7785de8213553df6c1e68c169c",
+                  "relocations": [
+                    [
+                      0,
+                      5,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      4,
+                      6,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      44,
+                      5,
+                      [
+                        "external",
+                        "updateEndingCreditsFlow",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      52,
+                      6,
+                      [
+                        "external",
+                        "updateEndingCreditsFlow",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      72,
+                      4,
+                      [
+                        "external",
+                        "stepMenuFadeAlpha",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      80,
+                      5,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      84,
+                      6,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      96,
+                      4,
+                      [
+                        "external",
+                        "setCurrentGameTaskCallback",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      104,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsPageTextActor",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      108,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsPageTextActor",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      116,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      124,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsSlash",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      128,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsSlash",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      136,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      144,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsNancy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      148,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsNancy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      156,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      164,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsTommy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      168,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsTommy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      176,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      184,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsJam",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      188,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsJam",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      196,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      204,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsLinda",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      208,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsLinda",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      216,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      224,
+                      4,
+                      [
+                        "external",
+                        "requestMusicSequenceBank",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      232,
+                      4,
+                      [
+                        "external",
+                        "updateCallbackTasks",
+                        1,
+                        0
+                      ]
+                    ]
+                  ]
+                }
+              }
+            },
+            "candidate_image": {
+              "elf_flags": 0,
+              "sections": {
+                ".text": {
+                  "size": 256,
+                  "type": 1,
+                  "flags": 6,
+                  "alignment": 16,
+                  "sha256": "3cb519039f03a701d3aca0f55905c830ac9d9c7785de8213553df6c1e68c169c",
+                  "relocations": [
+                    [
+                      0,
+                      5,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      4,
+                      6,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      72,
+                      4,
+                      [
+                        "external",
+                        "stepMenuFadeAlpha",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      80,
+                      5,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      84,
+                      6,
+                      [
+                        "external",
+                        "gCurrentGameTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      44,
+                      5,
+                      [
+                        "external",
+                        "updateEndingCreditsFlow",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      52,
+                      6,
+                      [
+                        "external",
+                        "updateEndingCreditsFlow",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      96,
+                      4,
+                      [
+                        "external",
+                        "setCurrentGameTaskCallback",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      104,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsPageTextActor",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      108,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsPageTextActor",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      116,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      124,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsSlash",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      128,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsSlash",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      136,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      144,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsNancy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      148,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsNancy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      156,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      164,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsTommy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      168,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsTommy",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      176,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      184,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsJam",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      188,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsJam",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      196,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      204,
+                      5,
+                      [
+                        "external",
+                        "initEndingCreditsLinda",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      208,
+                      6,
+                      [
+                        "external",
+                        "initEndingCreditsLinda",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      216,
+                      4,
+                      [
+                        "external",
+                        "createCallbackTask",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      224,
+                      4,
+                      [
+                        "external",
+                        "requestMusicSequenceBank",
+                        1,
+                        0
+                      ]
+                    ],
+                    [
+                      232,
+                      4,
+                      [
+                        "external",
+                        "updateCallbackTasks",
+                        1,
+                        0
+                      ]
+                    ]
+                  ]
+                }
+              }
+            },
+            "relocation_order_equivalent": true,
+            "relocation_comparison": "raw order or disjoint external scalar/intact HI16-LO16 groups; pairing preserved",
+            "status": "object_sections_exact",
+            "normalized_assembly_exact": true,
+            "build_manifest_scope": "build script, prelude, Makefile, project headers, text conversion inputs, IDO/checker binaries; not a hermetic dependency or final-link certificate",
+            "candidate_source_sha256": "4211440862c599df8b1d2be01749bfb5c08e2216ea0861e2b3a9f5e6bb4952a6",
+            "compiler_recipe": {
+              "schema_version": 1,
+              "target": "build/src/ending/ending_credits_flow.o",
+              "settings": {
+                "IDO_CC": "python3 tools/asm-processor/build.py tools/ido-recomp/linux/cc -- mips-linux-gnu-as -G 0 -I include -mips3 -mabi=32 --",
+                "CFLAGS": "-c -mips1 -G 0 -non_shared -fullwarn -Xcpluscomm  -nostdinc -Wab,-r4300_mul -woff 649,838,712,516  -I. -Iinclude -Iinclude/PR -Isrc/ultra/audio -Isrc/ultra/libc  -DLANGUAGE_C -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DNDEBUG  -DCOMPILING_LIBULTRA -DBUILD_VERSION=VERSION_I -DF3DEX_GBI",
+                "C_OPT": "-O2",
+                "C_MIPS": "-mips1",
+                "ASFLAGS": "-G 0 -I include -mips3 -mabi=32",
+                "C_OBJ_POSTPROCESS": ":"
+              },
+              "command": [
+                "python3",
+                "tools/asm-processor/build.py",
+                "tools/ido-recomp/linux/cc",
+                "--",
+                "mips-linux-gnu-as",
+                "-G",
+                "0",
+                "-I",
+                "include",
+                "-mips3",
+                "-mabi=32",
+                "--",
+                "-c",
+                "-mips1",
+                "-G",
+                "0",
+                "-non_shared",
+                "-fullwarn",
+                "-Xcpluscomm",
+                "-nostdinc",
+                "-Wab,-r4300_mul",
+                "-woff",
+                "649,838,712,516",
+                "-I.",
+                "-Iinclude",
+                "-Iinclude/PR",
+                "-Isrc/ultra/audio",
+                "-Isrc/ultra/libc",
+                "-DLANGUAGE_C",
+                "-D_LANGUAGE_C",
+                "-D_MIPS_SZLONG=32",
+                "-DNDEBUG",
+                "-DCOMPILING_LIBULTRA",
+                "-DBUILD_VERSION=VERSION_I",
+                "-DF3DEX_GBI",
+                "-O2",
+                "-Isrc/ending"
+              ],
+              "makefile_sha256": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+              "projection_sha256": "266b57030fbb423c0ba26aef634272200e1e36aee5ce76e2dd2b019e26a52239",
+              "authority": "existing project build configuration, not inferred original compiler settings",
+              "source_origin": "C TU",
+              "scope": "C code generation; full TU syntax checking and final ROM integration are separate",
+              "helper_sha256": "0f3bc1016f658335bc36e0b4496bd5c6c42ccbf6c79ee92369ef2fa55f510619",
+              "script": "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.sh",
+              "manifest": "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.json"
+            },
+            "frontend": {
+              "kind": "project-policy-candidate-frontend",
+              "passed": false,
+              "source_sha256": "d1c874afc6d20630c6eb6242222fcd397e58fde0d04a4b9d874ee71a6df3f03a",
+              "scope": "candidate and included headers; not full TU or whole-ROM verification",
+              "status": "rejected",
+              "returncode": 1,
+              "diagnostics": "candidate.c:24:29: error: a function declaration without a prototype is deprecated in all versions of C [-Werror,-Wstrict-prototypes]\n   24 | void fadeInEndingCreditsFlow() {\n      |                             ^\n      |                              void\n1 error generated.\n",
+              "recipe": {
+                "command": [
+                  "/usr/bin/clang",
+                  "-fsyntax-only",
+                  "-ffreestanding",
+                  "-fno-builtin",
+                  "-funsigned-char",
+                  "-fdiagnostics-color",
+                  "-std=gnu89",
+                  "-m32",
+                  "-D__builtin_classof(type)=0",
+                  "-D__builtin_alignof(type)=__alignof__(type)",
+                  "-Wall",
+                  "-Wextra",
+                  "-Wno-unknown-pragmas",
+                  "-Wno-unused-parameter",
+                  "-Wno-unused-variable",
+                  "-Wno-unused-but-set-variable",
+                  "-Wno-unused-value",
+                  "-Wno-unused-label",
+                  "-Wno-missing-braces",
+                  "-Wno-sign-compare",
+                  "-Wno-tautological-compare",
+                  "-Wno-pointer-bool-conversion",
+                  "-Wno-array-bounds",
+                  "-Wno-unsequenced",
+                  "-Wno-pointer-sign",
+                  "-Wno-constant-conversion",
+                  "-Wno-multichar",
+                  "-Werror=implicit-int",
+                  "-Werror=implicit-function-declaration",
+                  "-Werror=int-conversion",
+                  "-Werror=incompatible-pointer-types",
+                  "-Werror=incompatible-function-pointer-types",
+                  "-Werror=strict-prototypes",
+                  "-Werror=deprecated-non-prototype",
+                  "-Werror=return-type",
+                  "-I.",
+                  "-Iinclude",
+                  "-Iinclude/PR",
+                  "-Isrc/ultra/audio",
+                  "-Isrc/ultra/libc",
+                  "-DLANGUAGE_C",
+                  "-D_LANGUAGE_C",
+                  "-D_MIPS_SZLONG=32",
+                  "-DNDEBUG",
+                  "-DCOMPILING_LIBULTRA",
+                  "-DBUILD_VERSION=VERSION_I",
+                  "-DF3DEX_GBI",
+                  "-DMIPSEB",
+                  "-D_MIPS_FPSET=16",
+                  "-D_MIPS_ISA_MIPS2=2",
+                  "-D_MIPS_ISA=_MIPS_ISA_MIPS2",
+                  "-D_ABIO32=1",
+                  "-D_MIPS_SIM=_ABIO32",
+                  "-D_MIPS_SZINT=32",
+                  "-D_MIPS_SZPTR=32",
+                  "-D__sgi=1",
+                  "-fno-color-diagnostics",
+                  "-iquote",
+                  "src/ending"
+                ],
+                "settings": {
+                  "CC_CHECK": "clang",
+                  "CC_CHECK_FLAGS": "-fsyntax-only -ffreestanding -fno-builtin -funsigned-char  -fdiagnostics-color -std=gnu89 -m32  '-D__builtin_classof(type)=0'  '-D__builtin_alignof(type)=__alignof__(type)'",
+                  "CC_CHECK_WARNINGS": "-Wall -Wextra -Wno-unknown-pragmas  -Wno-unused-parameter -Wno-unused-variable  -Wno-unused-but-set-variable -Wno-unused-value  -Wno-unused-label -Wno-missing-braces -Wno-sign-compare  -Wno-tautological-compare -Wno-pointer-bool-conversion  -Wno-array-bounds -Wno-unsequenced -Wno-pointer-sign  -Wno-constant-conversion -Wno-multichar  -Werror=implicit-int  -Werror=implicit-function-declaration  -Werror=int-conversion  -Werror=incompatible-pointer-types  -Werror=incompatible-function-pointer-types  -Werror=strict-prototypes  -Werror=deprecated-non-prototype  -Werror=return-type",
+                  "CC_CHECK_INCLUDES": "-I. -Iinclude -Iinclude/PR -Isrc/ultra/audio -Isrc/ultra/libc",
+                  "C_DEFINES": "-DLANGUAGE_C -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DNDEBUG  -DCOMPILING_LIBULTRA -DBUILD_VERSION=VERSION_I -DF3DEX_GBI",
+                  "CC_CHECK_MIPS_DEFINES": "-DMIPSEB -D_MIPS_FPSET=16 -D_MIPS_ISA_MIPS2=2  -D_MIPS_ISA=_MIPS_ISA_MIPS2 -D_ABIO32=1  -D_MIPS_SIM=_ABIO32 -D_MIPS_SZINT=32  -D_MIPS_SZPTR=32 -D__sgi=1"
+                },
+                "target": "build/src/ending/ending_credits_flow.o",
+                "makefile_sha256": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+                "checker_sha256": "b15e7640bf3082f36ef14321711706b265df3058721e3c2caef3a4b83895d07d",
+                "warning_policy": "project default WERROR=0; explicit error classes preserved"
+              }
+            }
+          },
+          "compiler_recipe": {
+            "schema_version": 1,
+            "target": "build/src/ending/ending_credits_flow.o",
+            "settings": {
+              "IDO_CC": "python3 tools/asm-processor/build.py tools/ido-recomp/linux/cc -- mips-linux-gnu-as -G 0 -I include -mips3 -mabi=32 --",
+              "CFLAGS": "-c -mips1 -G 0 -non_shared -fullwarn -Xcpluscomm  -nostdinc -Wab,-r4300_mul -woff 649,838,712,516  -I. -Iinclude -Iinclude/PR -Isrc/ultra/audio -Isrc/ultra/libc  -DLANGUAGE_C -D_LANGUAGE_C -D_MIPS_SZLONG=32 -DNDEBUG  -DCOMPILING_LIBULTRA -DBUILD_VERSION=VERSION_I -DF3DEX_GBI",
+              "C_OPT": "-O2",
+              "C_MIPS": "-mips1",
+              "ASFLAGS": "-G 0 -I include -mips3 -mabi=32",
+              "C_OBJ_POSTPROCESS": ":"
+            },
+            "command": [
+              "python3",
+              "tools/asm-processor/build.py",
+              "tools/ido-recomp/linux/cc",
+              "--",
+              "mips-linux-gnu-as",
+              "-G",
+              "0",
+              "-I",
+              "include",
+              "-mips3",
+              "-mabi=32",
+              "--",
+              "-c",
+              "-mips1",
+              "-G",
+              "0",
+              "-non_shared",
+              "-fullwarn",
+              "-Xcpluscomm",
+              "-nostdinc",
+              "-Wab,-r4300_mul",
+              "-woff",
+              "649,838,712,516",
+              "-I.",
+              "-Iinclude",
+              "-Iinclude/PR",
+              "-Isrc/ultra/audio",
+              "-Isrc/ultra/libc",
+              "-DLANGUAGE_C",
+              "-D_LANGUAGE_C",
+              "-D_MIPS_SZLONG=32",
+              "-DNDEBUG",
+              "-DCOMPILING_LIBULTRA",
+              "-DBUILD_VERSION=VERSION_I",
+              "-DF3DEX_GBI",
+              "-O2",
+              "-Isrc/ending"
+            ],
+            "makefile_sha256": "194045ad5294ec18dd8cfb0d9f3ef211789dd2d11f83f9cd03cb98290a4b1214",
+            "projection_sha256": "266b57030fbb423c0ba26aef634272200e1e36aee5ce76e2dd2b019e26a52239",
+            "authority": "existing project build configuration, not inferred original compiler settings",
+            "source_origin": "C TU",
+            "scope": "C code generation; full TU syntax checking and final ROM integration are separate",
+            "helper_sha256": "0f3bc1016f658335bc36e0b4496bd5c6c42ccbf6c79ee92369ef2fa55f510619",
+            "script": "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.sh",
+            "manifest": "/home/grant/decomp/sbk1/nonmatchings/fadeInEndingCreditsFlow/.compiler-348d832eb1b3a8bb14dc.json"
+          },
+          "diff": "",
+          "diagnostics": ""
+        }
+      }
+    }
+  ]
+}
