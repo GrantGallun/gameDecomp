@@ -284,3 +284,65 @@ def test_for_init_pointer_declaration():
     lines = [l.strip() for l in out.splitlines()]
     assert "s8 *p;" in lines
     assert any(l.startswith("for (p = buf;") for l in lines)
+
+
+# -------------------------------------------------------- target linkage
+#
+# `strip_inline` deliberately keeps `static` (test_inline_removed_static_kept above), and that is
+# right for a text rewrite with no knowledge of which identifier is the target. `public_definition`
+# is the separate, name-aware pass that has to drop it, because IDO does not emit an unreferenced
+# `static` function and the object comes back with no `.text` -- "Compiled object has no text
+# symbols", which reads as a type/include problem and is not one.
+#
+# The motivating residual is real model output from the admission bucket (receipts 31124/31125,
+# 2026-09-16): correct C that IDO rejected at the opening brace because `inline` is C99, and that
+# then produced no text symbols because `static` was left behind.
+
+def test_public_definition_fires_on_the_motivating_residual():
+    src = ("#include \"common.h\"\n"
+           "\n"
+           "static inline void *acquireRelocatableHeapBlockMetadata(void)\n"
+           "{\n"
+           "    return 0;\n"
+           "}\n")
+    out = c89.public_definition(c89.to_c89(src), "acquireRelocatableHeapBlockMetadata")
+    assert "inline" not in out
+    assert "static" not in out
+    assert out.count("acquireRelocatableHeapBlockMetadata") == 1
+
+
+def test_public_definition_pointer_return_is_not_a_silent_decline():
+    # The first version of this used a return-type regex and silently declined on a pointer return,
+    # which is the silent-decline shape CLAUDE.md catalogues. This is the regression guard.
+    src = "static void *f(void) {\n    return 0;\n}\n"
+    out = c89.public_definition(src, "f")
+    assert out.startswith("void *f(void)")
+
+
+def test_public_definition_keeps_helper_static():
+    src = ("static s32 helper(s32 a) {\n"
+           "    return a;\n"
+           "}\n"
+           "\n"
+           "static s32 target(s32 a) {\n"
+           "    return helper(a);\n"
+           "}\n")
+    out = c89.public_definition(src, "target")
+    assert "static s32 helper" in out            # a helper's linkage is not ours to change
+    assert "static s32 target" not in out
+    assert "s32 target(s32 a)" in out
+
+
+def test_public_definition_declines_when_there_is_no_static():
+    src = "void f(void) {\n    return;\n}\n"
+    assert c89.public_definition(src, "f") == src
+
+
+def test_public_definition_leaves_file_scope_data_static():
+    src = ("static s32 gTable[4];\n"
+           "\n"
+           "s32 target(void) {\n"
+           "    return gTable[0];\n"
+           "}\n")
+    out = c89.public_definition(src, "target")
+    assert "static s32 gTable[4];" in out

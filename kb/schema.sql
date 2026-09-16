@@ -45,7 +45,12 @@ CREATE TABLE IF NOT EXISTS functions (
     insn_count  INTEGER,
     is_leaf     INTEGER,                 -- 1 if it makes no calls
     state       TEXT    NOT NULL DEFAULT 'asm',   -- asm | attempted | matched
-    best_score  REAL    DEFAULT NULL,    -- asm-differ score; lower is better, 0 = match
+    best_score  REAL    DEFAULT NULL,    -- asm-differ similarity, 0..100, HIGHER is better, 100 = byte-exact.
+                                         -- CAUTION: this column is not maintained by the solver -- it is
+                                         -- NULL for every row in imported databases (measured 2026-09-16:
+                                         -- NULL for all 2,113). Progress lives in `attempts`; query that.
+                                         -- An earlier comment here said "lower is better, 0 = match", which
+                                         -- is backwards and was read as fact by at least one analysis pass.
     attempts    INTEGER NOT NULL DEFAULT 0
 );
 
@@ -179,7 +184,10 @@ CREATE TABLE IF NOT EXISTS attempts (
     prompt_sha256 TEXT,
     compiled      INTEGER NOT NULL,
     compiler_stderr TEXT,
-    score         REAL,             -- asm-differ similarity, 0..100; not proof
+    score         REAL,             -- asm-differ similarity, 0..100, HIGHER is better; 100 with
+                                    -- exact=1 is byte-exact. 0 with compiled=0 means did-not-compile.
+                                    -- NOT proof of anything on its own: a 94.6 score has measured at
+                                    -- 81 of 528 differing bytes, so gate on exact, never on score.
     exact         INTEGER,          -- verifier verdict; NULL = historical unknown
     diff_summary  TEXT,             -- full instruction diff, not just the number
     strategy      TEXT,

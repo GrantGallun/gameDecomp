@@ -25,8 +25,27 @@ semantics exactly or declines to fire:
   for-init decl     same split, with the declaration hoisted to the enclosing
                     block and the assignment left in the for-init.
   stdint            uint8_t -> u8, and uintptr_t -> u32 (MIPS is ILP32 here).
-  inline            deleted; `static` is left alone.
+  inline            deleted.
   __attribute__     deleted with its balanced parentheses.
+
+`public_definition` is separate from `to_c89` on purpose, and corrects a claim this docstring used
+to make ("inline deleted; `static` is left alone"). Leaving `static` alone is wrong for the target
+function, and it fails in two stages that each look like a different bug:
+
+  `static inline void *f(void) {}`  ->  cfe: Syntax Error at the `{`        (inline is C99)
+  `static void *f(void) {}`          ->  "Compiled object has no text symbols"
+
+The second is not a parse failure at all: IDO does not emit an unreferenced `static` function, so the
+object has no `.text`. Measured 2026-09-16 on the admission bucket, which is where the two largest
+failure classes were being counted as separate problems -- receipts 31124 and 31125, model-written C
+that was correct apart from the linkage:
+
+    acquireRelocatableHeapBlockMetadata   raw: Syntax Error   c89: no text symbols   +public: 75.833
+    addRacePlayerScore                    raw: Syntax Error   c89: no text symbols   +public: 85.455
+
+A game function has external linkage. `to_c89` cannot do this because it never learns which
+identifier is the target; `public_definition` takes the name and touches only that definition line,
+so `static` on a helper or a file-scope table still survives.
 
 Anything it cannot parse confidently, it leaves alone: a candidate that still
 fails to compile is a far better outcome than one silently given new meaning.
@@ -73,6 +92,7 @@ PREPROC_RE = re.compile(r"^\s*#")
 STDINT_RE = re.compile(r"\b(u?)int(8|16|32|64)_t\b")
 UINTPTR_RE = re.compile(r"\b(u?)intptr_t\b")
 INLINE_RE = re.compile(r"\b(?:__)?inline(?:__)?\b\s*")
+STATIC_RE = re.compile(r"\bstatic\b[ \t]*")
 BOOL_RE = re.compile(r"\b_Bool\b")
 
 
@@ -283,10 +303,42 @@ def hoist_declarations(code: str) -> str:
     return "\n".join(out) + ("\n" if code.endswith("\n") else "")
 
 
+# ------------------------------------------------------ target linkage
+
+def public_definition(code: str, func: str) -> str:
+    """Drop `static` from the TARGET function's own definition.
+
+    IDO does not emit an unreferenced `static` function, so the object comes back with no `.text`
+    and the build helper reports "Compiled object has no text symbols" -- which reads as a type or
+    include problem and sent the admission triage looking in the wrong place. A game function has
+    external linkage; the model writes `static inline` because that is idiomatic modern C.
+
+    Line-scoped and name-anchored rather than a return-type pattern. The first version of this used a
+    return-type regex and silently declined on `static void *f(void)` -- a pointer return defeated it,
+    which is the same silent-decline shape `CLAUDE.md` catalogues four instances of. Scoping by line
+    and by the target's own name leaves `static` on helpers, tables and file-scope data intact.
+
+    Declines (returns `code` unchanged) when no line carries both `static` and the target's name.
+    """
+    name_re = re.compile(r"\b" + re.escape(func) + r"\s*\(")
+    out: list[str] = []
+    changed = False
+    for line in code.splitlines(keepends=True):
+        if "static" in line and name_re.search(line):
+            line = STATIC_RE.sub("", line, count=1)
+            changed = True
+        out.append(line)
+    return "".join(out) if changed else code
+
+
 # ---------------------------------------------------------------- entry point
 
 def to_c89(code: str) -> str:
-    """Apply every repair. Safe to call on code that is already C89."""
+    """Apply every repair. Safe to call on code that is already C89.
+
+    Does NOT drop `static` from the target definition: it is not told which identifier is the target.
+    Callers that know the function name should also call `public_definition`.
+    """
     code = fix_types(code)
     code = strip_attributes(code)
     code = strip_inline(code)
