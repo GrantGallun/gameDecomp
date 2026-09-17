@@ -123,6 +123,66 @@ def _hunk_cause(target: list[str], candidate: list[str]) -> tuple[str, int]:
     return ("colouring" if register_only else "order"), len(differing)
 
 
+def moved_instructions(diff: str) -> list[str]:
+    """The TARGET side of every instruction position that differs, across all hunks.
+
+    This is what a rule keys on to decide whether it owns a residual: Fstop's moved instructions are
+    stores with distinct offsets, the sibling's are the same instruction with a different register.
+    """
+    out: list[str] = []
+    for hunk in _hunks(diff):
+        target, candidate = _sequences(hunk)
+        for i in range(min(len(target), len(candidate))):
+            if target[i].strip() != candidate[i].strip():
+                out.append(target[i].strip())
+    return out
+
+
+_STORE_OP = re.compile(r"^\s*(sw|sh|sb|swc1|sdc1)\b")
+_BASE = re.compile(r"\(\s*(\w+)\s*\)\s*$")
+
+
+def is_store(text: str) -> bool:
+    return bool(_STORE_OP.match(text))
+
+
+def store_base(text: str) -> str | None:
+    """The base register a store writes through: `sw zero,0x60(a0)` -> `a0`.
+
+    Needed because a residual's hunk also carries stores that are NOT part of the permutation -- a
+    function's argument spill `sw a1,4(sp)` sits in the same hunk -- and counting those against the
+    source's assignment statements makes the arity wrong and the rule decline. The permuted group is
+    the stores sharing one base.
+    """
+    match = _BASE.search(text.strip())
+    return match.group(1) if match else None
+
+
+def hunk_store_orders(diff: str, bases: set[str] | None = None
+                      ) -> tuple[list[str] | None, list[str] | None]:
+    """(candidate store sequence, target store sequence) for a single-hunk residual.
+
+    `bases` restricts to stores through those base registers. None on either side when the diff has
+    more than one hunk, when no stores survive the filter, or when the filter is ambiguous -- a rule
+    that has to guess which hunk or which base a permutation belongs to should decline instead.
+    """
+    hunks = _hunks(diff)
+    if len(hunks) != 1:
+        return None, None
+    target, candidate = _sequences(hunks[0])
+
+    def keep(line: str) -> bool:
+        if not _STORE_OP.match(line):
+            return False
+        return bases is None or store_base(line) in bases
+
+    target_stores = [t.strip() for t in target if keep(t)]
+    candidate_stores = [c.strip() for c in candidate if keep(c)]
+    if not target_stores or not candidate_stores:
+        return None, None
+    return candidate_stores, target_stores
+
+
 def classify(diff: str) -> Cause:
     """Which cause does this residual's diff indicate?
 
