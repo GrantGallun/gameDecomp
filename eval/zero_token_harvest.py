@@ -192,17 +192,13 @@ def repair_chain(conn, func: str, draft: str, known_types: set[str],
     be shown to FIRE on it rather than only to decline elsewhere.
     """
     code, applied, declined = draft, [], ""
-    # `do` is banned by the per-function build.sh, but the ban is on the
-    # TOKEN, not the control-flow shape -- for(;;){ body; if (!cond) break; }
-    # is the sanctioned spelling, CONFIRMED across 389 of 390 sites.
-    if DO_BLOCK.search(code):
-        try:
-            rewritten = score_repo_function.rewrite_do_while(code)
-            if rewritten != code:
-                code = rewritten
-                applied.append("do-while")
-        except ValueError as exc:          # continue/unbalanced: decline
-            declined = str(exc)[:120]
+    # RETIRED 2026-09-17: this stage used to lower `do { } while ()` to `for(;;){ ...; break; }`
+    # because the per-function build.sh refused the token. That refusal was a policy, not a compiler
+    # limit, and it has been removed (`eval/remove_do_ban.py`); the lowering is NOT codegen-neutral --
+    # on drawRaceSplitscreenSelectOption2Frame it alone turns a BYTE-EXACT body into 99.395, and on the
+    # 166 never-attempted drafts it was firing on every one whose draft uses `do` while the terminal
+    # `Syntax Error` / `Empty declaration specifiers` stayed exactly where it was. `do` now reaches IDO
+    # as written. `solver.rewrites.restore_do_while` is the inverse if a candidate must be put back.
     # Before declaring anything: a byte pointer with member accesses needs
     # INDEXING, not a struct. Synthesising a type there would rescale the
     # pointer arithmetic these functions depend on.

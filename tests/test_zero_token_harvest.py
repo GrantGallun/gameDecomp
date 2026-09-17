@@ -118,14 +118,22 @@ void f(T *a) {
 '''
 
 
-def test_repair_chain_fires_on_do_while_and_typedecl_together():
-    """Both zero-token repairs compose into one candidate."""
+def test_repair_chain_keeps_do_and_still_fires_typedecl():
+    """The chain no longer lowers the loop, and the other stages still compose.
+
+    CHANGED 2026-09-17 with the removal of the `do`-token refusal. The old assertion here was
+    `applied == ["do-while", "typedecl"]` with `"for (;;)" in code` -- it pinned a transformation that
+    is NOT codegen-neutral: on drawRaceSplitscreenSelectOption2Frame the lowering alone turns a
+    BYTE-EXACT body into 99.395. It now pins the opposite, which is the property that matters: the loop
+    the author (or m2c) wrote reaches IDO unchanged.
+    """
     conn = _FakeConn([("param0", 8, 4, 1, 1)])
     code, applied, plans, declined = zth.repair_chain(
         conn, "f", DO_WHILE_DRAFT, set())
-    assert applied == ["do-while", "typedecl"]
-    assert "do" not in code.split("{")[0]      # the banned token is gone
-    assert "for (;;)" in code or "for(;;)" in code
+    assert "do-while" not in applied
+    assert applied == ["typedecl"]
+    assert "do {" in code, "the chain must not lower a loop the compiler accepts"
+    assert "for (;;)" not in code
     assert plans and "} T;" in plans[0]["text"]
     assert declined == ""
 

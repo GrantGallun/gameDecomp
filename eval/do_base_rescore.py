@@ -76,13 +76,83 @@ def run_one(conn, repo: Path, name: str, *, repair: bool, admit: bool = True) ->
         # specifiers`, which is an admission wall and not the `do` wall.
         if not admit:
             return row
+        # FIRST, the m2c placeholder type. Observed terminal error on the drafts that survive every
+        # other stage: `? sp20;` -- m2c's unknown type, which IDO reports as `Empty declaration
+        # specifiers` (53 of the 163 failures). `solver.placeholder_declarations` is the pass for it
+        # (`UNKNOWN = r"(?:\?|M2C_UNK)"`, `LOCAL = ... {UNKNOWN} <stars> <name> ;`) and nothing in the
+        # recovery path calls it, so every later stage is being asked to fix a draft that cannot parse.
+        placed = None
+        try:
+            from solver import placeholder_declarations as pd_mod
+            headers = pd_mod.header_names(repo, draft)
+            rows, report = pd_mod.propose(draft, name, headers)
+            row["placeholder_report"] = {k: v for k, v in (report or {}).items()
+                                         if isinstance(v, (int, str, bool, list))}
+            if rows:
+                placed = rows
+        except Exception as exc:                                         # noqa: BLE001
+            row["placeholder_error"] = f"{type(exc).__name__}: {exc}"
+        if placed:
+            for label, candidate in placed:
+                fixed = workspace.score(ws, repo, name, candidate, conn=conn, func=name,
+                                        strategy=f"do-base-rescore:placeholder:{label}", iteration=0,
+                                        run_kind="do-base-rescore", parent_attempt_id=att.receipt_id,
+                                        relation="do-base-rescore")
+                if fixed.exact:
+                    row.update(compiled=True, exact=True, status="exact", score=fixed.score,
+                               admitted_by=f"placeholder:{label}", exact_source=candidate, error=None)
+                    return row
+                if fixed.compiled:
+                    row.update(compiled=True, status="compiled", score=fixed.score,
+                               profile=profile_of(fixed), admitted_by=f"placeholder:{label}",
+                               error=None, admitted_source=candidate)
+                    return row
+            row["placeholder_compiled"] = False
+        # `zero_token_harvest.repair_chain` is the applier for the classes that dominate this
+        # population. `compilefix` maps `Syntax Error`/`Empty declaration specifiers` to `typedecl` and
+        # `byte-index`, and this is the only caller that runs them: `memberaccess.rewrite` (byte-index),
+        # `typedecl.synthesize`, then `globaldecl.declare`. It is pure -- no workspace, no compile -- so
+        # it is tried before the expensive recovery stages.
+        admitted = None
+        try:
+            from eval import zero_token_harvest as zth
+            from solver import buildtypes
+            known = buildtypes.type_names(repo)
+            repaired, stages, plans, declined = zth.repair_chain(conn, name, draft, known)
+            row["harvest_stages"] = stages
+            row["harvest_plans"] = len(plans or ())
+            if declined:
+                row["harvest_declined"] = declined
+            if repaired != draft:
+                admitted = [(f"harvest:{'+'.join(stages) or 'none'}", repaired)]
+        except Exception as exc:                                         # noqa: BLE001
+            row["harvest_error"] = f"{type(exc).__name__}: {exc}"
+        if admitted:
+            for label, candidate in admitted:
+                fixed = workspace.score(ws, repo, name, candidate, conn=conn, func=name,
+                                        strategy=f"do-base-rescore:{label}", iteration=0,
+                                        run_kind="do-base-rescore", parent_attempt_id=att.receipt_id,
+                                        relation="do-base-rescore")
+                if fixed.exact:
+                    row.update(compiled=True, exact=True, status="exact", score=fixed.score,
+                               admitted_by=label, exact_source=candidate, error=None)
+                    return row
+                if fixed.compiled:
+                    row.update(compiled=True, status="compiled", score=fixed.score,
+                               profile=profile_of(fixed), admitted_by=label, error=None)
+                    row["admitted_source"] = candidate
+                    draft, att = candidate, fixed
+                    break
+            else:
+                row["harvest_compiled"] = False
+        if row.get("compiled"):
+            row["status"] = "compiled"
+            return row
         # `repair_context.normalize` is NOT the admission applier: it covers only C89 spellings and the
         # void-pointer byte-arithmetic families, and it returns NOTHING for
         # `Syntax Error/contradicted-primitive-pointer` (drawCourseRecordBanner) or only a `c89` variant
         # for `Syntax Error/undeclared-param-type` (drawCharacterSelectCourseListOptions) -- the two
-        # classes that dominate this population. The registered fixes for those are `byte-index`,
-        # `typedecl` and `globals`, applied by `solver.compile_recovery.variants`. Route there first.
-        admitted = None
+        # classes that dominate this population. `solver.compile_recovery.variants` is the wider net.
         try:
             from solver import compile_recovery
             rows, reports = compile_recovery.variants(conn, repo, name, ws, draft, att)
