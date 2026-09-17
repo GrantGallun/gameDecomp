@@ -240,5 +240,21 @@ its `saved_order` numbering. Nothing here is claimed for a GCC target, and nothi
 wsl.exe -e bash -lc "cd /mnt/c/Code/gameDecomp && python3 eval/results/rename-wall-20260917/probe.py drawRaceSplitscreenSelectOption2Frame 31662"
 wsl.exe -e bash -lc "cd /mnt/c/Code/gameDecomp && python3 eval/results/rename-wall-20260917/experiments.py drawRaceSplitscreenSelectOption2Frame 31662"
 wsl.exe -e bash -lc "cd /mnt/c/Code/gameDecomp && python3 eval/results/rename-wall-20260917/ordering_probe.py drawRaceSplitscreenSelectOption2Frame 31662"
+wsl.exe -e bash -lc "cd /mnt/c/Code/gameDecomp && python3 eval/results/rename-wall-20260917/adjsave_probe.py drawRaceSplitscreenSelectOption2Frame 11723,31662"
 wsl.exe -e bash -lc "cd /mnt/c/Code/gameDecomp && python3 -m eval.rename_census --out eval/results/rename-census-20260917"
+wsl.exe -e bash -lc "cd /mnt/c/Code/gameDecomp && python3 -m eval.order_search --out eval/results/order-search-20260917 --depth 2 --cap 90 --jobs 3"
 ```
+
+## Logging
+
+`eval.order_search` and `patterns.derive` log every compile they make (481 and 15 rows, with
+`strategy = "order-search:..."` / `"derive:..."`), because those are the two drivers that could have
+produced a match. The three offline census tools -- `family_sweep.py`, `rename_census.py` and
+`adjsave_probe.py` -- compile with `conn=None` and write their per-variant receipts to the committed
+JSON/`.md` files instead, with no knowledge-base rows; they enumerate scratch variants to bound a
+search space rather than propose candidates to the pipeline. Every one of their compiles is in the
+receipts: `family-sweep-*.json` carries `label`, `kind`, `parent`, `compiled`, `exact`, `score`,
+`gradient`, `order`, `reverse` and `reg_s2` for each.
+
+Match ratchet across the round: SOLVED **150**, byte-exact **216** (unchanged -- nothing here re-routes
+or re-scores), attempts logged 49,962 -> **50,509**.
