@@ -10,6 +10,32 @@ hand.
 
     python3 -m eval.status            # markdown block for CLAUDE.md
     python3 -m eval.status --check    # non-zero if CLAUDE.md disagrees
+
+WHY THIS NUMBER IS NOT THE CAMPAIGN'S NUMBER (resolved 2026-09-17)
+------------------------------------------------------------------
+This reports the RESEARCH knowledge base (`kb-sbk1.sqlite`, 502 attempted). The live campaign reports
+its own, much larger figure from `eval/results/resume-pipeline-<date>/campaign.json`, and the two read
+as a contradiction -- README says "909 object-exact (44.3%) of 2,051", health.json said 937, and this
+says ~214. They are not the same quantity, and the campaign's own checkpoint says so outright:
+
+    summary.cohort_functions                   2051
+    summary.object_exact_or_integrated          958
+    fast_metrics.repair_yield.totals.exact_functions_gained   262
+    fast_metrics.repair_yield.totals.exact_functions_lost       0
+
+`object_exact_or_integrated` counts NODES WHOSE STATUS IS object_exact -- and the cohort was seeded
+from the reference decompilation, so most of that total was already exact before the pipeline ran.
+`repair_yield` counts what the controller actually produced: **262 functions gained, 0 lost**.
+
+    958 nodes object_exact_or_integrated
+  - 262 gained by the campaign's own repair yield
+  = 696 that arrived already exact
+
+So the 44% headline is ~69% pre-existing state, and the campaign's produced capability is 262 of 2,051
+(12.8%), against this module's SOLVED for its own smaller population. Quote neither as the other.
+The 262 is a distinct-function count from the controller's own ledger and is the closest thing the
+campaign has to a capability number; `exact_items` (286) is a WORK-ITEM count from
+`fast_campaign.py:389` and must not be substituted for it.
 """
 
 from __future__ import annotations
