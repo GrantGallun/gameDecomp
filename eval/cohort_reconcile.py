@@ -55,9 +55,9 @@ def _source_text(node: dict) -> str:
     return raw
 
 
-def cohort_nodes(results: Path) -> list[dict]:
+def cohort_nodes(results: Path, pattern: str = "failure-coverage-fresh-paired-*.json") -> list[dict]:
     out = []
-    for path in sorted(results.glob("failure-coverage-fresh-paired-*.json")):
+    for path in sorted(results.glob(pattern)):
         try:
             d = json.loads(path.read_text())
         except (OSError, ValueError):
@@ -78,12 +78,15 @@ def cohort_nodes(results: Path) -> list[dict]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--results", type=Path, default=ROOT / "eval/results")
+    ap.add_argument("--ledger-glob", default="failure-coverage-fresh-paired-*.json",
+                    help="which ledgers to reconcile. The round-1 run used the fresh-paired family; "
+                         "eval/ledger_inventory.py named rom-paired as the next one")
     ap.add_argument("--out", type=Path, default=ROOT / "eval/results/cohort-reconcile-20260917")
     ap.add_argument("--limit", type=int, default=0)
     args = ap.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
 
-    nodes = cohort_nodes(args.results)
+    nodes = cohort_nodes(args.results, args.ledger_glob)
     if args.limit:
         nodes = nodes[:args.limit]
     print(f"cohort nodes claiming object_exact: {len(nodes)}", flush=True)
