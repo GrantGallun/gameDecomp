@@ -1,5 +1,25 @@
 # The rename wall was not a rename wall
 
+> **CORRECTION, same day, from the key.** The whole investigation below is downstream of a one-token
+> policy. The ROM-verified source for these functions is `~/decomp/sbk1/src/...` and it uses
+> `do { ... } while (...)`. `external/snowboardkids-decomp/tools/claude-decomp-env/build.sh` **refuses
+> the `do` token**, so the candidate must be lowered to `for (;;) { ...; if (!(...)) break; }` before
+> IDO ever sees it. Bisecting from the key (`bisect_from_key.py`, 4 compiles):
+>
+> | step | source | result |
+> |---|---|---|
+> | K0 | reference body verbatim | **NOT COMPILED** — "The C file contains a do-while loop" |
+> | K1 | + the mandated `do`->`for(;;)break` lowering | **99.395**, regalloc=8 ordering=5 structural=1 |
+> | K2 | + the pipeline's `shouldDraw` inline | **99.936**, regalloc=0 ordering=2 |
+> | C | the stored candidate (attempt 31662) | 99.936 — identical to K2 |
+>
+> K1 is *exactly* the recorded baseline attempt 11723 (99.395) and K2 is *exactly* the stored
+> candidate. So the entire residual is produced by the pipeline's own two mechanical edits on a source
+> that already matched. `387` `do {` occurrences across `53` files of the reference source carry the
+> same exposure — the same population `solver/rewrites.py` counts as "all 390 do-while sites". Nothing
+> below about `saved_order`, adjsave or emission order is *wrong* as an observation, but none of it was
+> the cause, and the key was in the tree the whole time. See the closing section.
+
 2026-09-17. Goal: *"make a pure register RENAME an instrumented residual instead of an uninstrumented
 one."* The premise was measured and it is false. What is left is a different, sharper problem, and the
 instruments that were supposed to own it own it even less than the premise assumed.
