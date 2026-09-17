@@ -12,6 +12,17 @@ declines look identical from outside.
 
 This takes the stored source of every function whose failures include an undefined identifier, runs
 the ladder, and reports what the ORACLE says. No model, no GPU. Every compile is logged.
+
+A SIDE EFFECT WORTH KNOWING, because it changes what the numbers mean. `eval/status.py` reports that
+"(1,297 historical compiled attempt(s) predate persisted exact verdicts. They are treated as unknown,
+never inferred from score.)" Recompiling a stored source here does not infer anything -- it asks the
+oracle -- and 53 of the 171 baselines came back `exact=True`. So this run converted 53 functions from
+UNKNOWN to VERIFIED byte-exact in the ledger.
+
+That is bookkeeping, not capability: those sources were already byte-exact, and `eval/status`'s
+`on_disk` set already counted most of them, which is why the headline moved by 2 rather than 53. Both
+numbers are in the result file; report the second one as a correction to the ledger, never as new
+decompilation. All 53 were re-verified independently afterwards by recompiling again in a fresh call.
 """
 from __future__ import annotations
 
