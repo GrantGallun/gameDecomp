@@ -166,14 +166,23 @@ def uncounted(build_tree: Path, results: Path) -> dict:
     Two independent mechanisms, both measured 2026-09-17, both of which leave the headline unchanged
     while producing real evidence:
 
-    `function_exact`  The per-attempt certificate carries `function_boundary.function_exact`, a
-                      ROM-backed byte comparison of the function's own extent and its external call
-                      relocations. `exact` is the OBJECT-SECTION verdict instead, and for a
-                      single-function candidate compiled against a TU object holding more than that
-                      function, the section test is structurally unsatisfiable -- measured on rmonPrintf,
-                      28 B of function against a 48 B .text, so +20 bytes that are neither padding nor
-                      this function. These are NOT added to `solved`; the tier question is the
-                      operator's, and this row exists so it is asked with a number.
+    `function_exact`  A MATCH TIER, on the operator's criterion: "if it behaves the same exact way as
+                      the original binary in every way, that is what we are looking for". It does.
+                      `solver/function_boundary.py` line 204 applies the relocation groups and then
+                      requires
+
+                          candidate_linked == target_linked == rom_data[offset:offset + size]
+
+                      so the candidate's function bytes, with relocations resolved from the linker
+                      symbol table (and the function symbol address cross-checked against KB metadata),
+                      are BYTE-IDENTICAL to the ROM's own bytes at that address. Same words, same
+                      positions, same resolved references -- behaviour-identical by construction, not
+                      by inference. What differs is the OBJECT SECTION: the target object holds more
+                      than the function (rmonPrintf: 28 B of function against a 48 B .text, +20 bytes
+                      that are neither padding nor this function), so a single-function candidate can
+                      never satisfy a section test. Counted here as its own row and NOT folded into
+                      `solved`, because the tiers rest on different evidence and merging them would
+                      destroy the ability to tell which claim a number carries.
 
     `fresh_cohort`    `eval/experiments/campaign-gap-audit/fresh_run_v1.py` writes its own ledger
                       (`nodes`, not the attempts table), so a cohort run that produces object-exact
@@ -246,19 +255,18 @@ def main() -> int:
     print(f"| **inference rows** | **{c['inference']}** |")
     print(f"| tests | {n_tests} |")
     print()
-    print("Not counted above, and never added to it -- each is a different claim:")
-    print(f"| ROM-backed FUNCTION-exact, object section differs | "
+    print("Additional MATCH TIER, counted separately so each number carries one claim:")
+    print(f"| ROM-backed FUNCTION-exact -- candidate bytes, relocations applied, equal the ROM's own | "
           f"**{len(extra['function_exact'])}** |")
-    print(f"| fresh-cohort object-exact in the campaign's own ledgers | "
+    print(f"| fresh-cohort object-exact in the campaign's own ledgers (upper bound, not de-duplicated) | "
           f"**{len(extra['fresh_cohort'])}** |")
     if extra["function_exact"]:
         print(f"\n  function-exact: {', '.join(extra['function_exact'])}")
     if extra["fresh_cohort"]:
-        named = ", ".join(sorted(extra["fresh_cohort"]))
-        print(f"  fresh-cohort:  {named}")
-    print("\n(Neither row is a capability number. `SOLVED` is the only one, and the tier question for"
-          "\n the first row is recorded in eval/status.py's SECOND KNOWN GAP and in"
-          "\n eval/results/function-cert-20260917/RESULT.md.)")
+        print(f"  fresh-cohort:  {', '.join(sorted(extra['fresh_cohort']))}")
+    print(f"\n(ROM-function-exact rests on byte identity with the ROM for the function's own extent, so it")
+    print(f" is behaviour-identical by construction. It is a different claim from object-section exactness,")
+    print(f" which compares the whole section and cannot be satisfied by a single-function candidate.)")
     if c["exact_disk_only"]:
         print(f"\n({c['exact_disk_only']} verified match(es) exist only as files "
               f"in matched_recovered/ and are absent from the attempts table --"
