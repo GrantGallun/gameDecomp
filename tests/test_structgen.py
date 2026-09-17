@@ -417,3 +417,89 @@ def test_subsequence_last_variant_is_a_different_proposal():
     # first puts it at 0x0 (no edit needed); last puts it at 0x20
     assert not c1
     assert c2 and "pad00[0x20]" in last
+
+
+# ---------------------------------------- every spelling of a struct definition
+#
+# `_single_struct_fields` used to require `typedef struct {...} T;`. The model writes all four shapes,
+# so `align_positional` and `align_subsequence` -- the passes built for a layout-dominant candidate --
+# declined without running on two of them. Measured on the admission re-run's first two layout-dominant
+# candidates (2026-09-16): `extern struct {...} gRaceChallengeTimeLimit;` and
+# `struct RaceIntroEffectActor {...};`, both reported "no single typedef-struct region".
+#
+# This is the same bug CLAUDE.md already records in the mirror direction: a pass that "searched only
+# for `struct {...} sym[8];` and declined on `typedef struct {...} T; extern T sym[4];`, which is how
+# headers are actually written".
+
+def test_accepts_typedef_struct():
+    region = structgen._single_struct_fields("typedef struct {\n    s32 a;\n} T;\n")
+    assert region is not None and "s32 a;" in region[2]
+
+
+def test_accepts_tagged_struct_definition():
+    region = structgen._single_struct_fields("struct Actor {\n    s32 radius;\n};\n")
+    assert region is not None and "s32 radius;" in region[2]
+
+
+def test_accepts_anonymous_struct_variable_declaration():
+    # The motivating residual: this is how the admission candidate declared its global.
+    src = ("extern u8 gRaceUpdatePaused;\n"
+           "extern struct {\n"
+           "    s16 fraction;\n"
+           "    s8  seconds;\n"
+           "    s8  minutes;\n"
+           "} gRaceChallengeTimeLimit;\n")
+    region = structgen._single_struct_fields(src)
+    assert region is not None
+    assert "fraction" in region[2] and "minutes" in region[2]
+
+
+def test_accepts_tagged_struct_with_variable():
+    region = structgen._single_struct_fields("struct T { s32 a; } v;\n")
+    assert region is not None and "s32 a;" in region[2]
+
+
+def test_declines_on_two_top_level_regions():
+    src = "struct A { s32 a; };\nstruct B { s32 b; };\n"
+    assert structgen._single_struct_fields(src) is None
+
+
+def test_member_anonymous_structs_do_not_create_ambiguity():
+    """The regression the broadened pattern introduced, and the rule that fixes it.
+
+    `initRacePlayerLandingSnowSpray` declares a clean top-level typedef, then a second typedef whose
+    fields are six `struct { u32 x, y, z; } gm0;` MEMBERS. The broadened pattern matched those members
+    individually, taking the region count from 1 to 7 and turning a function repad could handle into a
+    decline. Only depth-0 regions are candidates; a member is not a region we can repad.
+
+    The shape matters: the members sit in a SEPARATE struct, not inside the one being matched. Nesting
+    them inside the only typedef makes that typedef unmatchable too (`[^{}]*` cannot span nested
+    braces), which is a different case and declines either way.
+    """
+    src = ("typedef struct {\n"
+           "    char rpad00[0x10];\n"
+           "    s32 playerIndex;\n"
+           "} RaceState;\n"
+           "typedef struct {\n"
+           "    struct { u32 x, y, z; } gm0;   /* 0x4A0 */\n"
+           "    struct { u32 x, y, z; } gm1;   /* 0x4A8 */\n"
+           "    struct { u32 x, y, z; } gm2;   /* 0x4B0 */\n"
+           "} RaceVecs;\n")
+    region = structgen._single_struct_fields(src)
+    assert region is not None, "anonymous member structs made the real region ambiguous"
+    assert "rpad00" in region[2]
+
+
+def test_depth_zero_rule_still_rejects_a_genuinely_ambiguous_source():
+    src = ("typedef struct {\n    s32 a;\n} T;\n"
+           "struct Other { s32 b; };\n")
+    assert structgen._single_struct_fields(src) is None
+
+
+def test_align_subsequence_now_fires_on_an_anonymous_struct_variable():
+    """The FIRES test: the pass must produce a candidate on its motivating residual, not merely
+    decline gracefully elsewhere. Before the parser change this returned (source, False)."""
+    src = ("extern struct {\n    s16 fraction;\n    s8  seconds;\n} gLimit;\n")
+    out, changed = structgen.align_subsequence(src, {0x0: 2, 0x20: 1}, "first")
+    assert changed, "align_subsequence declined on the shape that motivated the change"
+    assert out != src

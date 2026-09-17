@@ -77,10 +77,56 @@ STRUCT_FIELDS = re.compile(
     r"typedef\s+struct\s*(?:\w+\s*)?\{(?P<fields>[^{}]*)\}\s*\w+\s*;",
     re.S)
 
+# Every shape a struct definition actually arrives in. The pattern above requires `typedef`, and that
+# silently excluded the two forms the model writes most often, so `_single_struct_fields` declined and
+# `align_positional` -- the ONE pass built for a layout-dominant candidate -- could not run at all.
+# Measured 2026-09-16 on the first two layout-dominant candidates out of the admission re-run:
+#
+#   decrementRaceChallengeTimeLimit  `extern struct { ... } gRaceChallengeTimeLimit;`  -> 0 typedefs
+#   approachRaceIntroFlyoverOrbitRadius  `struct RaceIntroEffectActor { ... };`        -> 0 typedefs
+#
+# both with `align_positional/subsequence cannot run: no single typedef-struct region`. This is the
+# same bug CLAUDE.md already records once, in the mirror direction: a pass that "searched only for
+# `struct {...} sym[8];` and declined on `typedef struct {...} T; extern T sym[4];`, which is how
+# headers are actually written". A parser that accepts one spelling of a construct and silently
+# declines on the others is the failure mode this project keeps rediscovering, so this accepts all of
+# them and still declines when the source has more than one region to choose from.
+STRUCT_REGIONS = re.compile(
+    r"(?:typedef\s+)?struct\s*(?P<tag>\w+)?\s*\{(?P<fields>[^{}]*)\}\s*(?P<tail>[^;{}]*);",
+    re.S)
+
+
+def _brace_depths(code: str) -> list[int]:
+    """Brace depth immediately BEFORE each character. `{` itself does not count toward its own depth."""
+    depth = 0
+    out = [0] * (len(code) + 1)
+    for i, ch in enumerate(code):
+        out[i] = depth
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth = max(0, depth - 1)
+    out[len(code)] = depth
+    return out
+
 
 def _single_struct_fields(code: str) -> tuple[int, int, str] | None:
-    """Return the sole typedef-struct field region, or decline ambiguity."""
-    matches = list(STRUCT_FIELDS.finditer(code))
+    """Return the sole TOP-LEVEL struct field region, or decline ambiguity.
+
+    Accepts `typedef struct {...} T;`, `struct Tag {...};`, `struct Tag {...} v;` and
+    `extern struct {...} v;`. Still declines on zero regions and on more than one: with two
+    definitions there is no way to know which one the observed offsets describe, and guessing is the
+    failure this whole design exists to prevent.
+
+    TOP-LEVEL ONLY, and that restriction is not cosmetic. Without it the broadened pattern also
+    matched anonymous structs declared as MEMBERS, and turned a function that worked into a decline:
+    `initRacePlayerLandingSnowSpray` carries six `struct { u32 x, y, z; } gm0;` members inside a
+    typedef, so the count went 1 -> 7 and `_single_struct_fields` refused. A member is not a region
+    we can repad; it is an anonymous type nested one level down. Requiring depth 0 keeps the members
+    out and restores the function, which is measured in `tests/test_structgen.py`.
+    """
+    depths = _brace_depths(code)
+    matches = [m for m in STRUCT_REGIONS.finditer(code) if depths[m.start()] == 0]
     if len(matches) != 1:
         return None
     match = matches[0]
