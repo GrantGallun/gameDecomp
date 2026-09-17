@@ -293,8 +293,8 @@ def main() -> int:
           f"**{len(extra['function_exact'])}** |")
     print(f"| — function bytes and external calls only (narrower scope, needs re-certification) | "
           f"{len(extra['function_exact_narrow_scope'])} |")
-    print(f"| fresh-cohort object-exact in the campaign's own ledgers (upper bound, not de-duplicated) | "
-          f"**{len(extra['fresh_cohort'])}** |")
+    print(f"| fresh-cohort nodes reconciled INTO the counts above by eval/cohort_reconcile.py | "
+          f"{len(extra['fresh_cohort'])} |")
     if extra["function_exact"]:
         print(f"\n  counted:  {', '.join(extra['function_exact'])}")
     if extra["function_exact_narrow_scope"]:
