@@ -648,7 +648,12 @@ def score(ws: Path, repo: Path, name: str, code: str, conn=None,
             # by construction -- `byte_certificate.certify` IS an object/ROM comparison, so it can only
             # find a real match, never fabricate one.
             hunkless = not any(line.startswith("@@") for line in diff_text.splitlines())
-            if normalized_exact or operand_only_diff(diff_text) or hunkless:
+            # Both objects must exist: a certificate compares them, so asking without one is not a
+            # strictness question, it is a missing input. Found 2026-09-17 -- widening the gate to
+            # hunkless diffs made two fixture-driven tests reach this line with no `target.o` and fail,
+            # which is a regression the guard removes and a check that belongs here anyway.
+            if (normalized_exact or operand_only_diff(diff_text) or hunkless) \
+                    and (ws / "target.o").is_file() and (ws / f"{name}.o").is_file():
                 build_inputs = {}
                 paths = [ws / "build.sh", ws / "prelude.inc", repo / "Makefile",
                          repo / "tools/textconv.py", repo / "tools/charmap.txt"]

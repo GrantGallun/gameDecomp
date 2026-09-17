@@ -132,6 +132,20 @@ register(Pattern(
 ))
 
 register(Pattern(
+    id="diff-read-permutation-needs-a-group-discriminator",
+    name="A diff-read permutation generalises only as far as the instruction class that identifies the group",
+    kind="evidence",
+    looks_like="An `order` residual where a run of independent source statements is emitted in a different order than the target's, and the answer is a COMPOSITION of adjacent swaps rather than one swap.",
+    means="Measured 2026-09-17 while trying to generalise `patterns/rules.py:StoreOrderRule` past stores. `patterns.ordering.hunk_permutation` correctly computes the permutation a hunk STATES (`order` such that `target == [candidate[i] for i in order]`) -- on a rotation of three independent non-store statements it returns `[0,2,3,1,4,5]`. But a unified diff for a permutation ALWAYS interleaves CONTEXT lines, so the hunk is longer than the statement group: Fstop is 11 hunk lines (8 per side) against a 3-statement run, and the 3-rotation is 5 lines (6 per side) against 3. `StoreOrderRule` works because a STORE carries a discriminator -- its base register -- that identifies which instructions belong to the group, and it filters the function's argument spill out on exactly that basis. A general statement carries no such marker, so 'run length == hunk length' cannot hold on a real residual, and applying a hunk-wide permutation to a shorter run would be a guess about which context lines the run emitted.",
+    prescription="Do not generalise a diff-read permutation beyond a class that has an identifying operand; without one the mapping from target positions to source statements is unknowable from the residual. The general transform was written, measured against both cases above, and WITHDRAWN rather than shipped -- a generator whose precondition cannot hold is worse than none, because it sits in the search's family list looking like coverage. `tests/test_statement_permutation.py` asserts the withdrawal so it is not re-added without new evidence. What is kept is `ordering.hunk_permutation` with its declines pinned (several hunks, insert/delete, changed instruction, repeated instruction text), which is the correct statement of what a residual says about order and what a future discriminator would feed.",
+    confirmed_on=[
+        "hunk vs group size 2026-09-17: Fstop 11 hunk lines / 8 per side against a 3-statement run; the 3-statement rotation 5 hunk lines / 6 per side against 3. `patterns/ordering.hunk_permutation` returns a correct permutation for both, so the failure is the MAPPING, not the computation.",
+        "population 2026-09-17, eval/order_class_census.py over the 133 live compiling non-exact functions: 126 not-a-permutation, 5 colouring, 1 order (updateRacePlayerMode16AerialTrick, a LOAD case whose analogous change was already measured to regress 99.712 -> 97.115), 1 no-hunks. There is no queue for a computed permutation.",
+        "tests/test_statement_permutation.py: the permutation is read correctly, both motivating cases are asserted, the ambiguous inputs decline, and the withdrawn generator is asserted absent.",
+    ],
+))
+
+register(Pattern(
     id="split-byte-zero-test-load",
     name="An immediately tested byte load need not remain a named register web",
     kind="solver",
