@@ -499,6 +499,28 @@ def field_local_eliminations(source: str, function: str):
                         yield (f"field_local:{name}:{form}{suffix}{'+keep_decl' if keep else ''}", "field_local", variant)
 
 
+def _statement_ends(text: str):
+    """Offsets where a run of whole `...;` statements ends, shortest run first.
+
+    The linear equivalent of matching `(?:[ \\t]*[^;\\n]*;[ \\t]*\\n?)*?` at offset 0.
+    As a regex those overlapping quantifiers backtrack exponentially when nothing
+    follows: dominant-1 spun for 4.5 hours on initMainMenuSceneModelParts and
+    guPerspectiveF (2026-09-14).
+    """
+    position = 0
+    yield position
+    while True:
+        semicolon, newline = text.find(";", position), text.find("\n", position)
+        if semicolon < 0 or 0 <= newline < semicolon:
+            return
+        position = semicolon + 1
+        while position < len(text) and text[position] in " \t":
+            position += 1
+        if position < len(text) and text[position] == "\n":
+            position += 1
+        yield position
+
+
 def load_modify_stores(source: str, function: str):
     """`T v = F; ... v = v OP K; F = v;` (or `v = F;`) becomes an update of F itself.
 
@@ -518,19 +540,21 @@ def load_modify_stores(source: str, function: str):
         if CALL.search(field_text):
             continue
         rest = body[match.end():]
-        update = re.match(rf"(?P<gap>(?:[ \t]*[^;\n]*;[ \t]*\n?)*?)[ \t]*(?:{name}[ \t]*=[ \t]*{name}[ \t]*(?P<op>[-+])"
+        core = re.compile(rf"[ \t]*(?:{name}[ \t]*=[ \t]*{name}[ \t]*(?P<op>[-+])"
                           rf"[ \t]*(?P<k>[^;\n]+)|{name}[ \t]*(?P<op2>[-+])(?P=op2)|(?P<op3>[-+])(?P=op3)[ \t]*{name}|"
                           rf"{name}[ \t]*(?P<op4>[-+])=[ \t]*(?P<k4>[^;\n]+))[ \t]*;[ \t]*\n?"
-                          rf"(?P<store>[ \t]*(?P<target>[^;=\n]+?)[ \t]*=[ \t]*{name}[ \t]*;[ \t]*\n?)", rest)
+                          rf"(?P<store>[ \t]*(?P<target>[^;=\n]+?)[ \t]*=[ \t]*{name}[ \t]*;[ \t]*\n?)")
+        update = next((found for found in map(lambda at: core.match(rest, at), _statement_ends(rest)) if found), None)
         if not update or _field_key(update.group("target")) != _field_key(field_text):
             continue
-        if re.search(rf"\b{name}\b", update.group("gap")):
+        gap = rest[:update.start()]
+        if re.search(rf"\b{name}\b", gap):
             continue
         op = update.group("op") or update.group("op2") or update.group("op3") or update.group("op4")
         amount = (update.group("k") or update.group("k4") or "1").strip()
-        update_start = update.start() + len(update.group("gap"))
+        update_start = update.start()
         tail = rest[update.end():]
-        if re.search(rf"\b{name}\b", rest[:update.start()]) or re.search(rf"\b{name}\b", tail):
+        if re.search(rf"\b{name}\b", tail):
             continue                                   # the local is used elsewhere; not a pure load-modify-store
         declared = match.group("type") is not None
         decl_line = re.search(rf"^[ \t]*(?:s32|u32|s16|u16|s8|u8|int|short|char)[ \t]+{name}[ \t]*;[ \t]*\n", body, re.M)
@@ -641,6 +665,53 @@ def store_value_locals(source: str, function: str, limit: int = 12):
         count += 1
         if count >= limit:
             return
+
+
+CONSTANT = r"-?(?:0[xX][0-9a-fA-F]+|\d+)[uUlL]*"
+
+
+def constant_store_locals(source: str, function: str, limit: int = 12):
+    """Store the local that already holds a constant: `v = K; F = K;` -> `v = K; F = v;`.
+
+    Also the other order, `F = K; v = K;` -> `v = K; F = v;`. `v` must be a local declared in the body.
+
+    Motivating residual: the AerialTrick family (updateRacePlayerMode16AerialTrick and 17 siblings,
+    2026-09-15 progress census). The clamp `if (t >= 0x401) { var_v0 = 0x400; player->stateTimer = 0x400; }`
+    compiles the second constant into its own register and hoists that `li` into an earlier delay slot
+    (target `nop`, candidate `li t1,0x400`). The target stores `var_v0`. The edit leaves the register
+    gradient unchanged, so the search could not reach it: from the m2c source the search stalled at
+    (1, 1, 1) after 300 compiles; after the edit it was object-exact in 83. The edit is an ENABLER, not a
+    fix: the exact source drops `var_v0` altogether, via a `field_local` elimination that only fires once the
+    store names the local. So it is not a beam family (a gradient-neutral candidate never wins a slot); see
+    `enabling_variants` and `regalloc_search.search`.
+    """
+    begin, stop = _body(source, function)
+    body = source[begin:stop]
+    locals_ = {m.group("name") for m in re.finditer(
+        r"^[ \t]*(?:(?:unsigned|signed|register)\s+)*(?:s32|u32|s16|u16|s8|u8|int|short|char|long|[A-Z]\w*)"
+        r"[ \t]*\**[ \t]*(?P<name>[A-Za-z_]\w*)[ \t]*;[ \t]*$", body, re.M)}
+    pair = re.compile(rf"^(?P<i>[ \t]*)(?P<first>[^;={{}}\n]*[^;={{}}\s])[ \t]*=[ \t]*(?P<k>{CONSTANT})[ \t]*;[ \t]*\n"
+                      rf"(?P=i)(?P<second>[^;={{}}\n]*[^;={{}}\s])[ \t]*=[ \t]*(?P=k)[ \t]*;[ \t]*$", re.M)
+    count = 0
+    position = 0
+    while count < limit:
+        match = pair.search(body, position)
+        if match is None:
+            return
+        position = match.start() + 1
+        first, second, indent, constant = match.group("first"), match.group("second"), match.group("i"), match.group("k")
+        if first == second:
+            continue
+        if first in locals_:
+            local, other = first, second
+        elif second in locals_:
+            local, other = second, first
+        else:
+            continue
+        text = f"{indent}{local} = {constant};\n{indent}{other} = {local};"
+        yield (f"const_store_local:{local}@{match.start()}", "const_store_local",
+               source[:begin] + body[:match.start()] + text + body[match.end():] + source[stop:])
+        count += 1
 
 
 SELF_UPDATE = re.compile(
@@ -1036,8 +1107,11 @@ def guard_before_load(source: str, function: str):
     """
     begin, stop = _body(source, function)
     body = source[begin:stop]
+    # Guard-body lines are `(?P=i)[ \t][^\n]*`: one indentation character, then anything. The
+    # earlier `[ \t]+[^\n]*` let both quantifiers claim the same spaces and backtracked
+    # exponentially when no closing brace matched (osEPiRawStartDma spun a campaign worker, 2026-09-14).
     pattern = re.compile(r"^(?P<i>[ \t]*)(?P<v>[A-Za-z_]\w*) = (?P<g>[A-Za-z_]\w*);[ \t]*\n"
-                         r"(?P<guard>(?P=i)if \((?P<cond>[^\n]*)\) \{\n(?:(?P=i)[ \t]+[^\n]*\n)*?(?P=i)\}\n)", re.M)
+                         r"(?P<guard>(?P=i)if \((?P<cond>[^\n]*)\) \{\n(?:(?P=i)[ \t][^\n]*\n)*?(?P=i)\}\n)", re.M)
     for match in pattern.finditer(body):
         name, glob = match.group("v"), match.group("g")
         guard = match.group("guard")
@@ -1050,39 +1124,137 @@ def guard_before_load(source: str, function: str):
         yield (f"guard_before_load:{name}", "guard_before_load", source[:begin] + text + source[stop:])
 
 
+SIGNEDNESS_FLIP = {"s8": "u8", "u8": "s8", "s16": "u16", "u16": "s16", "s32": "u32", "u32": "s32"}
+TYPED_DEREF = r"\(\*\((?P<ty>[su](?:8|16|32)) \*\)\((?P<base>[^;\n]*?)\)\)"
+
+
+def typed_field_rereads(source: str, function: str):
+    """`t = E; (*(T *)(P)) = t; ... t ...` -> `(*(T *)(P)) = E; ... (*(T' *)(P)) ...`, T' = T with flipped signedness.
+
+    Motivating residuals: the five SlideIn popups (updateRaceUiScorePopupSlideIn and siblings, 2026-09-14).
+    The uopt trace showed `E` held in a coloured range (v1) where the target keeps it in a ugen
+    temporary (t8). uopt forwards a store into a reload of the same type, which recreates the
+    shared value; a reload through the other signedness is not forwarded, so `E` stays a ugen
+    temporary and as1 removes the reload. All five became object-exact.
+    """
+    begin, stop = _body(source, function)
+    body = source[begin:stop]
+    for local in re.finditer(r"^[ \t]*(?:s32|u32|s16|u16|s8|u8)[ \t]+(?P<name>[A-Za-z_]\w*);[ \t]*\n", body, re.M):
+        name = local.group("name")
+        word = re.compile(rf"\b{re.escape(name)}\b")
+        assigns = list(re.finditer(rf"^[ \t]*{re.escape(name)}[ \t]*=[ \t]*(?P<expr>[^;\n]+);[ \t]*\n", body, re.M))
+        if len(assigns) != 1:
+            continue
+        assign = assigns[0]
+        after = body[assign.end():]
+        store = re.search(rf"^(?P<i>[ \t]*)(?P<lv>{TYPED_DEREF})[ \t]*=[ \t]*(?:\([su](?:8|16|32)\)[ \t]*)?"
+                          rf"{re.escape(name)};[ \t]*\n", after, re.M)
+        if not store or word.search(after[:store.start()]) or word.search(assign.group("expr")):
+            continue                                   # used before the store, or self-referential
+        rest = after[store.end():]
+        if not word.search(rest):
+            continue
+        lvalue, ty = store.group("lv"), store.group("ty")
+        reread = lvalue.replace(f"({ty} *)", f"({SIGNEDNESS_FLIP[ty]} *)", 1)
+        # the declaration and the assignment go; statements between assignment and store stay in place
+        between = after[:store.start()]
+        text = (body[:local.start()] + body[local.end():assign.start()] + between +
+                f"{store.group('i')}{lvalue} = {assign.group('expr').strip()};\n" + word.sub(reread, rest))
+        yield (f"typed_reread:{name}", "typed_reread", source[:begin] + text + source[stop:])
+
+
+def narrow_truth_tests(source: str, function: str):
+    """`if (x != 0)` -> `if (x)` and `if (x == 0)` -> `if (!x)` for a narrow (8/16-bit) local `x`.
+
+    Motivating residual: updateCharacterSelectRosterIcons (2026-09-14). The uopt trace showed the
+    widened copy of a u8 local live to the end of the function because the final test used it; the
+    local outranked it and took v0. Testing the u8 itself shortens the widened copy's range, its
+    priority rises above the local's, and the colours swap to the target's. Object-exact.
+    """
+    begin, stop = _body(source, function)
+    body = source[begin:stop]
+    narrow = {m.group("name") for m in re.finditer(
+        r"^[ \t]*(?:s16|u16|s8|u8)[ \t]+(?P<name>[A-Za-z_]\w*);[ \t]*$", body, re.M)}
+    for match in re.finditer(r"\bif[ \t]*\([ \t]*(?P<name>[A-Za-z_]\w*)[ \t]*(?P<op>!=|==)[ \t]*0[uU]?[ \t]*\)", body):
+        if match.group("name") not in narrow:
+            continue
+        test = match.group("name") if match.group("op") == "!=" else f"!{match.group('name')}"
+        text = body[:match.start()] + f"if ({test})" + body[match.end():]
+        yield (f"truth_test@{match.start()}", "truth_test", source[:begin] + text + source[stop:])
+
+
+def enabling_variants(source: str, function: str, limit: int = 2):
+    """Gradient-neutral edits that unlock other families; the search adds them as extra roots, not beam members."""
+    try:
+        for index, item in enumerate(constant_store_locals(source, function)):
+            if index >= limit:
+                return
+            yield item
+    except (Decline, ValueError):
+        return
+
+
 def existing(source: str, diff: str):
     from solver import rewrites
     for rewrite in rewrites.inline_temporary_rewrites(source, diff):
         yield (f"inline_temp:{rewrite.label}", "inline_temp", rewrite(source))
     for rewrite in rewrites.statement_order_rewrites(source, diff, gate=False):
         yield (f"stmt_order:{rewrite.label}", "stmt_order", rewrite(source))
+    # The INVERSE of the lowering the removed `do` ban used to force. It is proposed as one candidate
+    # among the others and the oracle decides: on drawRaceSplitscreenSelectOption2Frame the lowered
+    # form of the ROM-verified body scores 99.395 where the `do` spelling is byte-exact, so a candidate
+    # can be one edit away from exact in a direction no other family proposes. See
+    # `solver/rewrites.do_while_restore_rewrites` and `eval/remove_do_ban.py`.
+    for rewrite in rewrites.do_while_restore_rewrites(source, diff):
+        yield (f"do_restore:{rewrite.label}", "do_restore", rewrite(source))
 
 
-def variants(source: str, function: str, diff: str = ""):
-    """Every mutation of one source, de-duplicated, stable order, round-robin across families."""
-    families = [field_local_eliminations(source, function), struct_copy_merges(source, function),
-                store_loops(source, function), guard_before_load(source, function),
-                load_modify_stores(source, function), rotated_loops(source, function),
-                readonly_field_local_inlines(source, function), store_value_locals(source, function),
-                compound_assignments(source, function), self_update_temps(source, function),
-                typed_index_scales(source, function), symbol_scale_fixes(source, function),
-                negative_scale_splits(source, function), result_local_reuses(source, function),
-                single_use_local_inlines(source, function),
-                local_types(source, function),
-                commutative_swaps(source, function),
-                constant_local_inlines(source, function), statement_moves(source, function),
-                declaration_swaps(source, function), existing(source, diff)]
+def variants(source: str, function: str, diff: str = "", prefer: tuple[str, ...] = ()):
+    """Every mutation of one source, de-duplicated, stable order, round-robin across families.
+
+    `prefer` names family kinds (e.g. from `solver.uopt_diagnosis.preferred_families`) that go
+    first, round-robin in that order, before the remaining families. Empty: the original order.
+    """
+    families = [(("field_local",), field_local_eliminations(source, function)),
+                (("struct_copy",), struct_copy_merges(source, function)),
+                (("store_loop",), store_loops(source, function)),
+                (("guard_before_load",), guard_before_load(source, function)),
+                (("load_modify_store",), load_modify_stores(source, function)),
+                (("rotated_loop",), rotated_loops(source, function)),
+                (("readonly_field_local",), readonly_field_local_inlines(source, function)),
+                (("store_value_local",), store_value_locals(source, function)),
+                (("compound_assign",), compound_assignments(source, function)),
+                (("self_update",), self_update_temps(source, function)),
+                (("typed_index",), typed_index_scales(source, function)),
+                (("symbol_scale",), symbol_scale_fixes(source, function)),
+                (("negative_scale",), negative_scale_splits(source, function)),
+                (("result_local",), result_local_reuses(source, function)),
+                (("single_use",), single_use_local_inlines(source, function)),
+                (("typed_reread",), typed_field_rereads(source, function)),
+                (("truth_test",), narrow_truth_tests(source, function)),
+                (("local_type",), local_types(source, function)),
+                (("commutative",), commutative_swaps(source, function)),
+                (("const_inline",), constant_local_inlines(source, function)),
+                (("stmt_move",), statement_moves(source, function)),
+                (("decl_order",), declaration_swaps(source, function)),
+                (("inline_temp", "stmt_order"), existing(source, diff))]
+    rank = {kind: index for index, kind in enumerate(prefer)}
+    preferred = sorted((f for f in families if rank.keys() & set(f[0])),
+                       key=lambda f: min(rank[k] for k in f[0] if k in rank))
+    ordered = [preferred, [f for f in families if not rank.keys() & set(f[0])]]
     seen = {source}
-    while families:
-        for family in list(families):
-            try:
-                label, kind, variant = next(family)
-            except StopIteration:
-                families.remove(family)
-                continue
-            except (Decline, ValueError):
-                families.remove(family)
-                continue
-            if variant not in seen:
-                seen.add(variant)
-                yield label, kind, variant
+    for tier in ordered:
+        tier = [generator for _kinds, generator in tier]
+        while tier:
+            for family in list(tier):
+                try:
+                    label, kind, variant = next(family)
+                except StopIteration:
+                    tier.remove(family)
+                    continue
+                except (Decline, ValueError):
+                    tier.remove(family)
+                    continue
+                if variant not in seen:
+                    seen.add(variant)
+                    yield label, kind, variant

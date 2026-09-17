@@ -56,6 +56,21 @@ def register(p: Pattern) -> Pattern:
 # ------------------------------------------------------------------ confirmed
 
 register(Pattern(
+    id="do-token-refusal-forces-a-non-equivalent-lowering",
+    name="Refusing the `do` token before IDO runs turned matching sources into near misses and hid every refused candidate's real error",
+    kind="evidence",
+    looks_like="A candidate is rejected with `ERROR: The C file contains a do-while loop.` -- a message from the per-function build helper, before the compiler is invoked. The ROM-verified source for the same function often uses `do { ... } while (...)`; the helper demanded it be rewritten as `for (;;) { ...; if (!(...)) break; }`.",
+    means="The refusal was a POLICY, not a compiler limit, and it was wrong in three separate ways at once. Measured 2026-09-17. ONE, it changed codegen: on drawRaceSplitscreenSelectOption2Frame the reference body with `do` compiles BYTE-EXACT (100.000) while the mandated lowering of that same body scores 99.395 (`regalloc=8 ordering=5 structural=1`), and a further pipeline edit reaches only 99.936 -- so the ban was the entire residual of the five 99.936 `drawRaceSplitscreenSelectOption*` / `drawCharacterSelectCoursePreviewPanel*` siblings that a session of work had been treating as an unexplained register/ordering wall. TWO, it hid the truth about everything it refused: the check runs before IDO, so 845 attempts across 97 functions recorded a policy error where a compiler error belonged, and re-scoring them with the ban gone gives 7 compiling and 0 exact -- their real failures were ordinary C89 syntax errors the taxonomy never saw. THREE, the exposure is not small: the reference source contains 390 `do {` occurrences across 236 functions, of which 54 were live residue and 168 had never been attempted.",
+    prescription="The refusal is REMOVED (`eval/remove_do_ban.py`, applied to the checked-in helper, the live helper and the 2,015 per-workspace adapted `.compiler-*.sh` that are actually invoked at score time; per-workspace `build.sh` is a symlink to the live helper). `solver/rewrites.restore_do_while` is the exact inverse of the lowering and `do_while_restore_rewrites` offers it to `regalloc_search` as the `do_restore` family, so BOTH spellings are proposed and the oracle decides -- the lowering is a fallback, never a mandate. Do not reinstate a token refusal without evidence that the lowering is codegen-neutral: the round-trip is pinned in `tests/test_do_while_restore.py`, and the counterexample is one compile away.",
+    confirmed_on=[
+        "bisect from the key 2026-09-17, drawRaceSplitscreenSelectOption2Frame: K0 = reference body with `do` -> exact 100.000; K1 = same body lowered -> 99.395; K2 = K1 + the pipeline's guard inline -> 99.936; C = stored candidate -> 99.936. K1 and K2 reproduce the recorded attempts exactly. eval/results/rename-wall-20260917/bisect_from_key.py",
+        "population 2026-09-17, eval/do_while_population.py: 390 `do {` occurrences, 236 functions, of which 54 live residue and 168 never attempted against kb-sbk1.sqlite.",
+        "cost of the refusal 2026-09-17, eval/do_ban_rerun.py: 845 attempts across 97 functions carried the policy error; re-scored as written, 7 compile and 0 are exact. eval/results/do-ban-rerun-20260917/",
+        "yield of the inverse 2026-09-17, eval/do_restore_search.py over the 54 live do-bearing functions: 20 restorable sites, 13 compiled, 2 EXACT -- func_80063A9C (88.261 -> 100.0, candidate origin `dag-pipeline-census-root`, so CAPABILITY) and updateRaceGameplayFlow (99.346 -> 100.0, candidate origin `authorized-target-history-recovery`, so recovered). func_80063A9C re-verified independently: 245/245 instructions, empty diff. eval/results/do-restore-20260917/",
+    ],
+))
+
+register(Pattern(
     id="saved-order-has-a-gradient-and-no-generator",
     name="A `saved_order` residual is a reordering the positional pairing cannot see, and no source permutation moves it",
     kind="evidence",

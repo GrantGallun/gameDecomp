@@ -1,0 +1,137 @@
+# The `do`-token ban, and what it was hiding
+
+2026-09-17. Operator instruction: *"get rid of the dumb restrictions. set up the work and get it done."*
+The restriction was a `do`-token refusal in the per-function matching helper. It was a policy, not a
+compiler limit, and removing it closed two matches on the first run — one of them genuine capability.
+
+Tools: `eval/remove_do_ban.py` (the removal), `eval/do_while_population.py` (exposure),
+`eval/do_ban_rerun.py` (cost of the refusal), `eval/do_restore_search.py` (the inverse as a generator),
+`solver/rewrites.restore_do_while` + `do_while_restore_rewrites`, `tests/test_do_while_restore.py`.
+
+---
+
+## The restriction, and why it was wrong
+
+`external/snowboardkids-decomp/tools/claude-decomp-env/build.sh` refused any candidate containing the
+`do` token, before IDO was invoked:
+
+```
+# Agents: This restriction is intentional; do not remove, disable, or bypass it.
+    echo "ERROR: The C file contains a do-while loop."
+    echo "Rewrite the loop using while or for instead."
+```
+
+Its rationale is in the reference guidance and is *sound as a heuristic*: "Do not infer source pointer
+walkers, **bottom-tested loops**, or manual unrolling merely because the optimized assembly contains
+those forms. IDO commonly creates them from ordinary indexed fixed-bound loops." m2c emits `do` for
+what was often a plain `for`.
+
+But the reference project's own ROM-verified source uses `do { ... } while (...)` at **390 sites across
+236 functions**, and its `make` build compiles them. The ban was an unconditional refusal in front of
+the compiler, and it was wrong three ways at once.
+
+## 1. It changed codegen — this was the whole "rename wall"
+
+Bisecting from the key (`bisect_from_key.py`), four compiles:
+
+| step | source | result |
+|---|---|---|
+| K0 | reference body verbatim | **exact 100.000** |
+| K1 | + the mandated `do`→`for(;;)break` lowering | 99.395 — `regalloc=8 ordering=5 structural=1` |
+| K2 | + the pipeline's `shouldDraw` inline | 99.936 — `regalloc=0 ordering=2` |
+| C | stored candidate (attempt 31662) | 99.936 — identical to K2 |
+
+K1 and K2 reproduce recorded attempts 11723 and 31662 exactly. **The lowering alone is the residual**,
+and the previous session's entire investigation — `saved_order` re-pairing, the adjsave trace, the
+emission-order theory, the ordering pass, the derivation refutation — was downstream of it. The
+mechanism was real; the cause was a token in our own helper.
+
+## 2. It hid the real error of everything it refused
+
+The check runs before IDO, so a refused candidate recorded a *policy* error where a compiler error
+belonged. It never reached the oracle and nothing counted it as a near miss.
+
+| | |
+|---|---|
+| attempts carrying the refusal in `compiler_stderr` | **845** |
+| functions they belong to | **97** |
+| of those, still not exact | **88** |
+| after removal: compile / exact | **7 / 0** |
+
+So `solver/compilefix.py`'s "7.8% The C file contains a do-while loop → `rewrite_do_while`" was a
+policy artefact, and the true failures of all 845 (ordinary C89 syntax errors) were invisible. The
+ban's removal buys **7 newly-compiling candidates and no matches** in that population.
+
+## 3. The exposure
+
+`do_while_population.py`, parsing the reference tree and attributing each `do {` to its enclosing
+definition:
+
+| | |
+|---|---|
+| `do {` occurrences | **390** |
+| functions containing one | **236** |
+| — already exact | 14 |
+| — live residue (attempted, not exact) | **54** |
+| — never attempted | **168** |
+
+## The inverse, as a generator
+
+With the refusal gone the lowering is no longer automatic, but a *stored* candidate still carries it.
+`solver/rewrites.restore_do_while` is the exact inverse (`tests/test_do_while_restore.py` pins the
+round-trip character-for-character on real text), and `do_while_restore_rewrites` offers it to
+`regalloc_search` as the `do_restore` family — so both spellings are proposed and the oracle decides.
+
+Run over the 54 live do-bearing functions (`do-restore-20260917/`):
+
+| | |
+|---|---|
+| restorable sites | 20 |
+| compiled | 13 |
+| improved | 3 |
+| **exact** | **2** |
+| — no compiling candidate / no restorable site | 25 / 15 |
+
+**The two matches, with provenance:**
+
+| function | candidate origin | before → after | tier |
+|---|---|---|---|
+| `func_80063A9C` | `dag-pipeline-census-root` | 88.261 → **100.0** | **CAPABILITY** |
+| `updateRaceGameplayFlow` | `authorized-target-history-recovery` | 99.346 → **100.0** | recovered |
+
+`func_80063A9C` was re-verified independently: 245/245 instructions, empty diff, all six fault axes
+zero. A pipeline candidate at 88.261 closed by exactly one edit — restoring the loop spelling the ban
+had forced out.
+
+## Ratchet
+
+`byte-exact 216 → 218`, `SOLVED 150 → 152`, `recovered` unchanged at 55, attempts 50,509 → 50,699.
+Nothing decreased.
+
+**Read that with `eval/status.py`'s second known gap, added today:** the tier rule keys on the exact
+attempt's own strategy and does not follow lineage, so `updateRaceGameplayFlow` — a deterministic edit
+on a recovered source — is counted as SOLVED. Its candidate origin is
+`authorized-target-history-recovery`. So of the two, **one is capability and one is a recovery
+derivative**, and the reported `152` contains both. A first count of the exposure: 66 exact attempts
+have a recovery-strategy parent while their own strategy carries no recovery marker (an attempt count,
+not yet deduplicated to functions).
+
+## What is left, stated plainly
+
+* **The remaining 52 live do-bearing functions did not close.** 25 have no compiling candidate at all,
+  and 15 have no site matching the lowering's exact shape — their `for(;;)` loops were written by
+  something other than the mandated rewrite.
+* **The restoring generator is a gradient, not a cure.** It moved 3 functions and closed 2.
+* **The 54 + 168 do-bearing functions are all *recoverable* right now** — the reference body compiles
+  exact with `do` intact. That is the `recovered` tier, and it would raise byte-exact without raising
+  capability, so it was deliberately **not** run in bulk. Recorded as an option, not taken.
+
+## Reproduce
+
+```bash
+python3 eval/remove_do_ban.py --check                 # 0 files still refusing `do`
+python3 -m eval.do_while_population --out /tmp/pop.json
+python3 -m eval.do_ban_rerun --out eval/results/do-ban-rerun-20260917
+python3 -m eval.do_restore_search --out eval/results/do-restore-20260917
+python3 eval/results/rename-wall-20260917/bisect_from_key.py drawRaceSplitscreenSelectOption2Frame 31662
+```

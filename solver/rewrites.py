@@ -492,18 +492,26 @@ def _matching_brace(code: str, open_at: int) -> int:
 def loop_shape_rewrites(code: str, diff: str) -> list[Rewrite]:
     """Move a loop's test from the top to the bottom, as for(;;) + break.
 
-    NEVER emits a `do` token. The per-function build.sh rejects one outright,
-    and this project has already established why that is not the obstacle it
-    looks like: the guard bans the TOKEN, not the control-flow shape, and
-    build.sh's own error says to use `while` or `for` instead. So
-    `for (;;) { body; if (!cond) break; }` is the SANCTIONED form, not a
-    workaround -- it compiles to a loop with no entry guard, which is exactly
-    the shape a bottom-tested loop needs.
+    The loop's shape is a real matching lever and this direction is not in doubt. What WAS wrong is
+    the last paragraph of this docstring's earlier claim: "NEVER emits a `do` token. The per-function
+    build.sh rejects one outright." That refusal was removed on operator instruction 2026-09-17
+    (`eval/remove_do_ban.py`), because it is a policy and not a compiler limit -- the reference
+    project's own ROM-verified source uses `do { ... } while (...)` at 390 sites across 236 functions
+    and its `make` build compiles them.
 
-    Recorded in the bank as do-while-functions-are-unmatchable (REFUTED) and
-    for-break-rewrite-generalises-across-do-while-sites (CONFIRMED across 389
-    of 390 sites). A first version of this generator emitted `do`/`while`
-    anyway and was rejected by the build in one compile.
+    The refusal was not harmless, and `restore_do_while` below is the receipt. `rewrite_do_while` and
+    this function emit the SAME bottom-test shape from two different starting points, and for at least
+    one function the two are not equivalent: on drawRaceSplitscreenSelectOption2Frame the reference
+    body with `do` compiles BYTE-EXACT, while the mandated `for (;;) { ...; if (!(...)) break; }`
+    lowering of that same body scores 99.395 (regalloc=8 ordering=5 structural=1). The ban therefore
+    turned a matching source into a near miss, and -- because the refusal happens before IDO runs --
+    it also recorded a policy error where a compiler error belonged, so the true failure of every
+    candidate it refused stayed invisible. 845 attempts across 97 functions carry that policy error in
+    kb-sbk1.sqlite; re-scored with the ban gone, 7 compile and 0 are exact.
+
+    A first version of this generator emitted `do`/`while` instead and was rejected by that refusal.
+    That was the wrong lesson to take from it: the refusal was policy, not the compiler, and the
+    generator that emits `do` is `restore_do_while` below.
 
         -bne v1,a0,14      the target closes the loop with a bottom test
         +beq v1,v0,30      we guard it at the top instead
@@ -582,6 +590,67 @@ def _has_own_level_continue(body: str) -> bool:
         elif tok == "continue" and depth == 0:
             return True
     return False
+
+
+# The exact text `tools.score_repo_function.rewrite_do_while` emits for a bottom-tested loop:
+#
+#     for (;;) {<body>
+#     <indent>    if (!(<condition>)) break;
+#     <indent>}
+#
+# `body` is the original text between the `do {` braces and `indent` is the leading whitespace of the
+# line the `do` sat on, so the transformation is exactly invertible and the inverse needs no guessing.
+FOR_BREAK_SITE = re.compile(
+    r"for\s*\(\s*;\s*;\s*\)\s*\{(?P<body>.*?)\n(?P<tindent>[ \t]*)"
+    r"if\s*\(\s*!\s*\((?P<condition>[^\n]*)\)\s*\)\s*break;\n(?P<cindent>[ \t]*)\}", re.DOTALL)
+
+
+def _sites(code: str):
+    """`FOR_BREAK_SITE` matches that are exactly the shape the mandated lowering emits.
+
+    The tail line sits one four-space level deeper than the closing brace, and the closing brace is
+    the only thing between the `break;` and the end of the loop. Requiring that relationship is what
+    keeps this generator off `for(;;)` loops a person wrote.
+    """
+    for match in FOR_BREAK_SITE.finditer(code):
+        if match.group("tindent") != match.group("cindent") + "    ":
+            continue
+        yield match
+
+
+def restore_do_while(code: str) -> str:
+    """Rewrite the LAST `for(;;)+break` site back to `do { ... } while (...);`.
+
+    The inverse of `tools.score_repo_function.rewrite_do_while`, and it exists because that lowering
+    is NOT codegen-neutral. Measured on drawRaceSplitscreenSelectOption2Frame: the reference body with
+    `do` compiles byte-exact and the lowered form of the same body scores 99.395, so for that function
+    the mandatory lowering was the entire residual. `tests/test_do_while_restore.py` pins the
+    round-trip on real text and the object comparison that motivates it.
+    """
+    matches = list(_sites(code))
+    if not matches:
+        return code
+    match = matches[-1]
+    body = match.group("body")               # already carries the indentation before the braces
+    condition = match.group("condition").strip()
+    return (code[:match.start()] + f"do {{{body}}} while ({condition});" + code[match.end():])
+
+
+def do_while_restore_rewrites(code: str, diff: str) -> list[Rewrite]:
+    """One variant per `for(;;)+break` site, each rewritten back to `do { ... } while (...);`.
+
+    Scope: only sites whose whole loop is present in the candidate. A loop split across a macro or
+    written with the test anywhere but last is left alone, and the oracle rejects a bad proposal --
+    `do` runs its body at least once, so a loop that can execute zero times changes behaviour.
+    """
+    out = []
+    for match in _sites(code):
+        start, end = match.span()
+        condition = match.group("condition").strip()
+        replacement = f"do {{{match.group('body')}}} while ({condition});"
+        out.append(Rewrite(f"restore do-while at {start}", "loopshape",
+                           lambda s, _a=start, _b=end, _r=replacement: s[:_a] + _r + s[_b:]))
+    return out
 
 
 FRAME_SETUP = re.compile(r"^(?:addiu|subu?)\s+\$?sp,\s*\$?sp,\s*(-?(?:0x)?[0-9a-fA-F]+)")

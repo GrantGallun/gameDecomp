@@ -175,6 +175,15 @@ def prepare(repo: Path, ws: Path, conn, function: str) -> tuple[Path, dict] | No
                 raise ValueError("compiler artifact changed outside controller")
         else:
             path.write_text(data)
+    # SUPERSEDED ARTIFACTS ARE DELETED, not left behind. Two consumers pick a script by GLOB rather
+    # than by the recipe key they hold -- `solver.uopt_diagnosis._recipe_command` takes the first
+    # `.compiler-*.json` in sorted order -- so a stale copy of the helper stays reachable after the
+    # helper changes. That is how a removed policy can keep being enforced by an old file: the 2,015
+    # per-workspace `.compiler-*.sh` each carried their own copy of the `do`-token refusal
+    # (2026-09-17), and stripping the helper alone would not have reached them.
+    for stale in tuple(ws.glob(".compiler-*.sh")) + tuple(ws.glob(".compiler-*.json")):
+        if stale not in (script, manifest):
+            stale.unlink(missing_ok=True)
     if not identity_path.exists():
         identity_path.write_text(json.dumps(identity, sort_keys=True) + "\n")
     return script, {**recipe, "script": str(script), "manifest": str(manifest)}

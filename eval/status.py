@@ -36,6 +36,24 @@ So the 44% headline is ~69% pre-existing state, and the campaign's produced capa
 The 262 is a distinct-function count from the controller's own ledger and is the closest thing the
 campaign has to a capability number; `exact_items` (286) is a WORK-ITEM count from
 `fast_campaign.py:389` and must not be substituted for it.
+
+SECOND KNOWN GAP: THE TIER RULE DOES NOT FOLLOW LINEAGE (found 2026-09-17)
+-------------------------------------------------------------------------
+`recovered` and `header_assisted` are keyed on the EXACT ATTEMPT's own strategy string, so a
+deterministic edit applied on top of a reference-derived candidate is booked as SOLVED even though the
+candidate is the reference's own answer. Both matches closed on 2026-09-17 landed in that gap:
+`func_80063A9C` (candidate origin `dag-pipeline-census-root`, genuinely capability) and
+`updateRaceGameplayFlow` (candidate origin `authorized-target-history-recovery`, recovery-derived) are
+both counted as SOLVED, because the winning attempts are `do-restore:...` and match no recovery
+pattern. `campaign-intake:explicit-historical-seed`, which is reference-derived, matches none of the
+three patterns at all. A first count of the exposure, not yet deduplicated to functions: 66 exact
+attempts have a recovery-strategy parent while their own strategy carries no recovery marker.
+
+Not changed here on purpose, for the same reason as the include-based gap above: tightening it would
+LOWER the reported SOLVED count, which reads as a ratchet violation. Whether that is a correction or a
+regression is the operator's call. Until it is decided, quote the SOLVED number knowing that a
+deterministic edit on a recovered source counts as one, and read the `recovered` sub-row as a floor
+rather than a total.
 """
 
 from __future__ import annotations
