@@ -56,6 +56,20 @@ def register(p: Pattern) -> Pattern:
 # ------------------------------------------------------------------ confirmed
 
 register(Pattern(
+    id="saved-order-has-a-gradient-and-no-generator",
+    name="A `saved_order` residual has a non-zero gradient and no mutation family that can move it",
+    kind="review",
+    looks_like="A residual whose `regalloc_signature.compare` reports the `saved_order` signature -- two callee-saved registers exchanged, e.g. substitutions `{s2->s3: 1, s3->s2: 1}` -- while `signals.analyse` reports `regalloc=0` and books it as `ordering`.",
+    means="The two classifiers disagree, and the DISAGREEMENT IS NOT THE PROBLEM. Measured 2026-09-17 on drawCharacterSelectCoursePreviewPanel8 and drawRaceSplitscreenSelectOption2Frame, both 99.936: signals reports regalloc=0 ordering=2, while regalloc_signature reports gradient [0, 2, 2] with signature `saved_order`. The search is therefore NOT blind -- it has a gradient and 300 compiles still did not reach [0,0,0]. `regalloc_mutations` lists 24 families and NONE of them mentions saved registers, so the lever is missing rather than the signal. An earlier reading of this ('signals counts regalloc=0, so the search has no gradient, so add a rename counter to signals') was WRONG, and only checking what the search actually uses -- `regalloc_signature`, not `signals` -- caught it.",
+    prescription="Do not add a rename counter to signals on this evidence; the search does not read signals for its gradient and would not gain from it. Do not spend `declaration_swaps` on a saved_order residual either: measured on drawCharacterSelectCoursePreviewPanel8, swapping the declaration order of the two variables, declaring `offset` first, and merging the declarations into one line ALL left the gradient at [0, 2, 2] unchanged. Two initialization permutations (`init-hoisted`, `init-swapped`) made it WORSE, [2, 2, 2], by introducing a non-register difference. What controls callee-saved numbering here is therefore not declaration order and not initialization order, and no family in the current mutation set reaches it. The lever is unmeasured; find it before building routing on this class.",
+    confirmed_on=[
+        "rename-gradient probe 2026-09-17: drawCharacterSelectCoursePreviewPanel8 and drawRaceSplitscreenSelectOption2Frame both score 99.936, signals regalloc=0 ordering=2, regalloc_signature gradient [0,2,2], signatures {saved_order: 2}.",
+        "lever hunt 2026-09-17, drawCharacterSelectCoursePreviewPanel8, 7 compiles: baseline, decl-swapped, decl-offset-first, decl-single, init-in-for all [0,2,2]; init-hoisted and init-swapped both [2,2,2]. No variant reached exact and none moved the saved_order component.",
+        "route test 2026-09-17: the five sibling cases through close_nearmiss --force-regalloc at budget 300 -> 0 of 5 exact, budget exhausted on every one.",
+    ],
+))
+
+register(Pattern(
     id="target-linkage-static-inline",
     name="IDO rejects C99 `inline` and discards an unreferenced `static`: one bug, two symptoms",
     kind="solver",
