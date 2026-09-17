@@ -126,6 +126,51 @@ not yet deduplicated to functions).
   exact with `do` intact. That is the `recovered` tier, and it would raise byte-exact without raising
   capability, so it was deliberately **not** run in bulk. Recorded as an option, not taken.
 
+## Round 2: the never-attempted half, and what actually blocks it
+
+The 168 do-bearing functions with no attempt in the knowledge base are not functions with no
+candidate. `tools/claude --bootstrap-only` writes `base.c`, and that file is an **m2c decompilation of
+the target assembly** — binary-derived, labelled as such in its own header, and characteristically
+written with `do { ... } while (...)`. The ban refused it before IDO ran, so nothing was ever scored and
+nothing counted the function as a near miss. That is why they read as "never attempted".
+
+| | |
+|---|---|
+| do-bearing, never attempted | 168 |
+| … with a workspace and an m2c draft (`base.c`) | **166** |
+| … whose draft uses `do` | 134 |
+| … that COMPILE | **1** |
+| … exact | **0** |
+
+`eval/do_base_rescore.py`, `eval/results/do-base-rescore-20260917/`. **So the blocker for this half is
+admission, not the `do` token.** The drafts fail as:
+
+| last compiler error | n |
+|---|---|
+| `Syntax Error` | 93 |
+| `Empty declaration specifiers` | 53 |
+| `Selector requires struct/union pointer as left hand side` | 7 |
+| `X undefined; reoccurrences will not be reported` | 8 |
+| `Compiled object has no text symbols` | 2 |
+| `ObjectBackendRequired: TU requires a separate object postprocessing backend` | 2 |
+
+The last row is a separate structural blocker worth naming: two TUs cannot be scored by this backend at
+all, independent of the candidate.
+
+**The fixes for most of those classes are already registered and are NOT what my first admission
+attempt called.** `solver/compilefix.dispatch` refines `Syntax Error` into
+`contradicted-primitive-pointer` / `undeclared-param-type` / `unbalanced-braces` and maps those to
+`byte-index` (`solver/memberaccess`), `typedecl` and `globals` (`solver/globaldecl`). Those are applied
+by `solver/compile_recovery.py`; the applier I reached for, `repair_context.normalize`, covers only the
+C89 spelling and void-pointer byte-arithmetic families, and returns `NOTHING` on
+`drawCourseRecordBanner` (refined `contradicted-primitive-pointer`) and only a `c89` variant on
+`drawCharacterSelectCourseListOptions` (refined `undeclared-param-type`). A 30-function probe converted
+**0**.
+
+That is the classic silent decline and it is the next step, stated precisely: **route the never-attempted
+drafts through `compile_recovery`'s typedecl/globals/byte-index machinery rather than through
+`repair_context.normalize`**, which is a wiring job, not a research question.
+
 ## Reproduce
 
 ```bash

@@ -44,7 +44,11 @@ from solver import typedecl, unknowns
 
 # Strip the per-attempt noise: temp path, line number, quoted identifiers,
 # hex constants. What remains is stable across attempts and functions.
-_PATH = re.compile(r"^.*?\.build-source\.\w+\.c[:,]?\s*")
+# Any source path, not only `.build-source.X.c`: harnesses that compile a file
+# named `candidate.c` kept `candidate.c, line 7:` in the signature, splitting
+# 1,331 failures across 122 line-numbered signatures that nothing routed --
+# the largest only 204, so none looked worth a look. Paths hold no whitespace.
+_PATH = re.compile(r"^\S+\.c[:,]?\s*")
 _LINE = re.compile(r"^\s*(?:line\s+)?\d+:\s*")
 # Line numbers appear INSIDE the message too: `redeclaration of 'x'; previous
 # declaration at line 13 in file 'y'`. Stripping only the leading one split
@@ -77,12 +81,59 @@ def signature(stderr: str) -> str:
 UNDECLARED_PARAM_TYPE = "Syntax Error/undeclared-param-type"
 CONTRADICTED_POINTER = "Syntax Error/contradicted-primitive-pointer"
 UNDECLARED_ELSEWHERE = "Syntax Error/undeclared-type-not-a-parameter"
+UNBALANCED_BRACES = "Syntax Error/unbalanced-braces"
+
+
+def brace_imbalance(code: str) -> bool:
+    """True when `{` and `}` do not pair, ignoring comments and literals.
+
+    The largest cause inside `Syntax Error` that no sub-signature named.
+    Measured over gpt-oss attempts: unbalanced in 9.8% of non-compiling
+    sources and 0.1% of compiling ones, so the source says it outright while
+    IDO reports only the same three words as every other malformed declarator.
+    A brace inside `'{'`, `"}"` or `/* } */` is not structure; counting it
+    would flag correct code.
+    """
+    depth = 0
+    i, n = 0, len(code)
+    while i < n:
+        ch = code[i]
+        nxt = code[i + 1] if i + 1 < n else ""
+        if ch == "/" and nxt == "*":
+            end = code.find("*/", i + 2)
+            if end < 0:
+                return True        # unterminated comment: truncated source
+            i = end + 2
+            continue
+        if ch == "/" and nxt == "/":
+            end = code.find("\n", i + 2)
+            i = n if end < 0 else end + 1
+            continue
+        if ch in "\"'":
+            j = i + 1
+            while j < n and code[j] != ch and code[j] != "\n":
+                j += 2 if code[j] == "\\" else 1
+            i = j + 1
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth < 0:
+                return True
+        i += 1
+    return depth != 0
 
 
 def refine(sig: str, code: str, func: str, known_types: set[str]) -> str:
     """Split `Syntax Error` by what the SOURCE shows, not what IDO said."""
     if not sig.startswith("Syntax Error"):
         return sig
+    # Before the type analysis: a truncated or brace-damaged draft cannot
+    # compile under any zero-token repair, so routing it to typedecl/globals
+    # spends compile cycles on a fix that cannot land.
+    if brace_imbalance(code):
+        return UNBALANCED_BRACES
     params = typedecl.pointer_parameters(code, func)
     if not params:
         return UNDECLARED_ELSEWHERE
@@ -115,7 +166,11 @@ class Fix:
 
 
 DO_WHILE = Fix("do-while", "tools.score_repo_function",
-               "the build bans the `do` TOKEN, not the loop shape")
+               "RETIRED 2026-09-17: the `do`-token refusal was removed from the helper "
+               "(eval/remove_do_ban.py), so this signature can no longer be produced. Kept so the "
+               "mapping is visible if a refusal is ever reinstated -- and it must not be, without "
+               "evidence that the forced lowering is codegen-neutral; it is not (measured: matching "
+               "-> 99.395 on drawRaceSplitscreenSelectOption2Frame)")
 TYPEDECL = Fix("typedecl", "solver.typedecl",
                "declare the struct from observed offsets")
 BYTE_INDEX = Fix("byte-index", "solver.memberaccess",
@@ -171,6 +226,9 @@ KNOWN_UNFIXABLE: dict[str, str] = {
         "markdown fence leaked past extraction; a harness bug, not a candidate",
     "Constants must have arithmetic type.":
         "argswap moved a cast to an invalid position; our own generator",
+    UNBALANCED_BRACES:
+        "truncated or brace-damaged generation; no source repair restores "
+        "statements that were never written -- regenerate",
 }
 
 
