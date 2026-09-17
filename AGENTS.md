@@ -44,3 +44,21 @@ available.
 Treat checked-in status prose as a snapshot. Use `python -m eval.status` when a
 decision depends on current counts, and distinguish `SOLVED`, header-assisted, and
 recovered matches when reporting capability.
+
+## Never sleep to wait
+
+Do not spend a step on `sleep N` to wait for background work — not as a bare
+`sleep`, and not inside a `wsl.exe bash -lc "... setsid nohup ... & sleep 540"`.
+Launch the work as a harness background job (`run_in_background: true`) and keep
+doing other useful work; the harness notifies you when it finishes. If a job must
+be detached inside WSL, detach it and return immediately, then check it with a
+short bounded command between other steps.
+
+Measured cost of getting this wrong, 2026-09-16 session: **129 of 195 minutes of
+tool time inside 41 `sleep` calls**, including 82 of the last 106 minutes. The same
+wall clock could have run several compiles at once.
+
+`nproc` in WSL is capped by `%USERPROFILE%\.wslconfig` (`processors`, `memory`), not
+by the host CPU. Check it before choosing a worker count, and prefer raising the cap
+over starting more workers than it can run.
+

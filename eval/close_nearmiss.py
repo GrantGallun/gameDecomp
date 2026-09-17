@@ -27,9 +27,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import multiprocessing
 import sqlite3
 import sys
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -198,6 +200,75 @@ def close_one(conn, repo: Path, name: str, *, budget: int, beam: int, depth: int
     return row
 
 
+_WORKER_CONN = None
+_WORKER_REPO: Path | None = None
+
+
+def _worker_init(db: str, repo: str) -> None:
+    """One connection per worker process. sqlite3 handles are not shareable."""
+    global _WORKER_CONN, _WORKER_REPO
+    _WORKER_CONN = sqlite3.connect(db, timeout=120)
+    _WORKER_REPO = Path(repo)
+
+
+def _worker_close_one(name: str, opts: dict) -> dict:
+    return close_one(_WORKER_CONN, _WORKER_REPO, name, **opts)
+
+
+def close_many(conn, repo: Path, names: list[str], opts: dict, *, db: str, jobs: int,
+               seconds: float, state: dict, state_path: Path) -> dict:
+    """Close `names`, writing each finished row to `state_path` as it lands.
+
+    `jobs <= 1` is the original serial loop, unchanged. Above that, functions are
+    independent -- each owns `repo/nonmatchings/<func>` and its own compile -- so they
+    are farmed out to worker processes. The parent is the only writer of `state.json`,
+    which keeps a crash mid-run resumable exactly as the serial version is.
+
+    The worker count is bounded by what the machine can actually run: check `nproc`
+    (WSL is capped by `%USERPROFILE%\\.wslconfig`), not the host's core count.
+    """
+    started = time.time()
+    if jobs <= 1:
+        for name in names:
+            if name in state:
+                continue
+            if seconds and (time.time() - started) > seconds:
+                print(f"BUDGET: {seconds}s reached", flush=True)
+                break
+            row = close_one(conn, repo, name, **opts)
+            state[name] = row
+            state_path.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
+            print(f"[{len(state)}/{len(names)}] {name:<46} exact={row.get('exact')} "
+                  f"compiles={row.get('compiles')} {row.get('status')}", flush=True)
+        return state
+
+    pending = [n for n in names if n not in state]
+    ctx = multiprocessing.get_context("spawn")
+    with ProcessPoolExecutor(max_workers=jobs, mp_context=ctx,
+                             initializer=_worker_init,
+                             initargs=(db, str(repo))) as pool:
+        submitted = {}
+        for name in pending:
+            if seconds and (time.time() - started) > seconds:
+                print(f"BUDGET: {seconds}s reached", flush=True)
+                break
+            submitted[pool.submit(_worker_close_one, name, opts)] = name
+        for future in as_completed(submitted):
+            name = submitted[future]
+            try:
+                row = future.result()
+            except Exception as exc:                                  # noqa: BLE001
+                # A worker that dies must not take the run's remaining work with it,
+                # and it must not silently drop the function either.
+                row = {"function": name, "status": "worker-raised",
+                       "error": f"{type(exc).__name__}: {exc}"}
+            state[name] = row
+            state_path.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
+            print(f"[{len(state)}/{len(names)}] {name:<46} exact={row.get('exact')} "
+                  f"compiles={row.get('compiles')} {row.get('status')}", flush=True)
+    return state
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--db", default=DEFAULT_DB)
@@ -224,6 +295,10 @@ def main(argv: list[str] | None = None) -> int:
                          "other faults'; searching beyond it spent 238 compiles per function for zero "
                          "closures across 53 functions")
     ap.add_argument("--seconds", type=float, default=0.0)
+    ap.add_argument("--jobs", type=int, default=1,
+                    help="worker processes over independent functions. 1 keeps the serial "
+                         "path. Bound it by `nproc` -- WSL is capped by .wslconfig, so a "
+                         "worker count the machine cannot run is slower, not faster")
     args = ap.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -241,22 +316,12 @@ def main(argv: list[str] | None = None) -> int:
 
     state_path = args.out / "state.json"
     state = json.loads(state_path.read_text()) if state_path.is_file() else {}
-    started = time.time()
-    for name in names:
-        if name in state:
-            continue
-        if args.seconds and (time.time() - started) > args.seconds:
-            print(f"BUDGET: {args.seconds}s reached", flush=True)
-            break
-        row = close_one(conn, args.repo, name, budget=args.budget, beam=args.beam,
-                        depth=args.depth, enable=not args.no_enable,
-                        layout=not args.no_layout, use_globals=args.globals,
-                        force_regalloc=args.force_regalloc,
-                        max_other_faults=args.max_other_faults)
-        state[name] = row
-        state_path.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
-        print(f"[{len(state)}/{len(names)}] {name:<46} exact={row.get('exact')} "
-              f"compiles={row.get('compiles')} {row.get('status')}", flush=True)
+    opts = dict(budget=args.budget, beam=args.beam, depth=args.depth,
+                enable=not args.no_enable, layout=not args.no_layout,
+                use_globals=args.globals, force_regalloc=args.force_regalloc,
+                max_other_faults=args.max_other_faults)
+    close_many(conn, args.repo, names, opts, db=args.db, jobs=max(1, args.jobs),
+               seconds=args.seconds, state=state, state_path=state_path)
 
     exact = sorted(n for n, r in state.items() if r.get("exact"))
     summary = {
