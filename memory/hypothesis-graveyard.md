@@ -322,6 +322,11 @@ Created: 2026-08-29
 - Evidence: Linear webs are fragments (51.7% single-occurrence). CFG webs fix that (0%) and are sound: IDO's choice is free in 100.0% of cases and every call-crossing value is in s0-s8. But model order reproduces 17.1% of registers against 15.3% random and 24.6% even for the oracle order, and every oracle miss chose a LOWER register than IDO. IDO takes the lowest free register only 25.4% of the time; 9,196 of ~10k held-out non-crossing webs see 12+ free registers. Block-granular interference is refuted by its own soundness test (IDO's choice free only 40.5%). The best derived order reaches 26.7% held-out; spec order 26.2%, round-robin 27.7%, uniform 8.6%.
 - Decision: Stop building allocator predictions from post-allocation assembly: the constraints that drove IDO's choice are not visible there, at any of three reconstructions. This also retires the "79% concordant" claim in commit e763f40, already recorded as 50-58% in `solver/liveness.py`. The viable source of uopt's view is its own output: `cc -K` keeps uopt's optimised u-code (`.O`) per candidate compile, which carries its register decisions -- decode that before any further allocation modelling.
 - Linked ideas: None
+- Correction (2026-09-14) to HYP-20260912-01's evidence: "100% of values live across a call are in s0-s8" is true by construction, not a measurement.
+  - `eval/uopt_replay.py` sets `crosses_call` only for registers outside `CALLER_POOL` (lines 302-308).
+  - A caller-saved value that survives a call is saved and reloaded, which splits its web in the assembly. So assembly cannot show a caller-saved crossing either way.
+  - Measured instead with uopt's own live ranges, with calls located via ugen's tree dump (`solver/uopt_calls.py`, SBK1, 1,788 mapped procedures): 532 caller-saved ranges are live into and out of a call node, against 1,788 callee-saved.
+  - The band is a cost trade-off. Loop-weighted crossed calls >= 3 predicts it for 94.4% of 8,712 decisions (always caller-saved: 77.3%).
 
 ### HYP-20260912-02: Larger local models or a larger context unlock matches on context-blocked and large functions.
 - Status: Refuted on the tested cohorts
@@ -354,3 +359,62 @@ Created: 2026-08-29
   - 1 is a stack-layout residual.
   - New failure modes: rotated loops, compound assignments, typed-table indexing, m2c double scaling on typed externs (a behaviour bug), negation folded into constants, priority inversion from caching a load in a local.
   - Transfer to the untouched 145-function cohort was measured with the generator set frozen before these hand closures: `eval/results/regalloc-20260913/transfer-1`.
+
+### HYP-20260914-01: Given uopt's forbidden set, the colour is the lowest free one in its band (1-13, 14+), except that a parameter may keep its incoming a0-a3.
+- Status: Refuted
+- Tested: 2026-09-14
+- Test: The allocator's own `-zdbug:5/6` trace was unblocked by implementing `ecvt`/`fcvt` in ido-static-recomp (`tools/ido-trace`). Gate: same SBK1 ROM, and 386/386 trace-mode recompiles byte-identical. `eval/uopt_trace_census.py` traced all 115 game TUs at `-O2` (1,976 procedures, 11,310 decisions) and `solver.uopt_trace.check` compared each decision with the rule.
+- Evidence:
+  - The trace is self-consistent: level-6 and level-5 colours agree 11,310/11,310.
+  - Forbidden sets are the colours of neighbours coloured earlier, with 0 violations.
+  - Unconstrained ranges are coloured in increasing range number, with 0 violations. Constrained ranges follow non-increasing adjsave in 1,907/1,976 procedures.
+  - The selection rule holds in only 1,397/1,976 procedures. Exceptions: a0-a3 taken while v0 was free (argument-register preference; 442 items for colours 3-5 over 1), and 104 on colours 24-33 (float registers).
+  - Causal check: on createCallbackTaskPreservingArgs the trace predicted that storing newTask before insertAfter, with the index inlined, would give newTask v1. It did, and every variable-colour difference went away. The residual left is ugen temp numbering.
+- Decision:
+  - Use the trace, never reconstruction from assembly, for any uopt question about a source we can compile. This replaces HYP-20260912-01's `.O` decoding plan.
+  - Do not predict colours until argument-register preference and float classes are modelled.
+  - 34 constrained-order exceptions remain unexplained (not cross-class, no split). They stay open, not whitelisted.
+- Linked ideas: HYP-20260912-01, HYP-20260913-01
+- Follow-up (2026-09-14): the exceptions are explained. The last column of each `- live bb -` row is a preferred colour.
+  - Model (`solver.uopt_trace.select_colour`, bank entry `uopt-colour-selection-model`): the first free in-band preference, else a parameter live at entry scans up from a0 (float 26), else lowest free.
+  - In-sample: 11,300/11,310.
+  - Held out on 750 m2c campaign candidates: 2,375/2,375.
+  - The band itself (whether a range must survive a call) is still read from the chosen colour, not predicted.
+
+### HYP-20260917-02: The five 99.936 siblings are a pure register RENAME that neither instrument owns.
+- Status: Refuted
+- Tested: 2026-09-17
+- Test: The residual was re-measured instead of re-reasoned. `solver.regalloc_signature` now reports
+  `reordered`/`renames` (within one shape-equal aligned block, `reordered = common - same_position`,
+  `renames = length - common`, and the two partition `register_instructions`); `patterns/rules.py`
+  registered the reordering hypothesis and `patterns/derive.py` judged it; `eval/rename_census.py`
+  measured the split over the whole emitting population.
+- Evidence:
+  - All five cases have the IDENTICAL residual: `move s2,zero` / `move s3,zero` exchanged, gradient
+    `[0,2,2]`, `signatures {saved_order: 2}`, `signals` `regalloc=0 ordering=2`.
+  - `reordered=2, renames=0` on all five, and every OTHER use of s2 and s3 is byte-identical between
+    target and candidate (`addu t2,t0,s2` indexes the tile table, `addu a1,t5,s3` adds the offset to
+    y). So s2 holds the tile index and s3 the offset in BOTH objects: no value changed register. The
+    difference is which zero-initialisation IDO emitted first.
+  - The register search cannot move it: `close_nearmiss --force-regalloc`, budget 300, all five gave
+    `[0,2,2] -> [0,2,2]` with `best_label = baseline`. 1,500 compiles, zero movement.
+  - The ordering pass fires and its output is invariant: 3 variants from `statement_order_rewrites`
+    plus 7 hand-written orderings (`offset = tileIndex = 0`, `offset = 1 - 1`, declaration
+    initializer, `u16` type, `if ((1))` removed, ...), all byte-identical output with the same pair.
+  - `patterns/derive.py` rule `same-shape-difference-is-a-permutation`: 5 claimed, 15 predicted, 15
+    compiled, 0 exact -> NOT CONFIRMED. Recorded in `eval/results/rename-wall-20260917/`.
+  - Whole-generator-set BFS from both ends: 2,348 compiled variants, 438 with the instruction
+    structure intact, 0 with the target's order and register binding together.
+- Decision:
+  - Do not build a rename instrument, and do not add a rename counter to `signals` expecting the
+    search to gain -- the residual is not a rename.
+  - Do not route this class to `regalloc_search` (measured: no movement) or to the ordering pass
+    (measured: 0 of 24 `reordered-only` functions closed in 481 compiles at depth 2).
+  - `patterns/ordering.classify`'s `colouring` verdict is a NAME for the positional reading, not
+    evidence that a register changed. Use `regalloc_signature.Report.renames` to tell the readings
+    apart.
+- Still open: which source shape makes IDO emit the first of two saved-register writes into the LOWER
+  register. Measured coupling so far: the first-emitted value holds the higher saved register in every
+  reachable state, and `single_use` inlining of the guard flips the register assignment and the
+  emission order together.
+- Linked ideas: HYP-20260914-01

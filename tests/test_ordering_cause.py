@@ -60,6 +60,33 @@ def test_sibling_is_register_colouring():
     assert got.colouring_hunks == 1
 
 
+def test_the_sibling_verdict_is_named_not_observed():
+    """CORRECTION 2026-09-17: the `colouring` verdict is one of two readings of an ambiguous diff.
+
+    `classify` is POSITIONAL, so on a hunk whose instruction multisets are equal and whose differing
+    positions are register-only it cannot tell "the registers were exchanged" from "the same two
+    instructions were emitted in the other order". Both instructions write the constant zero, so the
+    byte sequences are the same either way. What decides it is the rest of the dump: every other use
+    of s2 and s3 is byte-identical between target and candidate, so each register holds the same value
+    in both and nothing was reassigned. That is a reordering, and `regalloc_signature.Report.renames`
+    is the counter that says so.
+
+    The routing is unchanged and still right -- no statement permutation closes the class (measured:
+    three from `statement_order_rewrites`, seven hand-written, all byte-identical output) -- but the
+    verdict must not be quoted as evidence that a register changed.
+    """
+    from solver import regalloc_signature
+
+    target = "addiu    s2,s2,2\nmove    s2,zero\nmove    s3,zero\nli    s0,0x80\n"
+    candidate = "addiu    s2,s2,2\nmove    s3,zero\nmove    s2,zero\nli    s0,0x80\n"
+    report = regalloc_signature.compare(target, candidate)
+    assert ordering.classify(SIBLING).name == "colouring"       # the positional verdict
+    assert report.renames == 0 and report.reordered == 2        # but nothing changed register
+    assert report.order_only is True
+    # And the positional verdict costs the register signature nothing: same counts as before.
+    assert report.signatures == {"saved_order": 2}
+
+
 def test_register_normalisation_separates_them():
     """The reason, not just the verdict: the sibling's instructions become identical without their
     registers, and Fstop's do not."""

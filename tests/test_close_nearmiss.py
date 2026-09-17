@@ -150,3 +150,35 @@ def test_a_raising_worker_does_not_lose_the_function(monkeypatch, tmp_path):
     assert state["bad"]["status"] == "worker-raised"
     assert "worker died" in state["bad"]["error"]
     assert state["good"]["status"] == "ok"
+
+
+# --- the residual's pairing, recorded so a stalled search is legible afterwards ---
+
+SIBLING_RESIDUAL = ("slti    at,s0,0x10\n"
+                    "bnez    at,3c\n"
+                    "addiu    s2,s2,2\n"
+                    "move    s2,zero\n"
+                    "move    s3,zero\n"
+                    "li    s0,0x80\n")
+
+
+def test_pairing_records_a_permuted_pair_as_reordered_not_renamed():
+    """The five 99.936 siblings' residual: same instructions, other order.
+
+    `close_nearmiss` spent 300 compiles on each and reported `dominant=regalloc` with a gradient that
+    never moved. The row now carries the arithmetic that says why.
+    """
+    candidate = SIBLING_RESIDUAL.replace("move    s2,zero\nmove    s3,zero\n",
+                                         "move    s3,zero\nmove    s2,zero\n")
+    got = cn.pairing_of(SIBLING_RESIDUAL, candidate)
+    assert got["gradient"] == [0, 2, 2]
+    assert (got["reordered"], got["renames"]) == (2, 0)
+    assert got["order_only"] is True
+    assert got["signatures"] == {"saved_order": 2}, "the search's own view must not change"
+
+
+def test_pairing_declines_without_a_dump_and_flags_a_real_rename():
+    assert cn.pairing_of(SIBLING_RESIDUAL, None) == {}
+    got = cn.pairing_of("move    s2,zero\n", "move    t6,zero\n")
+    assert (got["reordered"], got["renames"]) == (0, 1)
+    assert got["order_only"] is False

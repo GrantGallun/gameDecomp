@@ -165,6 +165,37 @@ def definition_line(source: str, function: str) -> str | None:
     return None
 
 
+@dataclass
+class SameShapeDifferenceIsAPermutation:
+    """A residual whose differing positions are register-only is an instruction permutation, and
+    permuting the source statements closes it.
+
+    This is the hypothesis the project currently acts on. `patterns/ordering.classify` compares the
+    two dumps POSITIONALLY, so on the five 99.936 siblings it reports `colouring`: at each differing
+    position the instruction is the same apart from its register. `patterns/catalog.py` then routes
+    them away from the ordering pass and into the register search.
+
+    `solver.regalloc_signature.compare` reports the same residual as a register difference and the
+    ordering pass cannot move it, so BOTH instruments refuse it -- the shape this project keeps
+    catching, and the reason it is worth a derivation run rather than another hand measurement.
+
+    The rule is the strongest form of the reordering reading: if the diff is a permutation, the
+    target's order IS a statement order, so `rewrites.statement_order_rewrites` -- the pass that
+    OWNS the class -- should close it. A confirmation here would justify routing on the permutation
+    reading. A refusal records the refutation and forbids building that routing.
+    """
+    id: str = "same-shape-difference-is-a-permutation"
+    derivation_case: str | None = "drawRaceSplitscreenSelectOption2Frame"
+
+    def applies(self, case: Case) -> bool:
+        return ordering.classify(case.diff).name == "colouring"
+
+    def predict(self, case: Case) -> Sequence[Variant]:
+        from solver import rewrites
+        return tuple(Variant(label=f"order:{rewrite.label}", source=rewrite(case.source))
+                     for rewrite in rewrites.statement_order_rewrites(case.source, case.diff, gate=False))
+
+
 RULES: dict[str, object] = {}
 
 
@@ -175,3 +206,4 @@ def register(rule) -> object:
 
 register(StoreOrderRule())
 register(TargetLinkageRule())
+register(SameShapeDifferenceIsAPermutation())

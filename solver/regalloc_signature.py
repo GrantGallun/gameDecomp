@@ -20,6 +20,35 @@ other fault, and they were stuck at +-0.
 These signatures are OBSERVATIONS of the two object files. The source-level cause
 of each is a hypothesis to test by compiling variants, never a conclusion.
 
+`reordered` and `renames` split `register_instructions` into the half that is an ORDER
+difference and the half that is a register difference. They exist because the alignment
+cannot tell the two apart by itself: `compare` aligns on register-free `shape`, so
+`move s2,zero` and `move s3,zero` are interchangeable to it, and a source that emits those
+two instructions in the other order is scored as a two-register `saved_order` swap.
+
+Measured 2026-09-17 on the five 99.936 `drawRaceSplitscreenSelectOption*` /
+`drawCharacterSelectCoursePreviewPanel*` siblings. Their whole residual is
+
+    -move    s2,zero        +move    s3,zero
+     move    s3,zero        +move    s2,zero
+
+which `signals.analyse` books as `ordering=2, regalloc=0` and `regalloc_signature` books as
+`gradient [0,2,2]`, `signatures {saved_order: 2}`. The second reading is not the truth and
+neither is the first: the two dumps are consistent with either story, because both
+instructions write the constant zero. What IS decidable is the arithmetic. Within one
+shape-equal aligned block,
+
+    reordered = common - same_position      instructions present on both sides, at a
+                                            different position: an order difference
+    renames   = block_length - common       instructions that still differ after pairing
+                                            identical text first: a real register difference
+    reordered + renames == register_instructions
+
+and on those five, `reordered=2, renames=0`. So the residual is an order difference that
+the register gradient cannot express as one, and `regalloc_search` has no signal for the
+direction it needs. Both counters are additive diagnostics: `gradient`, `signatures` and
+`substitutions` are unchanged, so no existing ranking moves.
+
 `gradient(target, candidate)` is lexicographic and lower is better:
 (non-register differences including inserted or deleted instructions, register-differing
 instructions, differing register operands). A variant that lowers it moved toward
@@ -131,7 +160,10 @@ class Report:
     non_register: int = 0
     register_instructions: int = 0
     register_operands: int = 0
+    reordered: int = 0
+    renames: int = 0
     signatures: Counter = field(default_factory=Counter)
+    rename_signatures: Counter = field(default_factory=Counter)
     substitutions: Counter = field(default_factory=Counter)
     differences: list[dict] = field(default_factory=list)
 
@@ -145,13 +177,57 @@ class Report:
     def exact_shape(self) -> bool:
         return self.gradient == (0, 0, 0)
 
+    @property
+    def order_only(self) -> bool:
+        """Every register-differing position is explained by an instruction that moved.
+
+        A sufficient condition for "this residual needs an order fix, not a register fix",
+        and it is arithmetic on the two dumps rather than a hypothesis: the two blocks hold
+        the same instructions and only their positions differ. `reordered + renames` is
+        `register_instructions` by construction, so this is exactly `renames == 0`.
+        """
+        return self.register_instructions > 0 and self.renames == 0
+
     def to_dict(self, limit: int = 40) -> dict:
         return {"gradient": list(self.gradient), "non_register": self.non_register,
                 "register_instructions": self.register_instructions, "register_operands": self.register_operands,
+                "reordered": self.reordered, "renames": self.renames, "order_only": self.order_only,
                 "instruction_counts": [self.target_count, self.candidate_count],
                 "signatures": dict(self.signatures),
+                "rename_signatures": dict(self.rename_signatures),
                 "substitutions": {f"{a}->{b}": n for (a, b), n in self.substitutions.most_common(12)},
                 "differences": self.differences[:limit]}
+
+
+def _pairing(want: list[Instruction], got: list[Instruction]) -> tuple[int, int]:
+    """(identical at the same position, present on both sides) for one shape-equal block."""
+    same = sum(1 for a, b in zip(want, got) if a == b)
+    shared = Counter(i.text for i in want) & Counter(i.text for i in got)
+    return same, sum(shared.values())
+
+
+def _unpaired(want: list[Instruction], got: list[Instruction]) -> list[tuple[Instruction, Instruction]]:
+    """Pairs left after matching byte-identical instructions first, in original order.
+
+    These are the register differences that no reordering explains, so classifying them is
+    what `rename_signatures` counts -- as opposed to `signatures`, which classifies the
+    positional pairs and therefore cannot see the difference.
+    """
+    budget = Counter(i.text for i in want) & Counter(i.text for i in got)
+    left_want = []
+    for row in want:
+        if budget[row.text]:
+            budget[row.text] -= 1
+        else:
+            left_want.append(row)
+    budget = Counter(i.text for i in want) & Counter(i.text for i in got)
+    left_got = []
+    for row in got:
+        if budget[row.text]:
+            budget[row.text] -= 1
+        else:
+            left_got.append(row)
+    return list(zip(left_want, left_got))
 
 
 def compare(target_text: str, candidate_text: str) -> Report:
@@ -162,7 +238,14 @@ def compare(target_text: str, candidate_text: str) -> Report:
                                       autojunk=False)
     for op, a0, a1, b0, b1 in matcher.get_opcodes():
         if op == "equal":
-            for index, (want, got) in enumerate(zip(target[a0:a1], candidate[b0:b1])):
+            want_block, got_block = target[a0:a1], candidate[b0:b1]
+            same, common = _pairing(want_block, got_block)
+            report.reordered += common - same
+            report.renames += len(want_block) - common
+            for want, got in _unpaired(want_block, got_block):
+                for row in classify_pair(want, got):
+                    report.rename_signatures[row["signature"]] += 1
+            for index, (want, got) in enumerate(zip(want_block, got_block)):
                 if want == got:
                     continue
                 rows = classify_pair(want, got)

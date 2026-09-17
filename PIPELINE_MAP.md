@@ -286,6 +286,13 @@ allocation: 78 at checkpoint 14495. The campaign's model repairs had left these 
     instructions, register operands.
   - `delta(before, after)` gives better/worse/same/exact_shape plus the signatures fixed and introduced.
   - Signatures are observations; their source causes are hypotheses.
+  - ADDITIVE DIAGNOSTIC (2026-09-17): `Report.reordered`, `.renames`, `.rename_signatures` and `.order_only`. Because
+    the alignment is shape-based, two same-shape instructions emitted in the other order are scored as a register
+    swap. Within one shape-equal block, `reordered = common - same_position` and `renames = length - common`, and
+    `reordered + renames == register_instructions`. `gradient`, `signatures` and `substitutions` are unchanged, so
+    nothing that ranks on the report moves. Recorded on every `eval.close_nearmiss` run via `pairing_of`; measured
+    across the 133 compiling non-exact functions by `eval/rename_census.py`. Evidence and refutation:
+    `patterns/catalog.py` `saved-order-has-a-gradient-and-no-generator`, `eval/results/rename-wall-20260917/`.
 - `eval.regalloc_probe probe --cohort C --function F --source A.c ...` is the input/output loop. It compiles in an
   isolated native workspace (about 0.3 s per compile) and prints one JSON line per source: oracle `exact`, gradient,
   signatures, differences and delta against the campaign source.

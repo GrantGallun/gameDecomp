@@ -45,6 +45,25 @@ DEFAULT_REPO = Path("/home/grant/decomp/sbk1")
 AXES = ("structural", "layout", "reloc", "regalloc", "ordering", "immediate")
 
 
+def pairing_of(target_dump: str, candidate_dump: str | None) -> dict:
+    """Split the register count into the reorderings and the register differences.
+
+    DIAGNOSTIC ONLY -- it does not choose the instrument. `solver.regalloc_signature` aligns on
+    register-free shape, so a source that emits two same-shape instructions in the other order is
+    scored as a register difference. Measured 2026-09-17: the five 99.936 siblings are booked
+    `regalloc`-dominant at baseline and reduced to a residual that is `reordered=2, renames=0`, and
+    the register search cannot move it (300 compiles, gradient [0,2,2] -> [0,2,2], 0/5 exact).
+    Recording the split is what makes such a run legible afterwards instead of looking like a search
+    that merely did not converge.
+    """
+    from solver import regalloc_signature
+    if not candidate_dump:
+        return {}
+    report = regalloc_signature.compare(target_dump, candidate_dump)
+    return {"gradient": list(report.gradient), "reordered": report.reordered, "renames": report.renames,
+            "order_only": report.order_only, "signatures": dict(report.signatures)}
+
+
 def best_compiled_source(conn, name: str) -> tuple[int, str, float] | None:
     """The highest-scoring COMPILING attempt for a function, with its receipt id."""
     row = conn.execute(
@@ -106,6 +125,7 @@ def close_one(conn, repo: Path, name: str, *, budget: int, beam: int, depth: int
     row["baseline_exact"] = base.exact
     profile = profile_of(base.diff, score, base.exact, base.compiled)
     row["profile"] = profile
+    row["pairing"] = pairing_of(target_dump, base.dump)
     dominant = max(profile, key=lambda axis: profile[axis])
     row["dominant"] = dominant
     others = sum(v for k, v in profile.items() if k != dominant)

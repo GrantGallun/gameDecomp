@@ -21,6 +21,18 @@ positions where they differ, erase register names from those instructions, and a
 sides become the same multiset. If they do, the only difference was WHICH REGISTER -- colouring. If
 they do not, the instructions themselves moved -- order.
 
+CORRECTION, 2026-09-17. That second name is a name, not an observation. When the multisets are equal
+AND every differing position is register-only, the two dumps are consistent with BOTH readings, and
+this module picks one. On the sibling it picked the wrong one: `regalloc_signature` re-pairs the
+same-shape run by instruction text and finds the SAME two instructions on both sides
+(`reordered=2, renames=0`), and every other use of s2 and s3 is byte-identical between target and
+candidate, so s3 holds the offset and s2 holds the tile index in both and nothing was reassigned --
+IDO emitted the two zero-initialisations in the other order. The verdict this module returns is still
+the right ROUTING (statement permutations do not close the class: measured, three from
+`statement_order_rewrites` and seven hand-written orderings, all byte-identical output), but it is not
+evidence that a register changed. Use `regalloc_signature.Report.renames` to tell the two readings
+apart; see `patterns/catalog.py` `saved-order-has-a-gradient-and-no-generator`.
+
 This is a routing decision, not a repair. It exists so the ordering pass stops spending compiles on
 residuals it cannot reach, and so those functions go to the register search instead. It does not
 change any output by itself.
