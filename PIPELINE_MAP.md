@@ -1,5 +1,203 @@
 # What the decompiler pipeline actually does
 
+## uopt allocation trace (September 14; diagnostic only, not wired into the campaign)
+
+Receipts: `eval/results/uopt-trace-20260914/README.md`.
+
+- **Toolchain.** `tools/ido-trace/build.sh` builds ido-static-recomp v1.0 with `ecvt`/`fcvt` implemented
+  (`ecvt-fcvt.patch`) into `~/decomp/tools-src/ido-trace`, a copy of the stock toolchain with only `uopt` replaced.
+  Stock uopt aborts at the first float under `-zdbug:5`/`-zdbug:6`. Gate: same ROM, and all 386 trace-mode
+  recompiles byte-identical. A rebuild changes the binary hash, so rerun the gate.
+- **Use.** `ido-trace/cc <flags> -Wo,-zdbug:5 f.c` writes `./uoptlist` with each live range's adjsave, forbidden
+  colours and interference. `-zdbug:6` gives the order and outcome of each colouring decision.
+- **Module.** `solver/uopt_trace.py`: `parse_level5`, `parse_level6`, `join`, `check`, `select_colour`,
+  `band_of`. Tests: `tests/test_uopt_trace.py`, with a fire test per check, per parsing trap and per selection rule.
+- **Census.** `eval/uopt_trace_census.py --tree T --out D` replays `make -n -B` compile commands, post-processing
+  included, at both levels. It restores objects and refuses to score a compile whose object changed.
+  - `--candidates ~/decomp/sbk1/nonmatchings --compiler .../ido-trace/cc` traces held-out m2c candidates.
+  - `--rescore` re-scores saved traces without compiling.
+  - `--ugen` also keeps ugen's tree dump, taken in a separate compile because `-d` renumbered ugen temporaries in
+    27 of 193 SBK1 TUs; that object is recorded, never trusted.
+- **Calls and band** (`solver/uopt_calls.py`, tests `tests/test_uopt_calls.py`).
+  - The trace never marks calls, so they come from ugen's "Tree dump after Build".
+  - Matching: uopt ends a block after every call, has empty pass-through nodes, and prints nodes out of program
+    order. Labels anchor the match, and it declines rather than guessing.
+  - `crossed_calls` and `predict_band`: callee-saved iff loop-weighted crossed calls >= 3. This is a measured
+    approximation, not a rule.
+- **Selection model** (`select_colour`), given the band of the chosen colour:
+  1. the block rows' preferred colour inside the band;
+  2. else, for a parameter live at entry, scan up from a0 (float: 26);
+  3. else the lowest free colour.
+- **Measured.**
+  - SBK1 census, in-sample: 1,976 procedures. 10 selection misses in 11,310 decisions, 7 of them in three libultra audio
+    functions. Forbidden-at-time and unconstrained range-number order hold everywhere; constrained adjsave order
+    holds in 96.5% of procedures.
+  - Held out, 750 m2c candidates: 0 misses in 2,375 decisions.
+  - Call map: 1,788 of 1,967 SBK1 procedures and 686 of 699 held out.
+  - Band: 94.4% in-sample and 95.4% held out, against 77.3% and 82.2% for always caller-saved. Exact colour with the
+    predicted band: 94.3% and 95.4%.
+  - Crossing a call is not sufficient: 532 caller-saved ranges cross one with a callee colour free, a cost trade-off.
+- **Not predicted.**
+  - The exact band cost.
+  - The preference column's source-level meaning.
+  - Anything without a compile: forbidden sets and crossings come from the trace.
+- **Attribution and diagnosis** (September 15; `solver/uopt_attribution.py`, `solver/uopt_diagnosis.py`, tests
+  `tests/test_uopt_diagnosis.py` on real trace fixtures in `tests/fixtures/uopt/`).
+  - Chain: final-assembly segment -> ugen u-code segment -> uopt node -> (node, colour) -> live range. No colour is held
+    twice in a node on SBK1 (89,403 pairs). Segments are cut at calls, branches, returns and jumps, because as1
+    rewrites emission order; attributed 1,556 of 1,968 census procedures.
+  - `diagnose(target_dump, candidate_dump, level5, level6, ugen_dump, function)` classifies every range the target
+    votes on: ok, ugen_temp, blocked, selection or split. `first` is the earliest non-ok range in colouring order.
+  - `traced_compile(workspace, repo, source, trace_cc, function)` runs the workspace recipe (the manifest, else
+    resolved from `.compiler-target.json`) through the tracing toolchain, with textconv, from `repo`.
+  - Measured on 28 register-only transfer residuals: all attributed. By hand, following the diagnosis matched 6
+    (receipts in `eval/results/uopt-trace-20260914/guided/`).
+- **Generators from the diagnosis** (`solver/regalloc_mutations.py`; catalog `uopt-unforwarded-typed-reread`,
+  `uopt-narrow-truth-test-priority`). Fire tests reproduce all 6 exact sources.
+  - `typed_field_rereads`: store into the field, then re-read it at flipped signedness.
+  - `narrow_truth_tests`: `if (x != 0)` becomes `if (x)` on 8/16-bit locals.
+  - `variants(prefer=...)`: tries named families first.
+- **Search guidance** (`solver/regalloc_search.search(trace=..., trace_budget=...)`): diagnoses the baseline and each
+  frontier member and generates their children with the preferred families first. Ranking and exactness are
+  unchanged.
+  - Preregistered A/B and staged campaign amendment `20260915-uopt-guided-regalloc`, not deployed:
+    `eval/results/uopt-guided-20260915/`.
+
+## 90+ and non-compiling census repairs (September 14; amendments `20260914-ninety-stack-rodata-placeholders-dedup`, `20260914-ninety-named-rodata-gate`)
+
+Evidence: `eval/results/ninety-census-20260914/`. Staging, validation and deploy: `eval/results/ninety-deploy-20260914/`
+(checkpoints 19426 and 19427).
+
+| Mechanism | Controller and trigger | Tests | Measured limits |
+|---|---|---|---|
+| `solver/stack_layout.py` | `stack_layout` census profile (band -1) runs once per source when `stack_layout.signals(residual)`: few faults, including immediate/offset/layout or an sp line. `agentrepair.run(stack_rounds=4)` greedy rounds break on exact. | `tests/test_stack_layout.py`, `tests/test_ninety_campaign.py` | Families: drop/resize unused locals, delta-sized pads, `spXX` named extents (arrays decay `&spXX`→`spXX` for the frontend policy), declaration order. IDO rule probed (`ido_stack_probe.py`): first-declared local highest, unused locals occupy slots. 84 stack-bearing 90+ functions: 17 exact (object certificate plus `repair_complete`), 34 improved. |
+| `address_symbols.named_rodata` | `named_rodata` census profile, ordinary band, once per source: relocation fault, string literal, score ≥ 90. Reuses `address_rounds`. | `tests/test_address_symbols.py` | Maps `%lo(.rodata+off)` to the target label via textual 4-byte-aligned literal pool; declines when any offset disagrees. Only address-taken `addiu` sites; floats and jump tables decline. 6 of 13 schema-3 `function_exact_pending_integration`; whole-ROM gate decides extern vs literal. |
+| `solver/placeholder_declarations.py` | `compile_recovery.variants` resolves m2c `?`/`M2C_UNK` prototypes, externs and locals on the seed and every child (redrafts reintroduce them). The first child keeps rank; cap 8→12. `placeholder_recovery` frontend profile once per source. | `tests/test_placeholder_declarations.py` | Header-declared names are dropped; otherwise `s32`, `void *` or address-only `u8`. 7 of 31 placeholder-blocked nodes compile. The other 24 next fail on `void *` arithmetic/`->unkN`; the existing recovery chain did not unblock them. |
+| `repair_queue.next_profile` dedup | A zero-model legacy profile already run on the node's current `source_sha256` is spent under any evidence key. | `tests/test_ninety_campaign.py` | 2,420 of 13,513 jobs (18%) repeated profile+source; 1,537 were `local_rewrites` while 565 nodes cycled between equal-score sources. |
+| `regalloc_search.register_dominant` | Ties route to `regalloc_search`. | same | `{'structural': 2, 'register_allocation': 2}` had never reached the search (155 exact of 243 jobs campaign-wide). |
+| `rewrites.statement_order_rewrites` | `eval.repair.passes()` now yields `order:*` variants when it is given the residual's `diff`. Owners: one rung in the offline driver; `eval.allocsearch` is the other caller. | `tests/test_repair_ordering_rung.py`, `tests/test_rewrites.py` | `signals` places the `ordering` class with this pass, and it was unreachable from every driver at once: `eval/close_nearmiss.py` refuses non-regalloc dominance by construction (0 compiles), and `passes()` stopped at repad/tracefix/c89/align. Measured 2026-09-17 on three functions whose every axis but `ordering` is zero — `Fstop` 99.999/ordering=4, `drawCharacterSelectCoursePreviewPanel8` 99.936/ordering=2, `updateRacePlayerMode16AerialTrick` 99.712/ordering=3. The rung runs with `gate=False`: the gate exists to choose the lever on an allocation-shaped residual, and refusal is the bug here. The pass's own docstring warns the score can FALL even when the permutation is right, so `att.exact` is checked before any score comparison — wiring it anywhere that keeps only score improvements would discard the answer. |
+| `pointer_contracts.extend_environment` | `mips_differential.UnsupportedInstruction` now declines the callee as opaque. | `tests/test_pointer_contracts.py` | A shared-tail branch (`.L8007210C`) had parked five callers; the deploy returned them to pending. |
+
+Follow-up `20260914-ninety-draft-lowering` (checkpoint 19507; `stage3.py`, 2,719 staged tests,
+`validate3.json`): `solver/void_pointer_units.py` lowers m2c `void *` byte cursors at draft level. It covers
+arithmetic and `+=` through `u8 *`, `->unkN` byte views on void, scalar and forward-declared struct pointers
+(width from unanimous target displacements, else `s32`), casts on mixed pointer comparisons, integer
+`(bitwise T)`, and calls through loaded words as `(s32 (**)())`. `compile_recovery` applies
+`lowered_candidates` (placeholders, then lowering) to the seed and each child. The `draft_lowering`
+frontend profile runs once per source on `source_signals`, band -1. Tests: `tests/test_void_pointer_units.py`,
+`tests/test_draft_lowering_campaign.py`. Offline over all 103 non-compiling nodes, 35 compile (15 frontend-clean):
+14 by lowering alone, 15 combined, 6 placeholders alone. The existing `void_field_repair`, inside model-repair
+normalization, already rescues about 12 of the 24 placeholder-blocked nodes once placeholders are resolved
+(`probe_live_recovery.py`); this pass is upstream of it and also reaches nodes without placeholders.
+Remaining 68: undefined identifiers, header redeclarations, pointer-difference operands and m2c syntax
+one-offs, with no single mechanical class.
+
+Follow-up `20260915-compile-fix-prompt-compaction` (checkpoint 20318; `stage4.py`, 2,736 staged tests):
+- **Measurements** (`ninety-census-20260914/model_failure_modes.py`, `prompt_sections.py`, `compression_savings.py`):
+  259 of 494 model jobs on stuck non-compiling nodes died on `ContextBudgetError` (gpt-oss:20b, 32,768 tokens,
+  6,000 reserved for output). Read-only byte-repair context dominated: the storage/type packet (median 18.8 KB),
+  annotated assembly (13 KB), and the source twice. The compiler error was 210 bytes of bare line numbers.
+- **`solver/prompt_compaction.py`** runs in `modelrepair.search` before `assert_uncontaminated`, on every
+  prompt. It drops splat `/* offset vram word */` annotations and re-encodes pretty JSON compactly. On 600
+  real prompts: -27% bytes, fitting prompts 314 → 448.
+- **`solver/compile_fix_prompt.py`** applies when the parent does not compile (resilient, not a type
+  transaction; a type plan still takes precedence). Every IDO and clang error sits beside its numbered line
+  (merged windows). Then the draft's `#include` lines, the source once as slots (windowed when large), header
+  declarations, history, and assembly and storage packet only while the byte budget allows. It allows 16
+  edits, since stuck drafts repeat one construct on many lines. Switches: `modelrepair.COMPILE_FIX_PROMPT`,
+  `PROMPT_COMPACTION`.
+- **Include lines are required:** `workspace.assert_uncontaminated` exempts a header-declared prototype only
+  when the prompt includes that header. osInitialize raised without them; all 75 non-compiling nodes pass
+  (`guard_all.py`).
+- **`solver/edit_slots.slots`** decides comment-only lines by masking. m2c pointer stores starting with `*`
+  had no slot, so a correct model edit was rejected as "unknown or stale source slot". Comment-body lines no
+  longer get slots.
+- **A/B** (`ab_compile_fix.py`, `ab_verdict.py`, rule fixed first): 20 stuck nodes, identical agentrepair
+  jobs, 3 calls each. Previous prompt 8 compiled, compile-fix 12; 4 newly compiling, 0 regressions; budget
+  refusals 7 → 2; no transport failures.
+- **Remaining:** once a model edit compiles, large functions go back to the full compiled-parent prompt, now
+  compacted but still budget-refused in 2 A/B calls.
+
+Open: jump-table rodata certification (16 of 33 named-rodata sites).
+
+## Pointer contracts and semantic revalidation (September 14; amendments `20260914-pointer-contracts`, `20260914-semantic-revalidate`)
+
+Receipts and measurements: `eval/results/pointer-contracts-20260914/README.md`.
+
+- **Module.** `solver/pointer_contracts.py` derives per-argument read/write byte extents for opaque callees from their
+  ROM-verified extracted instructions: annotations equal ROM bytes, and the text is reassembled with call targets and
+  `%hi/%lo` masked.
+  - At call time, stack reads are labelled by content digest and stack writes by extent, with a derived payload
+    (`PointerContract`, OutputBuffer interface).
+  - Arguments are disqualified on value use, escape, negative offset or conditional store.
+  - Loops, indirect jumps and stack-pointer rewrites decline the whole callee.
+- **Controller.** `eval/semantic_lane.Panel` adds contracts when it builds its own callee environment
+  (`callee_environment=None`), including the nested callee arities from `dag._call_contracts`.
+- **Why.** 66 of 263 semantic-lane nodes failed only because a local buffer sat at another frame offset.
+  `opaque_stack_obligations` names this limitation; contracts discharge it with callee evidence instead of equating
+  addresses.
+- **Revalidation.** `solver/repair_queue.census_profile` gives `revalidate@<semantic_environment_digest()>`: a zero-model
+  re-score of `observed_failure`/`inconclusive` nodes, once per source whenever the differential environment code
+  changes.
+- **Not covered:** loop-based callees (sprintf, glyph/text drawers, `multiplyFixedMatrix3s`); pointers passed on to
+  nested calls (composites such as `composeFixedTransforms`).
+- **Generator audit.** `eval/results/census-deploy-20260914/spin_audit.py` runs every source-only generator family on
+  all pending sources with an alarm. Run it before deploying any generator: workers have no job timeout, and two
+  backtracking regexes have each stalled the campaign.
+
+## Failure-census repairs (September 14; amendments `20260914-census-address-recertify`, `20260914-census-v3-structural-integration`)
+
+Measured in `eval/results/failure-census-20260914/README.md`; deployment receipts are in
+`eval/results/census-deploy-20260914/`.
+
+- **Controller.** `solver/repair_queue.census_profile` runs before any lane work, once per source hash:
+  - zero-model profiles `recertify@<certificate digest>` for pending nodes at score 100 or with relocation-only faults.
+    A change to the certificate code re-certifies them once.
+  - `address_symbols` for pointer-cast address literals (at least 0x10000) with relocation faults.
+  - `structural_rewrites` when `structural_mutations.signals` fires. Band -1 only at 40 faults or fewer.
+- **Generators.** Both run as `agentrepair.run` initial-state rounds (`address_rounds`, `structural_rounds`):
+  - `solver/address_symbols.py`: addresses come from the object diff and are spelled as segment bounds
+    (`&_593D10_ROM_START`) from `snowboardkids.yaml`. Splat's `D_593D10` does not link in the real build.
+  - `solver/structural_mutations.py`: chained assignment, signed hex comparison, `register` for m2c `temp_sN` locals.
+- **Certificate.** `solver/function_boundary.certify` schema 3 runs only where schema 2 refuses, so schema 2 receipts
+  replay unchanged. It admits:
+  - float/double rodata the function reads (datum checked against ROM);
+  - absolute-address literals outside file-backed segments;
+  - segment-bound symbols.
+
+  It refuses address-taken candidate rodata such as strings: a string passed the function check and then failed the
+  whole-ROM checksum. `solver/workspace.score` now also certifies operand-only normalized differences.
+- **Integration.** `eval/prepare_integration._candidate_components` turns plain prototypes into extern declarations.
+  `replace_function` drops converted prototypes the destination TU already names.
+- **Not covered:**
+  - candidates defining local structs or typedefs (they still block integration);
+  - bodies whose calls type-check only under m2c's guessed prototypes (finishTrainingCourse).
+- **Generators need linearity checks.** Campaign workers have no per-job timeout
+  (see `eval/results/regalloc-hotfix-20260914/`).
+
+## Frontend fix-its (September 14; deployed as campaign amendment `20260914-frontend-fixits`)
+
+- **Module:** `solver/frontend_fixits.py` (tests: `tests/test_frontend_fixits.py`).
+  - It re-runs the project clang frontend command from `attempt.frontend['recipe']` with
+    `-fdiagnostics-print-source-range-info`.
+  - It wraps each diagnosed expression as `((T) (expr))`, where T is the type clang names. Covered diagnostics:
+    incompatible pointer types, int conversions, pointer arithmetic on an incomplete type (`u8 *`).
+  - It repeats up to 4 rounds and returns None when it cannot pass.
+  - Clang range ends are exclusive.
+- **Controller:** `solver/repair_queue.next_profile`. In the FRONTEND lane, compiled nodes get a zero-model
+  `frontend_fixits` profile first, once per evidence key, in visit band -1.
+  - `eval/completion_campaign.execute` passes `frontend_fixits=True` to `eval/agentrepair.run`.
+  - agentrepair scores one `agentrepair-frontend-fixits` attempt as an ordinary initial state.
+  - `modelrepair._quality` ranks frontend-passing candidates above rejected ones.
+- **Not covered:** implicit function declarations and other non-type diagnostics. Uncompiled nodes still start with
+  `compile_recovery`.
+- **Offline basis:** `eval/results/frontend-reloc-20260914/`, 28 of 29 passed and 1 exact. Deployment receipts:
+  `eval/results/frontend-deploy-20260914/`.
+- **Also in the main tree only (not deployed):**
+  - `solver/relocation_names.py`: rodata literals → named extern data, and `B+K` → named symbol.
+  - Its score-100 results are not certifiable per function (see
+    `eval/results/frontend-reloc-20260914/ROM-VERIFICATION-SCOPE.md`).
+
 ## Stable repair incumbents (September 13)
 
 `modelrepair.search` separates candidate selection from exploration ordering.
@@ -122,6 +320,11 @@ allocation: 78 at checkpoint 14495. The campaign's model repairs had left these 
     nodes, with unlogged scratch compiles and one logged attempt for an improving result;
   - nodes with at most 2 other faults are scheduled ahead of their visit band;
   - acceptance, certificates, ratchet and integration are unchanged, and nothing is imported.
+- Hotfix `20260914-regalloc-linear-gap` (checkpoint 16985, `eval/results/regalloc-hotfix-20260914/`):
+  - `load_modify_stores` used a gap regex that backtracked exponentially and would hang worker slots (17 of 454
+    queued nodes). A linear scan replaced it, with identical outputs.
+  - Campaign workers have **no per-job timeout**. A spinning generator holds a slot forever, so every new generator
+    needs a linearity check on long bodies.
 
 ## Checkpoint store pruning (September 13)
 
@@ -4031,6 +4234,7 @@ live-tested in v3, not included in the v2 live results. Earlier bounded experime
 | `solver/toolagent.py` | Allowlisted model investigation and candidate actions | Separate tool-agent experiments, not the active proposal-only worker. Open-book options are different provenance regimes. |
 | `eval/semantic_gradient_beam.py` | Zero-model candidate search over dynamic semantic gradients | Separate controller; not enabled merely by running completion_campaign. |
 | `eval/uopt_replay.py` | Replays IDO register colouring over every target dump from control-flow webs; reports model/oracle/chrono/random agreement plus order-independent soundness (is IDO's choice free) | Diagnostic only; nothing consumes it. Result 2026-09-12: allocation is not predictable from post-allocation assembly (HYP-20260912-01). Adds the numeric-branch marker `cfg.build` needs for dumps. |
+| `eval/uopt_trace_census.py` + `solver/uopt_trace.py` | Runs uopt's own `-zdbug:5/6` allocation trace (patched toolchain `tools/ido-trace`) over a built tree and checks the colouring model against it | Diagnostic only; nothing consumes it. Supersedes reconstruction from assembly for any source we can compile. |
 | `solver/codexprovider.py` + `tools/codex_shim.py` | A hosted agent (Codex CLI) behind the SAME `modelrepair` kernel: provider adapter in WSL, HTTP shim on Windows because interop is off here | Experiment provider only. Nothing schedules it; `eval.agentrepair --provider solver.codexprovider:provider` is the only caller. The shim must be started by hand on Windows (`python tools/codex_shim.py`) or every call fails. Not wired into the campaign, and the campaign's frozen snapshot does not contain it. |
 
 ## Active completion campaign: actual execution order
@@ -4067,6 +4271,7 @@ exact ROM for a replacement subset does not mean the whole game was recovered.
 | `solver/gfx_packets.py`, `python -m tools.gfx_packet_audit` | Annotated CPU assembly + explicit buffer-pointer symbol/microcode -> constant packet candidates and libgfxd macro hypotheses | Separate CPU-only audit CLI, not campaign source replacement. Reuses CFG/must-dataflow; same-block pairs only, unknown dynamic words retained. Two graphics DEV functions yielded 18 macro instances verified by target-header packet recompilation. No complete graphics function recovered. See `eval/experiments/decompedia/FOLLOWUP.md`. |
 | `solver/m2c_context.py` | Header context, typed-pointer assignment hypotheses, extracted literal rodata -> bounded m2c variants | Active. Includes explicit bitcast-to-union candidate lowering. |
 | `solver/project_headers.py` | Prototypes, used globals/types/callback values -> include/reconciliation variants | Active. Syntactic header context is not binary evidence. Macro calls must not be mistaken for prototypes. |
+| `solver/pipeline.py:build_prompt(declarations=True)` -> `project_headers.prompt_context` | Assembly + draft -> bounded project declarations appended to the resident prompt | **Opt-in, default off.** Wired 2026-09-16 for the admission residual: 44 of the 199 never-compiling functions fail on `'X' undefined`, and the resident prompt asked the model to invent the callee types it was not given (`suspendGameTask` invents `GameTask`, which is correct, and `common.h` includes no `game/engine/` header). Measured before wiring: blocks of 0-1,666 chars against a 131,072-token window, so capacity was never the constraint. Header-assisted tier, not capability -- report separately from SOLVED, and note `eval/zero_token_harvest.py` excludes the same module on purpose. |
 | `solver/compile_recovery.py:header_variant` | TU identity + current source -> compatible header candidate | Active on noncompiling intake. SDK TUs exclude game-shim includes; missing internal declarations/types are located in existing headers. Original candidates remain logged. |
 | `solver/globaldecl.py` + `compile_recovery.globals_variant` | Symbol addresses + cited access observations + unresolved identifiers -> extern hypotheses | Existing generator newly wired through a narrow campaign adapter. Known included declarations are not overwritten. `extern ?` with no evidence stays unresolved. Access widths do not prove full C object types or extents. |
 | `solver/compile_obligations.py:opaque_variant` + `solver/typedecl.py` + `solver/structgen.py` | Fresh dataflow parameter accesses + opaque forward tag -> padded candidate struct | Reuses existing layout rendering. Completes the named tag, not a duplicate typedef. Restricted field-name mappings; no complete header definition is replaced. Object extent beyond observed fields is unknown. |
@@ -4325,3 +4530,26 @@ Integration preparation can retain declaration-only externs after an actual
 project-context Clang AST probe. Full-TU compatibility and combined whole-ROM
 verification remain required. Pilots found and corrected an unsigned-global
 declaration and an SDK scheduler-sentinel type view that isolated scores missed.
+
+## Self-improvement data layer (2026-09-16, not wired into the campaign)
+
+Standalone tools; none is called by the pipeline yet. Receipts under `eval/results/`.
+
+| mechanism | controller | tests | receipt | limits |
+|---|---|---|---|---|
+| Generated (asm, C) pairs, 11 capability families | `tools/synthetic_corpus.py` | `tests/test_synthetic_corpus.py` (fire tests need the IDO toolchain) | `synthetic-corpus-20260916/pairs.receipt.json` | Hand-written families; each declares an expectation that is MEASURED per row. Generated C is not game-shaped C. |
+| Residual-reproduction gate and corpus coverage report | `tools/residual_gate.py` | `tests/test_residual_gate.py` | `synthetic-corpus-20260916/residual-coverage.json` | Shape k-grams only. 59% of game residuals are register/immediate-only and cannot be gated by shape; that needs a register-signature gate. Rarity is judged per fault instruction against real target dumps, sealed heldout excluded. |
+| Public-decomp pair grabber with evaluation contamination guard | `tools/corpus_grabber.py`, recipes, build variants and per-file flag rules in `corpus/pair_sources.json` (ids must be in `corpus/n64_sources.json`) | `tests/test_corpus_grabber.py` | `corpus-grabber-20260916/dkr-pal-v80-receipt.json` | Blocks SBK1/SBK2 by URL and by normalized-hash/near-duplicate against their source (refuses to run without it). Never executes repository code itself. Pairs are upstream-matched, not ROM-verified. DKR `dkr@pal.v80` yields 983 pairs from 46 of 47 files. `grab` REFUSES when a recipe declares an extraction whose outputs are absent, and when a declared per-file flag rule never fires. |
+| Sandboxed repository extraction (ROM-generated headers) | `tools/sandbox_extract.py`, declared per variant in `corpus/pair_sources.json` under `extraction` | `tests/test_sandbox_extract.py` (the real run is opt-in via `GAMEDECOMP_SANDBOX_FIRE=1`) | `sandbox-extract-20260916/dkr-pal-v80.json` | Four enforced guarantees: the dump's sha1 must equal the revision the repo pins; work happens in a throwaway clone with the corpus checkout masked by a tmpfs; every command runs under `bwrap --unshare-net`; only declared output globs are copied back, and a glob containing `..` is refused. Needed because DKR's Makefile downloads binutils from GNU.org while make is still PARSING, so even `make -n` reaches the network. The dependency phase (pip from the repo's pinned requirements, `apt-get download` of named -dev packages into a local sysroot) is the only part allowed to use the network, and it runs no repository code. |
+| ROM inventory: which dump fixes which repository revision | `corpus/rom_inventory.json` (identity and role only; dumps stay in the gitignored `roms/`) | `tests/test_corpus_grabber.py::test_pal_v80_pins_the_dump_this_workspace_holds` | — | Records the sha1/md5 each project publishes, not a hash this pipeline computed. A ROM is never model input. |
+| Adaptive research search (the self-improvement loop) | `eval/research_loop.py` (`replay`, `--curriculum`, `--distill`; `LiveLoop` for the forward path) | `tests/test_research_loop.py` | `research-loop-20260916/replay-b24.json` | Off-policy replay over the logged forest: policies reallocate the SAME recorded expansions, so it measures allocation efficiency and cannot credit branches that were never born. The controller's weights are hand-set; only `SeedBook` learns, and `AdaptiveNoLearn` is the control that says whether that learning matters. `gate()` implements the stopping condition (beat fixed-seed AND random on discovery) and must pass before any weight update. Not wired into the campaign: nothing calls it yet. |
+| Trajectory factory: manufactures the improvement data the loop closes on | `eval/trajectory_factory.py` (`--plan` to inspect, `--game`, `--objective learn\|finish`, resumable via a `.state` sidecar) | `tests/test_trajectory_factory.py` | `eval/results/trajectory-factory-20260916/` | Best-of-N over `solver/refine.FIRST_PROMPT` verbatim, every candidate compiled and linked to the attempt it refines so the edge IS the trajectory. Excludes the sealed eval functions AND the library TUs `eval/clean_set.py` already excludes (left in, the learn objective's top picks were `__cosf`/`__sinf`, built with a different recipe). Reports THREE populations with three different cures: **refusals** (model declines the target -- pick another function), **P(compiles)** (the admission gate -- fixed by deterministic lowering), **P(improves\|compiles)** (the yield -- the only one where model quality is the question). An unadmitted run reports `None`, not 0.0, plus the attempt count that would make a zero meaningful. Bugs found and pinned: a hand-rolled prompt produced 19 KB of prose (0 of 20 compiled) and `think=""` leaked the reasoning channel (0 of 20); with the project's prompt and `think="low"` the same code reached 44% compiled and produced an improving edge. The 50-attempt measurement is still not obtained: both mid-score targets refused outright, and the knowledge base records 0 refusals in 2,197 historical gpt-oss attempts, so the generation path is not yet equivalent to the campaign's. |
+| SBK2 KMC-GCC oracle, inventory, knowledge base | `tools/gcc_oracle.py` (`selfcheck`, `build-kb`) | `tests/test_gcc_oracle.py` | `sbk2-gcc-oracle-20260916/selfcheck.json` (2760/2760 exact) | Exact = instruction bytes AND relocations. KB `~/decomp/kb-sbk2.sqlite` omits 52 functions without a unique identity. No generation or repair path uses it yet. |
+| TU-disjoint eval split | `eval/clean_set.py freeze --tu-disjoint` | `tests/test_clean_set.py` | `eval/sets/sbk2_gcc_v1.json` | Default (non-disjoint) manifests are unchanged. |
+| Parallel-range weight fetcher | `tools/parallel_fetch.py` (`--repo`, `--url`) | exercised by real use; no unit test yet | — | Eight range requests measured 53.9 MB/s where one connection measured 0.45 MB/s, so a 7B checkpoint is minutes instead of nine hours. Verifies the LFS sha256 from the hub's 302 (`X-Linked-Etag`), NOT the final response's ETag, which is a CDN cache tag that looks identical and rejects good downloads. Skips files already present and correct. |
+| Self-test MCP server | `mcpserver/gamedecomp_server.py` (7 tools; `build_server()` needs `mcp<2`) | `tests/test_mcp_server.py` (the real-compiler call is opt-in via `GAMEDECOMP_MCP_FIRE=1`) | — | Wraps `solver/workspace.bootstrap` + `score` and `solver/signals`, so the verdict is the compiler's, never a model's. `list_functions` ranks by owned residual, and derives progress from `attempts` because the `functions` table is a COMPLETED-decomp inventory (`state='matched'`, `best_score` NULL for all 2,113 rows) -- reading progress from it silently returns nothing. Not yet wired into `LiveLoop` or any client. |
+| Policy distillation and the weight update | `eval/distill_policy.py` (technique labels, degeneracy guard, function split, gate/holdout refusals) and `eval/train_policy.py` (hand-written DPO, LoRA reference = adapter disabled) | `tests/test_distill_policy.py` | — | Datasets are the binding constraint, not the method: the replay's own preference pairs yield **42 informative** pairs from 2,639, and the knowledge base has 357 improving edges but only 251 preference pairs across 19 functions. `informative()` drops pairs whose rejected side is a non-compiling draft, which had silently made the task "prefer compiles over non-compiles" and produced a fake 1.00. `majority_baseline()` reports the constant-answer score so a degenerate dataset is visible. |
+
+`tools/n64_corpus.extract_functions` skipped any function preceded by a preprocessor directive
+(119 SBK1, 18 SBK2 functions); fixed with `_after_directives`. It still abandons the rest of a
+file when conditional branches leave braces unbalanced (DKR menu.c/objects.c).

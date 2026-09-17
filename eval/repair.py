@@ -21,7 +21,7 @@ from pathlib import Path
 
 from eval import matched as matched_mod
 from miner import globals_layout
-from solver import c89, structgen, tracefix, workspace
+from solver import c89, rewrites, structgen, tracefix, workspace      # noqa: E402
 
 
 def observed_for(conn, func: str, objs=None) -> dict[int, int]:
@@ -63,7 +63,8 @@ def observed_for(conn, func: str, objs=None) -> dict[int, int]:
     return out
 
 
-def passes(src: str, *, conn, func: str, repo: Path, ws: Path, objs=None):
+def passes(src: str, *, conn, func: str, repo: Path, ws: Path, objs=None,
+           diff: str = ""):
     """Yield (label, code) for each repair worth trying, cheapest first."""
     obs = observed_for(conn, func, objs)
     yield "baseline", src
@@ -89,6 +90,32 @@ def passes(src: str, *, conn, func: str, repo: Path, ws: Path, objs=None):
         cp, ch3 = structgen.repad(c, obs)
         if ch3:
             yield "c89+repad", cp
+
+    # ORDERING. `signals.Signals` places this fault class with `rewrites.statement_order_rewrites`,
+    # and that pass exists and works -- but this driver never yielded it, so a function whose residual
+    # is ordering-only was refused by every instrument in the project at once:
+    # `eval/close_nearmiss.py` declines it by construction (`dominant != "regalloc"` -> out-of-band,
+    # zero compiles) and `passes()` stopped at repad/tracefix/c89/align. Same silent-decline shape as
+    # the C89 rung, the struct parser and the unlogged repair compiles.
+    #
+    # Measured 2026-09-17: Fstop (99.999, ordering=4, every other axis zero),
+    # drawCharacterSelectCoursePreviewPanel8 (99.936, ordering=2) and updateRacePlayerMode16AerialTrick
+    # (99.712, ordering=3) are all refused by the closer and were never offered to the owning pass.
+    # Fstop moved 73.125 -> 99.999 once the pass was run by hand, so it is the best lead in that set.
+    #
+    # `gate=False` deliberately. The gate exists to choose the lever on a residual that looks
+    # allocation-shaped; an ordering-dominant residual is exactly the case it would refuse, and
+    # refusal is the bug. Only INDEPENDENT neighbours are swapped, so the transform stays
+    # semantics-preserving regardless.
+    #
+    # The oracle must decide, and it will: the pass's own docstring warns that "dist.py's reordering
+    # penalty HIDES this lever, so the byte score may not rise even when the permutation is right. The
+    # oracle's exact flag is the only reliable judge here." The caller below checks `att.exact` BEFORE
+    # comparing scores, so a correct permutation is kept even when it scores lower -- which is the only
+    # reason wiring this pass here can work at all.
+    if diff:
+        for rewrite in rewrites.statement_order_rewrites(src, diff, gate=False):
+            yield f"order:{rewrite.label}", rewrite(src)
 
     # Proposals, not repairs. repad needs a declaration to say where it belongs;
     # when none does, guess the mapping by declaration order and let the ORACLE
@@ -144,8 +171,11 @@ def main() -> int:
     wins, improved = [], []
 
     for name, best in rows:
+        # The diff comes along because the ordering pass is keyed on the RESIDUAL, not just the
+        # source: `statement_order_rewrites` needs the instruction diff to know which neighbours are
+        # swappable. Selecting only `source_code` here is what left the owning pass unreachable.
         row = conn.execute(
-            "select a.source_code from attempts a"
+            "select a.source_code, a.diff_summary from attempts a"
             " join functions f on f.addr = a.func_addr"
             " where f.name = ? and a.score = ? and a.source_code is not null"
             " limit 1", (name, best)).fetchone()
@@ -156,7 +186,7 @@ def main() -> int:
         best_label, best_score, best_exact, best_code = "baseline", best, False, ""
         produced, compiled_n, outcomes = 0, 0, []
         for label, code in passes(row[0], conn=conn, func=name, repo=repo,
-                                  ws=ws, objs=objs):
+                                  ws=ws, objs=objs, diff=row[1] or ""):
             if label == "baseline":
                 continue
             produced += 1
