@@ -56,6 +56,19 @@ def register(p: Pattern) -> Pattern:
 # ------------------------------------------------------------------ confirmed
 
 register(Pattern(
+    id="target-linkage-static-inline",
+    name="IDO rejects C99 `inline` and discards an unreferenced `static`: one bug, two symptoms",
+    kind="solver",
+    looks_like="A model-written target function declared `static inline` produces either `cfe: Syntax Error` at the opening brace -- pointing three errors deep and at the wrong line -- or, once `inline` alone is deleted, `ERROR: Compiled object has no text symbols. Check for type conflicts or include issues.`",
+    means="`inline` is C99 and IDO 5.3 is a 1994 compiler, so the declaration specifiers parse wrongly and the brace is unexpected. Deleting `inline` is not enough: IDO does not emit a `static` function that nothing in the translation unit calls, so the object comes back with no `.text` and the build helper blames type conflicts, which is where the admission triage went looking. A game function has external linkage. The two symptoms were counted as separate failure classes -- 'syntax' (63 functions) and 'no text symbols' (33) -- and are one defect.",
+    prescription="Apply `c89.to_c89` (which deletes `inline` and the other C99 spellings) AND `c89.public_definition`, which drops `static` from the TARGET function's own definition line and leaves helpers, tables and file-scope data alone. Deterministic, no model. `patterns/rules.py` registers it as `target-linkage-static-inline` with `criterion = compiled` -- it makes functions BUILD, it does not make them match, and the harness reports that distinction rather than burying it. NOT prefixed `ido-`: that prefix is reserved in this catalog for entries imported from the reference project's IDO knowledge, which tests/test_imported_ido.py requires to stay unconfirmed, and this rule is derived and confirmed here.",
+    confirmed_on=[
+        "kb-sbk1.sqlite attempts 31124 acquireRelocatableHeapBlockMetadata and 31125 addRacePlayerScore: the motivating pair. Raw = Syntax Error; to_c89 alone = no text symbols; to_c89 + public_definition = 75.833 / 85.455.",
+        "patterns.derive confirmation run 2026-09-17, criterion=compiled, derivation_case=addRacePlayerScore: 7 claimed, 7 predicted, 7 compiled, and SIX of them are held-out cases the rule was not derived from -- acquireRelocatableHeapBlockMetadata, approachRaceIntroFlyoverOrbitRadius, dispatchRacePlayerMode30Attack, insertHuffmanQueueNode, removeHuffmanQueueNode, resolveAssetTableRelativePointer. Harness verdict: CONFIRMED. The other five declined because their non-compiling attempt fails for a different reason (undefined identifiers), which is the rule declining correctly rather than silently.",
+    ],
+))
+
+register(Pattern(
     id="ordering-residual-states-the-statement-order",
     name="An ordering-only residual over independent STORES states the answer in the diff",
     kind="solver",

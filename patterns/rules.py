@@ -110,6 +110,61 @@ class StoreOrderRule:
         return (Variant(label="store-reorder", source="".join(out)),)
 
 
+@dataclass
+class TargetLinkageRule:
+    """A model-written `static inline` target function does not build; IDO rejects C99 `inline` and
+    discards an unreferenced `static`.
+
+    Derived from two failures that were booked as separate problems (kb-sbk1.sqlite receipts 31124 and
+    31125): `static inline void *f(void)` is a `cfe: Syntax Error` at the opening brace, and
+    `static void *f(void)` -- what you get after deleting `inline` alone -- compiles to an object with
+    NO TEXT SYMBOLS, because IDO does not emit a `static` function nothing calls. One bug, two
+    symptoms: the admission write-up counted the first as "syntax" (63 functions) and the second as
+    "no text symbols" (33).
+
+    The fix is deterministic and needs no model: `c89.to_c89` deletes `inline`, and
+    `c89.public_definition` drops `static` from the TARGET's own definition line while leaving
+    helpers, tables and file-scope data alone.
+
+    AN ADMISSION RULE, hence `criterion = "compiled"`. It makes functions build; it does not make them
+    match. Confirmed on eleven held-out failures in the never-compiled re-run -- 11 of the 39
+    functions that went from never-compiling to compiling did so only because of this rewrite, none of
+    which was the case it was derived from.
+    """
+    id: str = "target-linkage-static-inline"
+    derivation_case: str | None = "addRacePlayerScore"
+    criterion: str = "compiled"
+    case_kind: str = "admission"
+
+    def applies(self, case: Case) -> bool:
+        line = definition_line(case.source, case.function)
+        return line is not None and ("inline" in line or "static" in line)
+
+    def predict(self, case: Case) -> Sequence[Variant]:
+        from solver import c89
+        fixed = c89.public_definition(c89.to_c89(case.source), case.function)
+        if fixed == case.source:
+            return ()
+        return (Variant(label="c89+public-definition", source=fixed),)
+
+
+def definition_line(source: str, function: str) -> str | None:
+    """The line that DEFINES `function`, or None when the source does not define it.
+
+    Name-anchored and line-scoped, matching `c89.public_definition`: a `static` helper with a
+    different name must not make this rule fire. A definition line does not end in `;` -- that is a
+    declaration, and a declaration's `static` is not ours to remove.
+    """
+    if not function:
+        return None
+    name = re.compile(r"\b%s\s*\(" % re.escape(function))
+    for line in source.splitlines():
+        stripped = line.split("//")[0].strip()
+        if name.search(line) and not stripped.endswith(";"):
+            return line
+    return None
+
+
 RULES: dict[str, object] = {}
 
 
@@ -119,3 +174,4 @@ def register(rule) -> object:
 
 
 register(StoreOrderRule())
+register(TargetLinkageRule())

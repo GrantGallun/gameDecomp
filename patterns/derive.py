@@ -54,7 +54,17 @@ class Case:
 
 class Rule(Protocol):
     """What a rule must expose. `applies` is a claim, not a filter: a rule that claims a residual and
-    predicts nothing has declined, and that is counted separately from never applying."""
+    predicts nothing has declined, and that is counted separately from never applying.
+
+    `criterion` says what this rule is playing for, and it is not cosmetic:
+
+        "exact"     a SOLVER rule. Success is the oracle's exact flag -- byte-identical object code.
+        "compiled"  an ADMISSION rule. Success is that the source builds at all.
+
+    The project treats those as different achievements (`admission` vs the match count), so a rule
+    confirmed on "compiled" must never be reported as producing matches. Putting the criterion on the
+    rule, and printing it in every verdict, is what keeps the two apart.
+    """
     id: str
     derivation_case: str | None
 
@@ -66,18 +76,20 @@ class Rule(Protocol):
 @dataclass
 class Verdict:
     rule: str
+    criterion: str = "exact"
     claimed: list[str] = field(default_factory=list)
     declined: list[str] = field(default_factory=list)
     predicted: int = 0
     compiled: int = 0
     exact: list[str] = field(default_factory=list)
+    met: list[str] = field(default_factory=list)
     derivation_case: str | None = None
     per_case: list[dict] = field(default_factory=list)
 
     @property
     def beyond_derivation(self) -> list[str]:
-        """Cases the rule closed that it was NOT derived from. The whole point."""
-        return [f for f in self.exact if f != self.derivation_case]
+        """Cases the rule brought to its criterion that it was NOT derived from. The whole point."""
+        return [f for f in self.met if f != self.derivation_case]
 
     @property
     def is_confirmed(self) -> bool:
@@ -86,14 +98,19 @@ class Verdict:
     def summary(self) -> dict:
         return {
             "rule": self.rule,
+            "criterion": self.criterion,
             "derivation_case": self.derivation_case,
             "claimed": len(self.claimed),
             "declined": len(self.declined),
             "predicted": self.predicted,
             "compiled": self.compiled,
             "exact": self.exact,
+            "met": self.met,
             "beyond_derivation": self.beyond_derivation,
             "confirmed": self.is_confirmed,
+            "note": ("confirmed on ADMISSION (compiles), not on matches"
+                     if self.criterion == "compiled" else
+                     "confirmed on byte-exact objects"),
         }
 
 
@@ -109,7 +126,8 @@ def evaluate(rule: Rule, cases: Sequence[Case], *,
     exactly what `solver.workspace.score` returns -- so the oracle and a test double are
     interchangeable and the harness never needs to know which it has.
     """
-    verdict = Verdict(rule=rule.id, derivation_case=getattr(rule, "derivation_case", None))
+    verdict = Verdict(rule=rule.id, derivation_case=getattr(rule, "derivation_case", None),
+                      criterion=getattr(rule, "criterion", "exact"))
     for case in cases:
         if not rule.applies(case):
             verdict.declined.append(case.function)
@@ -127,14 +145,17 @@ def evaluate(rule: Rule, cases: Sequence[Case], *,
         row = {"function": case.function, "status": "predicted", "variants": []}
         for variant in variants:
             attempt = compile_fn(case.function, variant.source, variant.label)
-            row["variants"].append({"label": variant.label,
-                                    "compiled": bool(getattr(attempt, "compiled", False)),
-                                    "exact": bool(getattr(attempt, "exact", False))})
-            if getattr(attempt, "compiled", False):
+            compiled = bool(getattr(attempt, "compiled", False))
+            is_exact = bool(getattr(attempt, "exact", False))
+            row["variants"].append({"label": variant.label, "compiled": compiled, "exact": is_exact})
+            if compiled:
                 verdict.compiled += 1
-            if getattr(attempt, "exact", False):
-                if case.function not in verdict.exact:
-                    verdict.exact.append(case.function)
+            if is_exact and case.function not in verdict.exact:
+                verdict.exact.append(case.function)
+            reached = is_exact if verdict.criterion == "exact" else compiled
+            if reached:
+                if case.function not in verdict.met:
+                    verdict.met.append(case.function)
                 break
         verdict.per_case.append(row)
     return verdict
@@ -144,37 +165,48 @@ def require_confirmation(verdict: Verdict) -> None:
     """Refuse to let a rule change behaviour on the strength of its own motivating case."""
     if verdict.is_confirmed:
         return
-    if verdict.exact and not verdict.beyond_derivation:
+    what = "matches" if verdict.criterion == "exact" else "admissions"
+    if verdict.met and not verdict.beyond_derivation:
         raise Unconfirmed(
-            f"{verdict.rule}: closes {verdict.exact} but ONLY its derivation case "
+            f"{verdict.rule}: reaches {verdict.met} but ONLY its derivation case "
             f"({verdict.derivation_case}). That is a restatement, not a derivation -- the rule must "
             f"predict a case the observations did not cover before it may change behaviour.")
     raise Unconfirmed(
-        f"{verdict.rule}: no case closed (claimed {len(verdict.claimed)}, "
+        f"{verdict.rule}: no case reached {what} (claimed {len(verdict.claimed)}, "
         f"predicted {verdict.predicted}, compiled {verdict.compiled}). Nothing to confirm.")
 
 
-def cases_from_kb(conn, names: Sequence[str]) -> list[Case]:
-    """Best NON-EXACT compiling attempt per function, as a Case.
+def cases_from_kb(conn, names: Sequence[str], *, kind: str = "residual") -> list[Case]:
+    """Build Cases from the knowledge base.
 
-    Two things this gets right that a first version did not.
+    `kind` selects the population, because the two rule families are tested against different
+    attempts and one function's best attempt is not the other's:
 
-    Non-exact, because a rule is tested against a RESIDUAL. Selecting the best compiling attempt
-    picked up Fstop's exact 100.0 claim once it had been closed, whose diff is empty -- so the harness
-    declined its own derivation case and reported `claimed: 0`. A case with no residual cannot test
-    anything.
+        "residual"   best COMPILING, non-exact attempt -- the attempt a solver rule has to improve.
+                     Selecting the best compiling attempt regardless of exactness picked up Fstop's
+                     exact 100.0 claim once it had been closed, whose diff is empty; the harness then
+                     declined its own derivation case and reported `claimed: 0`.
+        "admission"  most recent NON-COMPILING attempt with source -- what an admission rule exists to
+                     fix. A rule that repairs a build failure is never tested by compiling an attempt
+                     that already builds.
 
-    Same attempt for source and diff, because a diff from one candidate and a source from another
-    describe different programs, and feeding the classifier a mismatched pair is how a function ends
-    up classified two ways.
+    Source and diff always come from the SAME attempt: a diff from one candidate and a source from
+    another describe different programs, and feeding the classifier a mismatched pair is how a
+    function ends up classified two ways.
     """
+    query = {
+        "residual": ("select a.id, a.source_code, a.diff_summary from attempts a "
+                     "join functions f on f.addr = a.func_addr "
+                     "where f.name = ? and a.compiled = 1 and coalesce(a.exact, 0) = 0 "
+                     "order by a.score desc limit 1"),
+        "admission": ("select a.id, a.source_code, a.diff_summary from attempts a "
+                      "join functions f on f.addr = a.func_addr "
+                      "where f.name = ? and a.compiled = 0 and a.source_code is not null "
+                      "and length(a.source_code) > 0 order by a.id desc limit 1"),
+    }[kind]
     out = []
     for name in names:
-        row = conn.execute(
-            "select a.id, a.source_code, a.diff_summary from attempts a "
-            "join functions f on f.addr = a.func_addr "
-            "where f.name = ? and a.compiled = 1 and coalesce(a.exact, 0) = 0 "
-            "order by a.score desc limit 1", (name,)).fetchone()
+        row = conn.execute(query, (name,)).fetchone()
         if row:
             out.append(Case(function=name, receipt=row[0], source=row[1] or "", diff=row[2] or ""))
     return out
@@ -186,6 +218,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--db", required=True)
     ap.add_argument("--repo", required=True)
     ap.add_argument("--functions", required=True, help="comma-separated; the derivation case first")
+    ap.add_argument("--kind", default=None, choices=("residual", "admission"),
+                    help="which population to build cases from. Defaults to the rule's own kind.")
     ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args(argv)
 
@@ -200,8 +234,9 @@ def main(argv: list[str] | None = None) -> int:
     repo = Path(args.repo)
     conn = sqlite3.connect(args.db, timeout=120)
     names = [n.strip() for n in args.functions.split(",") if n.strip()]
-    cases = cases_from_kb(conn, names)
-    print("cases: %d of %d requested" % (len(cases), len(names)), flush=True)
+    kind = args.kind or getattr(rule, "case_kind", "residual")
+    cases = cases_from_kb(conn, names, kind=kind)
+    print("cases: %d of %d requested (kind=%s)" % (len(cases), len(names), kind), flush=True)
 
     def compile_fn(function: str, source: str, label: str):
         ws = workspace.bootstrap(repo, function)

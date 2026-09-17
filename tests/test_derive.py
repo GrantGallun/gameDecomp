@@ -95,7 +95,37 @@ def test_a_rule_that_never_applies_declines_and_confirms_nothing():
     verdict = derive.evaluate(rule, _cases("a"), compile_fn=_compiler(set()))
     assert verdict.declined == ["a"]
     assert not verdict.is_confirmed
-    with pytest.raises(derive.Unconfirmed, match="no case closed"):
+    with pytest.raises(derive.Unconfirmed, match="no case reached"):
+        derive.require_confirmation(verdict)
+
+
+def test_an_admission_rule_is_confirmed_on_compiling_not_on_exactness():
+    """The two criteria are different achievements and must not be conflated. A rule whose criterion
+    is `compiled` is confirmed when a held-out case builds, and its verdict says so."""
+    rule = FakeRule(closes=set())
+    rule.criterion = "compiled"
+    rule.id = "admission-fake"
+
+    def compile_fn(function, source, label):
+        # compiles everywhere, exact NOWHERE -- the point is that admission confirms without matches
+        return FakeAttempt(compiled=True, exact=False)
+
+    verdict = derive.evaluate(rule, _cases("derived", "heldout"), compile_fn=compile_fn)
+    assert verdict.criterion == "compiled"
+    assert verdict.exact == []                       # nothing matched
+    assert verdict.met == ["derived", "heldout"]     # everything compiled
+    assert verdict.is_confirmed
+    assert verdict.summary()["note"] == "confirmed on ADMISSION (compiles), not on matches"
+
+
+def test_an_exact_criterion_rule_does_not_get_confirmed_by_compiling():
+    """The inverse guard: a solver rule must not be promoted because its candidates build."""
+    rule = FakeRule()                                # criterion defaults to exact
+    verdict = derive.evaluate(rule, _cases("derived", "heldout"),
+                              compile_fn=lambda f, s, l: FakeAttempt(compiled=True, exact=False))
+    assert verdict.compiled == 2
+    assert not verdict.is_confirmed
+    with pytest.raises(derive.Unconfirmed):
         derive.require_confirmation(verdict)
 
 
