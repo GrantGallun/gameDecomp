@@ -222,3 +222,29 @@ register(Pattern(
 # None of that is evidence the technique HELPS here, which is the part that
 # still has to be measured before any of these entries is promoted.
 IDO_S_FLAG_AVAILABLE = True
+
+
+# Mined from the reference repository's own git history 2026-09-17 (`git log --grep=lever`,
+# 2,258 commits name a match). These are THAT project's measurements on IDO 5.3 `-O2 -mips1`, not
+# ours: `confirmed_on` stays empty, so per this module's rule they are hypotheses and change nothing
+# until our oracle confirms them. The commit hashes are the provenance.
+
+register(Pattern(
+    id="ido-shift-decomposition-is-not-folded",
+    name="Consecutive constant left-shifts are not reliably folded, so the decomposition is a structural lever",
+    kind="solver",
+    looks_like="A target instruction count that is one or more `sll` above what the natural expression needs, on a value built by multiplying or shifting by a power of two.",
+    means="Measured by the reference team (commit 5c8d6f2c, campaign on drawMenuSpriteWithAlphaClipped): `(x << 3) << 5` emits TWO `sll`, while `(x << 1) << 1` collapses to one. IDO does not canonicalise the pair, so the shift DECOMPOSITION is visible in the object and must be read off the target rather than assumed from the natural expression. The same commit records that this makes the residual a STRUCTURAL (instruction-count) one, not an allocation one -- which matters for routing, because an extra `sll` booked as a register fault sends the search at a gradient that cannot move.",
+    prescription="When the target carries more `sll`s than the natural expression needs, propose the alternative decompositions of the same product (split one shift into two, or merge two into one) as source variants. Do not treat an instruction-count excess on a shift-built value as an allocation residual. UNMEASURED HERE: our `local_type`/`commutative`/`shift` families do not currently propose this, and the reference's claim has not been reproduced on SBK1 with our oracle.",
+    confirmed_on=[],
+))
+
+register(Pattern(
+    id="ido-one-element-array-forces-a-memory-home",
+    name="A one-element array declaration demotes a local to a memory variable and frees its register",
+    kind="solver",
+    looks_like="A register-only residual in which the target gives a colour to a value that our candidate keeps in a variable, or vice versa, with the same instruction shapes.",
+    means="Measured by the reference team (commit 5c8d6f2f): declaring a local as `s32 v[1]` demotes it to a TRUE memory variable, which frees its register for whichever variable lost the previous allocation round. The cost is stated in the same note and is not optional: function-wide uopt conservatism -- early parameter homing and definition-point spills. On drawMenuSpriteWithAlphaClipped, applying this together with the shift lever reached the target's exact instruction COUNT (449) with opcodes 366->250 and register diffs 425->378, while the positional dist score came out LOWER than the recorded candidate. That last part is the trap: the score penalises reordering, so this lever can look like a regression while moving the function toward the target.",
+    prescription="Propose `T v[1]` for one local at a time on a register-only residual, and judge it by the OBJECT and the instruction count, never by positional dist -- which the same commit notes moves the wrong way. UNMEASURED HERE: not implemented in solver/regalloc_mutations.py, and the conservatism cost means it should be offered as an enabling root rather than a beam member, since it can lower the ranked score while fixing the allocation.",
+    confirmed_on=[],
+))
