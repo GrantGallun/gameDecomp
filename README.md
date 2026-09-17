@@ -67,6 +67,25 @@ Live campaign `resume-pipeline-20260908`, checkpoint 21492 (2026-09-15):
 | Object-exact share of function bytes | 14.8%. Small functions match first. |
 | Repair work items completed | ~9,900 |
 
+**"Object-exact" above is a node count, not a capability number, and the difference is large.** The
+cohort was seeded from the reference decompilation, so most of those functions were already exact
+before the pipeline ran. The campaign's own repair ledger separates the two. From
+`eval/results/resume-pipeline-20260908/campaign.json` (checkpoint 23325, 2026-09-17):
+
+| | |
+|---|---|
+| cohort functions | 2,051 |
+| nodes whose status is object-exact or integrated | **958** |
+| — **functions the campaign actually gained** (`repair_yield.exact_functions_gained`) | **262** |
+| — functions that arrived already exact | 696 |
+| functions lost (`exact_functions_lost`) | 0 |
+
+So roughly 69% of the headline is pre-existing state, and the campaign's produced capability is 262 of
+2,051 functions (12.8%). `python3 -m eval.status` reports a third figure — 214 byte-exact, **148
+SOLVED** — for the smaller research knowledge base, and is not the same measurement either. Quote
+none of the three as another. The 262 is a distinct-function count; `fast_metrics.exact_items` (286) is
+a *work-item* count and must not be substituted for it.
+
 Register-allocation search is the most productive repair. It produced 155 of the first 218 exact
 functions the campaign gained, with no model call. Its latest amendment (2026-09-15) adds "enabling
 roots": edits that don't improve the score but unlock a later repair. In an offline test they made 15 of a
