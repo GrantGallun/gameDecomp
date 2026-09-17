@@ -154,11 +154,24 @@ def main() -> int:
         ws = workspace.bootstrap(repo, name)
 
         best_label, best_score, best_exact, best_code = "baseline", best, False, ""
+        produced, compiled_n, outcomes = 0, 0, []
         for label, code in passes(row[0], conn=conn, func=name, repo=repo,
                                   ws=ws, objs=objs):
             if label == "baseline":
                 continue
-            att = workspace.score(ws, repo, name, code)
+            produced += 1
+            # LOGGED, with the function and strategy. This call used to pass no `conn`, so every
+            # compile this tool made was invisible: a four-minute run over every near-miss at or
+            # above 90 wrote ZERO rows to the knowledge base (verified 2026-09-16 against
+            # kb-sbk1.sqlite). CLAUDE.md requires every attempt to be logged, and
+            # solver/workspace.py:470 records the cost of not doing it -- a day of ~250 generations
+            # lost with no trace. `eval/admission_rerun.py` and `eval/close_nearmiss.py` both log;
+            # this one did not.
+            att = workspace.score(ws, repo, name, code, conn=conn, func=name,
+                                  strategy=f"repair:{label}", run_kind="repair")
+            if att.compiled:
+                compiled_n += 1
+            outcomes.append((label, att.compiled, att.score))
             if att.exact:
                 best_label, best_score, best_exact, best_code = (
                     label, att.score, True, code)
@@ -174,8 +187,22 @@ def main() -> int:
             improved.append((name, best, best_score, best_label))
             print(f"  better  {name[:46]:46} {best:7.3f} ->"
                   f" {best_score:7.3f}  via {best_label}")
+        elif produced == 0:
+            # The pass library declined. This is the case CLAUDE.md says to treat as a finding.
+            print(f"  --      {name[:46]:46} {best:7.3f}  DECLINED (no candidate produced)")
+        elif compiled_n == 0:
+            print(f"  --      {name[:46]:46} {best:7.3f}  candidates={produced} none compiled")
         else:
-            print(f"  --      {name[:46]:46} {best:7.3f}  no repair applied")
+            # Candidates WERE produced and compiled; none beat the score. The old message said
+            # "no repair applied", which read as a decline and was not one -- `structgen.repad`
+            # fires on many of these (probe 2026-09-16: 63 observed offsets, changed=True) and the
+            # candidate simply scored no higher. That conflation is the silent-decline problem
+            # inverted, and it hid the real question: whether a lower-scoring candidate that cuts
+            # non-register faults is worth carrying, which is exactly the setback the basin-escape
+            # work found can escape. Reported, not decided here.
+            delta = max((s for _l, c, s in outcomes if c), default=best) - best
+            print(f"  --      {name[:46]:46} {best:7.3f}  FIRED, {compiled_n}/{produced} compiled, "
+                  f"best delta {delta:+.3f}")
 
     print(f"\n{'=' * 68}")
     print(f"NEW BYTE-EXACT MATCHES: {len(wins)}")
