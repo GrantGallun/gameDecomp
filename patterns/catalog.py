@@ -56,6 +56,31 @@ def register(p: Pattern) -> Pattern:
 # ------------------------------------------------------------------ confirmed
 
 register(Pattern(
+    id="ordering-residual-states-the-statement-order",
+    name="An ordering-only residual over independent stores states the answer in the diff",
+    kind="solver",
+    looks_like="The instruction multiset is identical on both sides and a group of independent stores -- e.g. `sw zero,0x60(a0)` / `sw zero,0x68(a0)` / `sw zero,0x54(a0)` -- appears on both sides in a different ORDER, with `signals.analyse` reporting faults on `ordering` alone.",
+    means="IDO emits independent stores in C statement order, so the target's emission order IS the source statement order. The diff does not merely describe the problem, it states the answer: read the permutation off it and apply it to the statements. DERIVED, not searched -- which is why a permutation search fails here. `rewrites.statement_order_rewrites` yields SINGLE ADJACENT SWAPS from the baseline; the permutation that closes these functions is a COMPOSITION of several swaps, so no single variant from the baseline can be the answer, and 14 of them firing is consistent with none of them being right.",
+    prescription="For an ordering-only residual, do not search permutations. Read the target's emission order off the diff, map each instruction to the statement that emits it, and rewrite the statements in that order. Reachability is the point: a single-swap generator cannot compose, and the driver evaluates each variant from the baseline rather than chaining them. Before trusting this, check the cause is really order -- see ordering-diff-conflates-causes below.",
+    confirmed_on=[
+        "kb-sbk1.sqlite attempt 46494 Fstop: score 99.999 ordering=4 -> exact=True score=100.0 by reordering five independent NULL stores into the target's emission order (0x60, 0x68, 0x54, sh 0xbe, 0x14); no other change. Verified through the oracle, which is what makes it a confirmed rule rather than a restatement.",
+    ],
+))
+
+register(Pattern(
+    id="ordering-diff-conflates-causes",
+    name="The same ordering diff has two causes, and one of them is register colouring",
+    kind="review",
+    looks_like="Two `move rX,zero` lines exchanged between target and candidate, with the two registers simply swapped -- `-move s2,zero` / ` move s3,zero` / `+move s2,zero`.",
+    means="IDENTICAL surface diffs, DIFFERENT causes. On Fstop the cause was statement order and a statement reorder closed it exactly. On drawCharacterSelectCoursePreviewPanel8 the same shape is register colouring: `s3` holds `i` and `s2` holds `tileIndex`, the two zeroings are `for (i = 0; ...)` and a preceding `tileIndex = 0;`, and hoisting the initializer above the statement -- the naive application of the Fstop rule -- made the score WORSE (99.936 -> 99.554), introduced an unrelated reordering of `s0`, and left the s2/s3 exchange completely untouched. `signals.analyse` names the SYMPTOM (instruction order differs), never the cause.",
+    prescription="Never route by dominant fault class alone. Before applying an order rewrite to an `ordering` residual, test whether the swapped lines are the same instruction with exchanged registers. If they are, the cause is colouring, statement order cannot reach it by construction, and time spent permuting statements is wasted -- which is the measured explanation for the ordering pass firing 14 variants on these functions and closing none. The decisive experiment is cheap: apply the derived reorder and compile. Fstop closed; the sibling regressed.",
+    confirmed_on=[
+        "kb-sbk1.sqlite attempt 46494 Fstop: statement-order reorder -> exact (cause = order)",
+        "kb-sbk1.sqlite attempt 32870 drawCharacterSelectCoursePreviewPanel8: for-init hoist -> 99.936 to 99.554, s2/s3 exchange untouched (cause = colouring); the naive rule application regressed",
+    ],
+))
+
+register(Pattern(
     id="split-byte-zero-test-load",
     name="An immediately tested byte load need not remain a named register web",
     kind="solver",
@@ -193,6 +218,27 @@ register(Pattern(
         "synthetic probes have identical .text and frame sizes; DEV "
         "fadeInEndingCreditsFlow attempts 29694/29695 are both object-exact, "
         "but the empty parameter list fails strict-prototypes."
+    ],
+))
+
+register(Pattern(
+    id="call-count-decides-spill-vs-saved-register",
+    name="Few calls crossed spill to the stack; more calls buy callee-saved registers",
+    kind="review",
+    looks_like="Values live across a call reloaded with `lw tN,off(sp)` after the jal and no "
+               "`sw sN,off(sp)` in the prologue -- or the reverse, s-registers saved with no spills.",
+    means="Under the SBK1 -O2 -mips1 recipe, two values live across 1 or 2 calls are spilled to "
+          "stack slots; at 3 calls one s-register is saved, at 4 two. Register choice follows how "
+          "many calls a value crosses, not merely whether it crosses one.",
+    prescription="Do not read a missing s-register as a wrong local or a missing variable. Before "
+                 "adding or removing a call-crossing local to chase saved registers, count the calls "
+                 "it crosses. Probed for two live values only; other counts are unmeasured.",
+    confirmed_on=[
+        "tools/synthetic_corpus.py probe 2026-09-16: two locals across 1/2/3/4 calls saved "
+        "none/none/s0/s0+s1",
+        "eval/results/synthetic-corpus-20260916/pairs.receipt.json: stack_spill 150/150 spill with "
+        "no s-register at 1 call; saved_regs 150/150 use one or more s-registers at 3-6 calls",
+        "tests/test_synthetic_corpus.py:test_features_separate_stack_spills_from_saved_registers",
     ],
 ))
 
@@ -805,6 +851,46 @@ def hints_for_asm(asm: str) -> str:
         lines.append(f"- {p.name}: {p.means}")
         lines.append(f"  -> {p.prescription}")
     return "\n".join(lines) + "\n" + computed
+
+
+# ------------------------------------------------- uopt trace-diagnosed shapes (2026-09-14)
+# Found by reading uopt's own colouring trace against the target (solver/uopt_diagnosis.py);
+# each became a generator in solver/regalloc_mutations.py with a fire test on these receipts.
+
+register(Pattern(
+    id="uopt-unforwarded-typed-reread",
+    name="Stored value re-read through the other signedness stays a ugen temporary",
+    kind="solver",
+    looks_like="Target: `addiu t8,v0,-4 ... bnez t8 ; sw t8,off(a0)` -- a computed value in a ugen "
+               "temporary (t6-t9) feeding both a field store (often in a delay slot) and a test. "
+               "Candidate `t = E; FIELD = t; if (t ...)` holds E in a uopt-coloured register (v0/v1).",
+    means="uopt forwards a store into a reload of the same type, which makes E a shared value with "
+          "its own live range. A reload through the other signedness (s32 store, u32 read) is not "
+          "forwarded, so E is used once in u-code and stays a ugen temporary; as1 then removes the "
+          "reload by forwarding the store.",
+    prescription="Drop the local: `FIELD = E;` and test the field re-read at flipped signedness "
+                 "(regalloc_mutations.typed_field_rereads). Either store or read may carry the flip.",
+    confirmed_on=["eval/results/uopt-trace-20260914/guided: updateRaceUiScorePopupSlideIn, "
+                  "updateRaceSetupNamePlateSlideIn, updateRaceUiCrashScorePopupSlideIn, "
+                  "updateRaceUiTrickScorePopupSlideIn, updateTimeTrialRecordDeltaPopupSlideIn (object-exact, "
+                  "verify.jsonl)"],
+))
+
+register(Pattern(
+    id="uopt-narrow-truth-test-priority",
+    name="Testing a narrow local itself shortens its widened copy and swaps colours",
+    kind="solver",
+    looks_like="A u8/u16 local used in a switch and in a later `!= 0` test; target keeps the local in v1 "
+               "and its widened copy in v0 (`move v0,v1`), candidate has them the other way round.",
+    means="The widened copy (ucvt) is its own uopt live range. When the later test also uses it, the "
+          "range spans to the end, its adjsave (save per block) falls below the local's, and the local "
+          "is coloured first into v0. `if (x)` tests the narrow value, the copy's range shrinks to the "
+          "switch head, and it outranks the local.",
+    prescription="`if (x != 0)` -> `if (x)` on narrow locals (regalloc_mutations.narrow_truth_tests). "
+                 "Changing the local to u32 instead removes the copy and breaks the code shape.",
+    confirmed_on=["eval/results/uopt-trace-20260914/guided: updateCharacterSelectRosterIcons (object-exact; "
+                  "trace adjsave 2.0 -> 2.5 for the copy, 3.0 -> 1.25 for the local)"],
+))
 
 
 # ---------------------------------------------------------------- reporting
