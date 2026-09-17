@@ -198,6 +198,7 @@ def uncounted(build_tree: Path, results: Path) -> dict:
     prevent.
     """
     functions: set[str] = set()
+    narrow: set[str] = set()
     tree = build_tree / "nonmatchings"
     if tree.is_dir():
         for path in tree.glob("*/*.verification.json"):
@@ -207,8 +208,24 @@ def uncounted(build_tree: Path, results: Path) -> dict:
                 continue
             if d.get("kind") != "mips_object_section_certificate" or d.get("exact"):
                 continue
-            if (d.get("function_boundary") or {}).get("function_exact"):
+            boundary = d.get("function_boundary") or {}
+            if not boundary.get("function_exact"):
+                continue
+            # NOT ALL function-exact certificates cover the same thing, and the operator's criterion is
+            # exactness without unwanted behaviour. Measured 2026-09-17 across the 11:
+            #   schema 3  "annotated function bytes; rodata read by the function and absolute-address
+            #              literals, each resolved and compared against the ROM" -- the broadest claim;
+            #              it covers the data the function reads, which is where faithfulness could fail
+            #   schema 2  "annotated function bytes; external and function-local REL relocations", with
+            #              the relocation policy recorded and zero trailing bytes on both sides
+            #   schema 1  "annotated function bytes and external call relocations only" -- NARROWER. It
+            #              does not cover rodata or absolute literals, and those functions carry
+            #              uncompared trailing bytes (calculateFixedAngleBetweenXZPoints 20 vs 4,
+            #              osSpTaskStartGo 16 vs 0), so it is reported separately rather than counted.
+            if boundary.get("schema_version", 1) >= 2:
                 functions.add(path.parent.name)
+            else:
+                narrow.add(path.parent.name)
     cohort: dict[str, str] = {}
     for path in sorted(results.glob("failure-coverage-fresh-paired-*.json")):
         try:
@@ -227,7 +244,8 @@ def uncounted(build_tree: Path, results: Path) -> dict:
             name = key or node.get("function") or node.get("name")
             if name and (node.get("object_exact") or state == "object_exact"):
                 cohort[str(name)] = path.name
-    return {"function_exact": sorted(functions), "fresh_cohort": cohort}
+    return {"function_exact": sorted(functions), "function_exact_narrow_scope": sorted(narrow),
+            "fresh_cohort": cohort}
 
 
 def main() -> int:
@@ -256,17 +274,23 @@ def main() -> int:
     print(f"| tests | {n_tests} |")
     print()
     print("Additional MATCH TIER, counted separately so each number carries one claim:")
-    print(f"| ROM-backed FUNCTION-exact -- candidate bytes, relocations applied, equal the ROM's own | "
+    print(f"| ROM-backed FUNCTION-exact, scope covers the function AND what it reads | "
           f"**{len(extra['function_exact'])}** |")
+    print(f"| — function bytes and external calls only (narrower scope, needs re-certification) | "
+          f"{len(extra['function_exact_narrow_scope'])} |")
     print(f"| fresh-cohort object-exact in the campaign's own ledgers (upper bound, not de-duplicated) | "
           f"**{len(extra['fresh_cohort'])}** |")
     if extra["function_exact"]:
-        print(f"\n  function-exact: {', '.join(extra['function_exact'])}")
+        print(f"\n  counted:  {', '.join(extra['function_exact'])}")
+    if extra["function_exact_narrow_scope"]:
+        print(f"  NARROW:   {', '.join(extra['function_exact_narrow_scope'])}"
+              f"  <- schema 1: external call relocations only, so rodata and absolute literals the"
+              f" function reads were never compared")
     if extra["fresh_cohort"]:
-        print(f"  fresh-cohort:  {', '.join(sorted(extra['fresh_cohort']))}")
-    print(f"\n(ROM-function-exact rests on byte identity with the ROM for the function's own extent, so it")
-    print(f" is behaviour-identical by construction. It is a different claim from object-section exactness,")
-    print(f" which compares the whole section and cannot be satisfied by a single-function candidate.)")
+        print(f"  cohort:   {', '.join(sorted(extra['fresh_cohort']))}")
+    print(f"\n(A function-exact function's own words, with relocations resolved, equal the ROM's bytes at")
+    print(f" that address -- behaviour-identical by construction. Object-section exactness is a different")
+    print(f" claim and cannot be satisfied by a single-function candidate.)")
     if c["exact_disk_only"]:
         print(f"\n({c['exact_disk_only']} verified match(es) exist only as files "
               f"in matched_recovered/ and are absent from the attempts table --"
