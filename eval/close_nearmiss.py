@@ -70,7 +70,8 @@ def fault_total(compiled) -> int:
 
 def close_one(conn, repo: Path, name: str, *, budget: int, beam: int, depth: int,
               enable: bool, trace: bool = True, layout: bool = True,
-              use_globals: bool = False, force_regalloc: bool = False) -> dict:
+              use_globals: bool = False, force_regalloc: bool = False,
+              max_other_faults: int = 2) -> dict:
     """Run the register-allocation search from the function's best compiling candidate."""
     from solver import regalloc_search
 
@@ -157,6 +158,24 @@ def close_one(conn, repo: Path, name: str, *, budget: int, beam: int, depth: int
         row["note"] = ("dominant residual after layout repair is not register allocation, so "
                        "regalloc_search is the wrong instrument for this shape")
         return row
+    # BOTH halves of the band, and the second half was missing from the first version of this tool.
+    # The census band is "register-dominant with AT MOST TWO OTHER FAULTS": 228 jobs in it closed 155,
+    # and 16 jobs above it closed 0. Checking only `dominant == regalloc` let this search spend an
+    # average of 238 compiles each on 53 functions the census had already measured as hopeless, which
+    # diluted its own reported closure rate from 25% to 4.7% and produced a wrong conclusion about
+    # the band not transferring. Measured 2026-09-17 over the 65 functions it did search:
+    #
+    #     other_faults 0   n=6   closed 2   33.3%
+    #     other_faults 1   n=6   closed 1   16.7%
+    #     other_faults 2+  n=53  closed 0    0.0%
+    #
+    # Every closure had at most one other fault. `force_regalloc` overrides deliberately, and the
+    # result is recorded as what it is.
+    if row["other_faults_after_layout"] > max_other_faults and not force_regalloc:
+        row["status"] = "out-of-band"
+        row["note"] = ("%d other faults against a dominant regalloc residual; the census band is "
+                       "at most %d" % (row["other_faults_after_layout"], max_other_faults))
+        return row
 
     t0 = time.time()
     try:
@@ -200,6 +219,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--force-regalloc", action="store_true",
                     help="search even when the residual is out of band; recorded separately so an "
                          "out-of-band result is never reported as the pass failing")
+    ap.add_argument("--max-other-faults", type=int, default=2,
+                    help="the band's second half. The census is 'register-dominant with at most two "
+                         "other faults'; searching beyond it spent 238 compiles per function for zero "
+                         "closures across 53 functions")
     ap.add_argument("--seconds", type=float, default=0.0)
     args = ap.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
@@ -228,7 +251,8 @@ def main(argv: list[str] | None = None) -> int:
         row = close_one(conn, args.repo, name, budget=args.budget, beam=args.beam,
                         depth=args.depth, enable=not args.no_enable,
                         layout=not args.no_layout, use_globals=args.globals,
-                        force_regalloc=args.force_regalloc)
+                        force_regalloc=args.force_regalloc,
+                        max_other_faults=args.max_other_faults)
         state[name] = row
         state_path.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
         print(f"[{len(state)}/{len(names)}] {name:<46} exact={row.get('exact')} "
