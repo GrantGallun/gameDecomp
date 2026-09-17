@@ -30,6 +30,37 @@ def host() -> str:
     return f"http://{gw}:11434"
 
 
+def _read_body(resp, deadline: float, started: float) -> bytes:
+    """`resp.read()` bounded by a WALL-CLOCK deadline, not by the socket timeout.
+
+    `urllib.request.urlopen(req, timeout=T)` sets a PER-SOCKET-OPERATION timeout. It bounds connect
+    and each individual recv, not the request. A server that sends one byte inside every T-second
+    window therefore keeps `resp.read()` alive indefinitely -- and the parameter reads as though it
+    were an overall bound. The transport event even called it `socket_timeout_seconds`, which was the
+    code knowing and the callers not: `solver/pipeline.py`, `eval/trajectory_factory.py` and every
+    pilot pass a `timeout` and reasonably expect a wall clock.
+
+    Measured cost, 2026-09-16: a re-run of the never-compiled admission bucket wedged inside a model
+    call for over twenty minutes, twice, with `timeout=300` and then `--timeout 240`, producing no
+    output at all. It was indistinguishable from a slow function, a slow `m2c` invocation, or a
+    blocking workspace flock until a step trace was added. The campaign runs three workers behind one
+    inference slot, so one hung call there parks a worker indefinitely.
+
+    Chunked reads make the deadline observable: if data trickles, the clock ends it; if data stops
+    entirely, the socket timeout still does.
+    """
+    buf = bytearray()
+    while True:
+        if time.monotonic() > deadline:
+            raise TimeoutError(
+                "model request exceeded its wall-clock budget of "
+                f"{deadline - started:.0f}s (socket timeout is per-operation, not total)")
+        chunk = resp.read(65536)
+        if not chunk:
+            return bytes(buf)
+        buf.extend(chunk)
+
+
 def _throttle() -> tuple[float, int]:
     """Opt-in limits so the machine stays usable while a run is going.
 
@@ -65,6 +96,10 @@ def generate(endpoint: str, model: str, prompt: str, timeout: int = 900,
              num_ctx: int | None = None
              ) -> tuple[str, dict]:
     """One completion. Returns (text, raw response metadata).
+
+    `timeout` is an overall WALL-CLOCK budget for the request. It used to be handed straight to
+    `urlopen`, where it is only a per-socket-operation timeout, so a server that trickled any byte
+    inside each window could hold a call open forever -- see `read_body`.
 
     `num_predict` must be generous for reasoning models: they return the trace
     in a separate `thinking` field but it spends the SAME budget as the answer.
@@ -185,10 +220,11 @@ def generate(endpoint: str, model: str, prompt: str, timeout: int = 900,
                                      headers={"Content-Type": "application/json"})
         started = time.monotonic()
         event = {'attempt':len(transport_events)+1,'socket_timeout_seconds':timeout,
+                 'wall_clock_budget_seconds':timeout,
                  'think_present':'think' in payload}
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                result = json.loads(resp.read())
+                result = json.loads(_read_body(resp, started + timeout, started))
         except Exception as exc:
             event.update(status='error',error_type=type(exc).__name__,
                          elapsed_seconds=time.monotonic()-started)

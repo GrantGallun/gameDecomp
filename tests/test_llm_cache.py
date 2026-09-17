@@ -15,8 +15,15 @@ class _Response:
     def __exit__(self, *_args):
         return False
 
-    def read(self):
-        return json.dumps(self.payload).encode()
+    def read(self, amt=None):
+        # One body, then EOF, like a real http.client.HTTPResponse. Returning the same bytes forever
+        # is not a response any client can consume: the chunked reader in solver/llm.py correctly
+        # treats b"" as the only end, and a stub that never ends hangs instead of failing.
+        if self.payload is None:
+            return b""
+        payload = json.dumps(self.payload).encode()
+        self.payload = None
+        return payload
 
 
 def test_gpt_oss_emission_uses_low_and_schema_is_cache_bound(tmp_path, monkeypatch):

@@ -58,9 +58,13 @@ def test_overflow_refuses_before_request_and_includes_prefill_schema(monkeypatch
 
 def test_actual_headroom_diagnostics_are_recorded_without_altering_request(monkeypatch):
     class Response:
+        def __init__(self):
+            self._body = json.dumps({'response': 'answer', 'prompt_eval_count': 30000}).encode()
         def __enter__(self): return self
         def __exit__(self, *_): pass
-        def read(self): return json.dumps({'response': 'answer', 'prompt_eval_count': 30000}).encode()
+        def read(self, amt=None):
+            body, self._body = self._body, b""
+            return body
     sent = []
     def send(request, timeout):
         sent.append(json.loads(request.data))

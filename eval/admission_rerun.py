@@ -56,7 +56,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from eval import admission_triage                                    # noqa: E402
-from solver import c89, llm, pipeline, workspace                      # noqa: E402
+from solver import c89, compile_chain, llm, pipeline, workspace       # noqa: E402
 
 DEFAULT_DB = "/home/grant/decomp/kb-sbk1.sqlite"
 DEFAULT_REPO = "/home/grant/decomp/sbk1"
@@ -84,44 +84,85 @@ def load_state(path: Path) -> dict:
 
 
 def save_state(path: Path, state: dict) -> None:
+    """Atomic, and it must never raise: this runs after every function.
+
+    A serialisation error here would lose the whole run, so an unserialisable value is replaced by
+    its repr rather than allowed to propagate. That is not defensive habit -- `Attempt` objects and
+    arbitrary fixer reports both flowed into this dict while the compile ladder was being wired in.
+    """
+    try:
+        encoded = json.dumps(state, indent=2, sort_keys=True)
+    except (TypeError, ValueError):
+        encoded = json.dumps(state, indent=2, sort_keys=True, default=repr)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
+    tmp.write_text(encoded, encoding="utf-8")
     tmp.replace(path)
 
 
 def attempt_one(conn, repo: Path, endpoint: str, model: str, func: str, *,
                 temperature: float, declarations: bool, draws: int,
-                timeout: int = 900) -> dict:
-    """One function: draft, prompt, generate, extract, compile, log. Never raises."""
+                timeout: int = 900, trace: bool = True, chain: bool = True) -> dict:
+    """One function: draft, prompt, generate, extract, compile, log. Never raises.
+
+    `trace` prints a step marker before each stage. Without it a hang is unattributable: a stalled
+    run produced no output at all, and the step that wedged could not be told from a slow model call,
+    a slow m2c invocation, or a blocking workspace flock. `workspace.bootstrap` shells out with a
+    hardcoded `timeout=900`, and `_workspace_lock` blocks on `flock` with NO timeout at all, so not
+    every stage is bounded by `--timeout`.
+    """
+    def step(message: str) -> None:
+        if trace:
+            print(f"    . {message}", flush=True)
+
     row: dict = {"function": func, "model": model, "draws": [], "status": "ok"}
     t_start = time.time()
     try:
+        step("bootstrap")
         ws = workspace.bootstrap(repo, func)
     except Exception as exc:                                        # noqa: BLE001
         row["status"] = "bootstrap-failed"
         row["error"] = f"{type(exc).__name__}: {exc}"
         return row
     try:
+        step("target_asm")
         asm = workspace.target_asm(ws, func)
     except Exception as exc:                                        # noqa: BLE001
         row["status"] = "no-target-asm"
         row["error"] = f"{type(exc).__name__}: {exc}"
         return row
+    step("m2c_draft")
     draft = workspace.m2c_draft(ws) or ""
+    step(f"m2c_draft done ({len(draft)} chars)")
     try:
+        step("build_prompt")
         prompt = pipeline.build_prompt(repo, conn, func, asm, draft, ROUTE,
                                        use_siblings=False, declarations=declarations)
         workspace.assert_uncontaminated(prompt, repo, func)
+        step(f"build_prompt done ({len(prompt)} chars)")
     except Exception as exc:                                        # noqa: BLE001
         row["status"] = "prompt-failed"
         row["error"] = f"{type(exc).__name__}: {exc}"
         return row
 
+    # Function-scope, because a refusal or an unextractable response `continue`s past the variant
+    # block entirely -- so these must exist even when no candidate was ever compiled. A smoke test
+    # caught exactly that as an UnboundLocalError on the first function that refused.
+    last_attempt = None
+    last_variant = "raw"
+
     for draw in range(draws):
         t_draw = time.time()
         try:
+            # `transport_attempts=1` deliberately. `llm.generate` retries a timeout three times by
+            # default, so a hung call costs 3x the budget -- `timeout=240` meant twelve minutes of
+            # silence, not four, which is what made the first diagnosis so slow. Transient-error
+            # retries are worth having in a campaign worker; in a resumable batch the right move is
+            # to record the failure and come back to it, and this harness resumes from state anyway.
+            step(f"generate draw {draw} (timeout={timeout}s)")
             text, meta = llm.generate(endpoint, model, prompt, temperature=temperature,
-                                      timeout=timeout, prefill=pipeline.PREFILL)
+                                      timeout=timeout, prefill=pipeline.PREFILL,
+                                      transport_attempts=1)
+            step(f"generate done ({len(text or '')} chars)")
         except Exception as exc:                                    # noqa: BLE001
             row["draws"].append({"draw": draw, "outcome": "generate-failed",
                                  "error": f"{type(exc).__name__}: {exc}"})
@@ -148,8 +189,11 @@ def attempt_one(conn, repo: Path, endpoint: str, model: str, func: str, *,
         normalized = c89.public_definition(c89.to_c89(code), func)
         if normalized != code:
             variants.append(("c89", normalized))
+        last_attempt = None
+        last_variant = "raw"
         for variant, source in variants:
             try:
+                step(f"score {variant}")
                 att = workspace.score(ws, repo, func, source, conn=conn, func=func,
                                       strategy=f"admission-rerun:{variant}", model=model,
                                       prompt=prompt, temperature=temperature, wall_ms=wall_ms,
@@ -163,6 +207,9 @@ def attempt_one(conn, repo: Path, endpoint: str, model: str, func: str, *,
                                      "error": f"{type(exc).__name__}: {exc}",
                                      "wall_ms": wall_ms, "tokens": charged})
                 continue
+            # Kept as LOCALS, never inside `draws`: the Attempt dataclass is not JSON-serialisable and
+            # `draws` is written to the state file after every function.
+            last_attempt, last_variant = att, variant
             row["draws"].append({
                 "draw": draw, "outcome": "scored", "variant": variant,
                 "compiled": bool(att.compiled), "score": float(att.score),
@@ -175,6 +222,47 @@ def attempt_one(conn, repo: Path, endpoint: str, model: str, func: str, *,
         if any(d.get("compiled") for d in row["draws"]):
             # One compiling draw is the whole question this run asks. Stop paying for more.
             break
+
+    # The deterministic ladder, applied only when the model's own output cannot be made to build.
+    # `solver/compile_chain` is what the campaign runs: do-while lowering, m2c placeholder
+    # declarations, and -- the rung that matters for this population -- declaring the identifiers IDO
+    # reports as undefined. The admission write-up measured 1,196 occurrences of 193 undefined symbols
+    # across 44 functions, all of them a missing declaration rather than a model error, so running the
+    # ladder is the deterministic half of item (3) and needs no extra model call.
+    if chain and not any(d.get("compiled") for d in row["draws"]) and last_attempt is not None:
+        step("compile-chain")
+        base_source = normalized if last_variant == "c89" else code
+
+        def score_child(label: str, child: str):
+            scored_att = workspace.score(
+                ws, repo, func, child, conn=conn, func=func,
+                strategy=f"admission-rerun:chain:{label}", model=model, prompt=prompt,
+                temperature=temperature, wall_ms=0,
+                run_id=f"admission-rerun-{int(t_start)}", token_cost=0,
+                iteration=draw, raw_response="", extract_status="ok",
+                done_reason="", run_kind="admission-rerun")
+            row["draws"].append({
+                "draw": draw, "outcome": "scored", "variant": f"chain:{label}",
+                "compiled": bool(scored_att.compiled), "score": float(scored_att.score),
+                "exact": bool(scored_att.exact),
+                "receipt_id": getattr(scored_att, "receipt_id", None),
+                "wall_ms": 0, "tokens": 0,
+                "stderr_head": " | ".join(
+                    (scored_att.compiler_stderr or "").splitlines()[:2])[:300],
+            })
+            return scored_att
+
+        try:
+            scored, chain_log = compile_chain.chain(
+                func, last_variant, base_source, last_attempt,
+                score_child, headers="", rounds=6, budget=10)
+            # Labels only: the raw log carries whatever the individual fixers return, and this dict
+            # is JSON-dumped to the state file after every function. A save that raises loses the run.
+            row["chain_rounds"] = len(scored)
+            row["chain_applied"] = [label for label, _code, _att in scored]
+        except Exception as exc:                                    # noqa: BLE001
+            row["chain_error"] = f"{type(exc).__name__}: {exc}"
+
     row["seconds"] = round(time.time() - t_start, 2)
     row["compiled"] = any(d.get("compiled") for d in row["draws"])
     row["exact"] = any(d.get("exact") for d in row["draws"])
@@ -298,6 +386,11 @@ def main(argv: list[str] | None = None) -> int:
                     help="OFF by default: turning it on makes matches header-assisted, "
                          "which CLAUDE.md requires be reported separately from SOLVED")
     ap.add_argument("--redo", action="store_true", help="ignore saved state")
+    ap.add_argument("--no-chain", action="store_true",
+                    help="skip the deterministic compile ladder. It is ON by default because that "
+                         "is what the campaign runs; leaving it off would measure a pipeline that "
+                         "does not exist, and the ladder is the deterministic answer to the "
+                         "undefined-identifier class (1,196 occurrences of 193 symbols)")
     args = ap.parse_args(argv)
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -332,7 +425,7 @@ def main(argv: list[str] | None = None) -> int:
             row = attempt_one(conn, args.repo, endpoint, model, func,
                               temperature=args.temperature,
                               declarations=args.declarations, draws=args.draws,
-                              timeout=args.timeout)
+                              timeout=args.timeout, chain=not args.no_chain)
             state[key] = row
             save_state(state_path, state)
             done += 1
