@@ -100,25 +100,32 @@ time. The two properties are anti-correlated on every source form tried, and the
 
 `eval/results/rename-wall-20260917/adjsave_probe.py` reads `-zdbug:5`/`-zdbug:6` for the two ends of
 the path. Both compiles reproduce the 2026-09-14 census -- saved colours are assigned in strictly
-descending `adjsave` -- and the two values in question turn out to be ranked by it:
+descending `adjsave` (baseline decision order `[26.0, 18.6, 17.0, 14.4, 6.2, 6.2, 3.3, 1.0]`) -- and the
+two values in question turn out to be ranked by it:
 
 | compile | tileIndex | offset | emission |
 |---|---|---|---|
 | baseline | adjsave **14.4** -> colour 17 (`s3`) | adjsave **17.0** -> colour 16 (`s2`) | tileIndex, offset |
 | best | adjsave **18.0** -> colour 16 (`s2`) | adjsave **17.0** -> colour 17 (`s3`) | offset, tileIndex |
 
-In both, the **first-emitted value is the one with the LOWER adjsave**. Register assignment and
-emission order are therefore locked together, and the target's combination -- emit the tile index
-first *and* hold it in `s2` -- requires its adjsave to be both below and above the offset's. Inside one
-block that is impossible, which yields the one falsifiable prediction this round produced:
+In both, the **first-emitted value is the one with the LOWER adjsave**. That is two data points and they
+cannot separate two readings, so the entry records both rather than picking one:
 
-> **the target's two zero-initialisations are in different basic blocks**, so the earlier block's
-> definition is emitted in program order regardless of its colour.
+* **Emission order is the reverse of the adjsave ranking.** Then the target's combination -- emit the
+  tile index first *and* hold it in `s2` -- would require its adjsave to be both below and above the
+  offset's, which is impossible inside one block. Prediction: **the target's two zero-initialisations
+  are in different basic blocks.**
+* **Emission order follows ugen's u-code order and merely coincided twice.** Then a source shape exists
+  that flips the order of the two definitions while leaving the adjsave ranking alone. The ten source
+  orderings already measured say it is not a statement permutation, but they do not rule it out.
 
-Testing that needs the target's own u-code, which the tracing toolchain can only produce from a source
-we can compile. Recorded in `patterns/catalog.py` as
-`saved-colour-follows-adjsave-and-locks-emission-order`, `kind="review"`, `confirmed_on=[]` -- a
-HYPOTHESIS on two compiles, which is exactly why it is written down as one and routes nothing.
+Testing the first needs the target's own u-code, which the tracing toolchain can only produce from a
+source we can compile -- a matched function with the same shape would serve. Recorded in
+`patterns/catalog.py` as `saved-colour-follows-adjsave-and-locks-emission-order`, `kind="review"`,
+`confirmed_on=[]`: a HYPOTHESIS on two compiles, which is why it is written down as one and routes
+nothing. What the measurement *does* establish is that the `saved_order` swap is not a statement-order
+question at all -- it is the save pass's weighting and the definition order, a different instrument from
+both `statement_order_rewrites` and `regalloc_mutations`.
 
 ## The refutation, through the project's own harness
 
