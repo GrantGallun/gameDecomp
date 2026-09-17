@@ -194,6 +194,38 @@ knowledge base: the strategies carrying the most ban-refused attempts are
 was producing candidates for exactly these functions, and the ban refused its output.
 **Next step: drive `zero_token_harvest.repair_chain` / `harvest_one` over the 166 drafts.**
 
+### Round 5: the placeholder pass fires, and it is not the blocker
+
+`do_base_rescore` now tries `placeholder_declarations.propose` first and records
+`placeholder_report` / `placeholder_error` / `placeholder_compiled`. On the 8-function smoke:
+
+| function | placeholders found | placeholder output compiled | terminal error |
+|---|---|---|---|
+| `__osRepairPackId` | **`[{"kind": "local", "name": "sp20"}]`** | **False** | `Empty declaration specifiers` at line 14, unchanged |
+| `MusStartEffect` | `[]` | — | `Syntax Error` line 9 |
+| `MusStartEffect2` | `[]` | — | `Syntax Error` lines 10, 11 |
+| `audioDmaCallback` | `[]` | — | `Syntax Error` lines 18, 72 |
+| `applyItemHitToRacePlayersInsideSphere` | `[]` | — | `Syntax Error` lines 20–22 |
+
+So the `?`-typed local is real, the pass **finds it** and its candidate **still fails with the identical
+error** — and for the other drafts there are **no `?` placeholders at all** and no `do` either. The
+placeholder type is therefore *a* cause on some drafts and not the cause on most.
+
+The actual cause, read off the draft: `MusStartEffect` line 8 is
+
+```c
+    PlayerCommandState *var_s0;
+```
+
+An **undeclared named type in a local declaration**. C89 has no implicit type names, so IDO reports it
+as `Syntax Error` — not as an undeclared identifier, which is why `compilefix.refine` routes it to
+`contradicted-primitive-pointer`/`typedecl` and why the "undefined; reoccurrences" class never appears.
+And `typedecl.synthesize` **declines on it** (`harvest_stages=[]`, `plans=0`).
+
+**Next step, precisely: explain why `typedecl.synthesize` returns no plans for an undeclared named
+pointer type** — the name harvest it needs already exists (`solver/buildtypes.type_names`,
+`solver/typepool.py`), and this draft is one line away from parsing.
+
 ## Reproduce
 
 ```bash
