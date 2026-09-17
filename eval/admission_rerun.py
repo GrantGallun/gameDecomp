@@ -413,6 +413,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="OFF by default: turning it on makes matches header-assisted, "
                          "which CLAUDE.md requires be reported separately from SOLVED")
     ap.add_argument("--redo", action="store_true", help="ignore saved state")
+    ap.add_argument("--retry-failed", action="store_true",
+                    help="re-attempt only the functions that never compiled, keeping the rest")
     ap.add_argument("--no-chain", action="store_true",
                     help="skip the deterministic compile ladder. It is ON by default because that "
                          "is what the campaign runs; leaving it off would measure a pipeline that "
@@ -445,7 +447,12 @@ def main(argv: list[str] | None = None) -> int:
             func = item["name"]
             key = f"{model}|{func}"
             if key in state and not args.redo:
-                continue
+                # `--retry-failed` re-attempts only the functions that never compiled. The first
+                # pass ran with a 180s bound, and all seven of its failures were socket timeouts --
+                # the model reload that a context switch forces can exceed that on a large prompt.
+                # Retrying those without redoing the 19 that already succeeded is the cheap move.
+                if not (args.retry_failed and not state[key].get("compiled")):
+                    continue
             if args.seconds and (time.time() - started) > args.seconds:
                 print(f"BUDGET: wall-clock cap {args.seconds}s reached after {done} attempts",
                       flush=True)
