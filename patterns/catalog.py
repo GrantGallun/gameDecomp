@@ -371,6 +371,19 @@ register(Pattern(
 ))
 
 
+# ------------------------------------------------------ hypotheses (unconfirmed)
+
+register(Pattern(
+    id="saved-colour-follows-adjsave-and-locks-emission-order",
+    name="uopt numbers saved ranges by descending adjsave, and emits same-block definitions in the reverse of that ranking",
+    kind="review",
+    looks_like="Two saved-register definitions with the same shape in one block, e.g. `move s2,zero` / `move s3,zero`: whichever value uopt weighted higher takes the LOWER saved register, and whichever took the HIGHER saved register is emitted FIRST. Register assignment and emission order move together, so a target that needs the first-emitted value in the lower register cannot be reached by any edit that leaves the two in one block.",
+    means="HYPOTHESIS, NOT CONFIRMED -- do not route on it. Measured 2026-09-17 by reading uopt's own `-zdbug:5/6` trace for the two ends of the known path on drawRaceSplitscreenSelectOption2Frame, with `eval/results/rename-wall-20260917/adjsave_probe.py`: (a) colour assignment is strictly descending adjsave in both compiles, reproducing the 2026-09-14 census (1,907/1,976 procedures) on a case it did not cover; (b) the two values in question are the tile index and the offset, identified by which `= 0` statement each edit changes, and their adjsave values swap rank between the two compiles exactly as their registers do -- baseline tileIndex 14.4 -> s3, offset 17.0 -> s2 (emission tileIndex, offset); best tileIndex 18.0 -> s2, offset 17.0 -> s3 (emission offset, tileIndex). In both, the first-emitted value is the one with the LOWER adjsave. The two rules together make the target's combination impossible inside one block: the target emits the tile index first AND holds it in s2, which needs its adjsave to be both below and above the offset's. Two compiles is two data points, and the second rule (emission order) has not been tested outside them.",
+    prescription="Treat this as the current best explanation of the coupling in `saved-order-has-a-gradient-and-no-generator`, not as a lever. Its falsifiable prediction is that the TARGET's two zero-initialisations are in DIFFERENT basic blocks -- the earlier block's definitions are emitted in program order regardless of colour, which is what lets the target break the ranking. Testing that needs the target's u-code, which the 2026-09-14 tooling can only produce from a source we can compile. Until then: do not build an emission-order or adjsave-driven mutation family on two compiles. What the measurement DOES establish is that the `saved_order` swap is not a statement-order question at all -- it is the save pass's weighting, which is a different instrument from both `statement_order_rewrites` and `regalloc_mutations`.",
+    confirmed_on=[],
+))
+
+
 # --------------------------------------------- mined from the matched corpus
 
 register(Pattern(

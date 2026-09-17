@@ -96,6 +96,30 @@ needs the first-emitted value in the lower one. Fixing the registers (which the 
 `single_use:shouldDraw:inline`, gradient `[2,12,15] -> [0,2,2]`) flipped the emission order at the same
 time. The two properties are anti-correlated on every source form tried, and the target needs both.
 
+### Why, from uopt's own trace
+
+`eval/results/rename-wall-20260917/adjsave_probe.py` reads `-zdbug:5`/`-zdbug:6` for the two ends of
+the path. Both compiles reproduce the 2026-09-14 census -- saved colours are assigned in strictly
+descending `adjsave` -- and the two values in question turn out to be ranked by it:
+
+| compile | tileIndex | offset | emission |
+|---|---|---|---|
+| baseline | adjsave **14.4** -> colour 17 (`s3`) | adjsave **17.0** -> colour 16 (`s2`) | tileIndex, offset |
+| best | adjsave **18.0** -> colour 16 (`s2`) | adjsave **17.0** -> colour 17 (`s3`) | offset, tileIndex |
+
+In both, the **first-emitted value is the one with the LOWER adjsave**. Register assignment and
+emission order are therefore locked together, and the target's combination -- emit the tile index
+first *and* hold it in `s2` -- requires its adjsave to be both below and above the offset's. Inside one
+block that is impossible, which yields the one falsifiable prediction this round produced:
+
+> **the target's two zero-initialisations are in different basic blocks**, so the earlier block's
+> definition is emitted in program order regardless of its colour.
+
+Testing that needs the target's own u-code, which the tracing toolchain can only produce from a source
+we can compile. Recorded in `patterns/catalog.py` as
+`saved-colour-follows-adjsave-and-locks-emission-order`, `kind="review"`, `confirmed_on=[]` -- a
+HYPOTHESIS on two compiles, which is exactly why it is written down as one and routes nothing.
+
 ## The refutation, through the project's own harness
 
 `patterns/rules.py` now registers the reordering hypothesis in its strongest form -- *if the diff is a
@@ -180,6 +204,24 @@ differences. The 24 `reordered-only` functions are where the register gradient i
 difference and the ordering pass has been told the cause is colouring -- a double decline, with
 `dispatchRacePlayerMode30Attack`, `updateRacePlayerMode16AerialTrick`, `bootThreadMain`,
 `decrementRaceChallengeTimeLimit` and the five 99.936 siblings among them.
+
+## The rule registry after this round
+
+`patterns/derive.py` confirms a rule only when the oracle closes a case OTHER than the one the rule
+came from. After this round the registry is unchanged in its confirmed set:
+
+| rule | criterion | derivation case | confirmed_on | status |
+|---|---|---|---|---|
+| `ordering-store-reorder` | exact | Fstop | Fstop (99.999 -> 100.0) plus a recorded refutation on a held-out LOAD case | confirmed, scoped to stores with distinct operands |
+| `target-linkage-static-inline` | compiled | addRacePlayerScore | **11 held-out** admission failures, none of them the derivation case | confirmed on ADMISSION, not on matches |
+| `same-shape-difference-is-a-permutation` | exact | drawRaceSplitscreenSelectOption2Frame | **none** -- 5 claimed, 15 predicted, 15 compiled, 0 exact | **NOT CONFIRMED**, and therefore cannot change behaviour |
+
+The third rule is the new one, and the refutation is its point: it is the strongest form of the
+reordering reading, it fires on its motivating residual, and it closes nothing. No routing is built on
+it, and the harness will refuse to let one be.
+
+Scope: every fact added this round is IDO 5.3 `-O2` only -- uopt's colouring, IDO's emission order and
+its `saved_order` numbering. Nothing here is claimed for a GCC target, and nothing reads a GCC object.
 
 ## What this changes
 
