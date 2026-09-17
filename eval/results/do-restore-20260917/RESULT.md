@@ -256,6 +256,48 @@ found at all, empty `fields` for a local, or `typepool.named_fields(fields, name
 `typepool.pool(...).get("PlayerCommandState")` directly on `MusStartEffect`'s draft** and see which of
 those three is taken. That is a three-line probe on one function, not a population run.
 
+### Round 7: the decline is DELIBERATE and correct — the wall is not a bug
+
+`eval/../.cache/decline_probe.py MusStartEffect` (all three inputs printed, so the branch is read off):
+
+| input | value |
+|---|---|
+| `pointer_locals(code, "MusStartEffect")` | **`[('PlayerCommandState', 'var_s0')]`** — the local IS seen |
+| `pointer_parameters(...)` | `[]` — it really is a local, not a parameter |
+| `pool['PlayerCommandState']` | **60 offsets**, pooled from 2,066 drafts |
+| `members_used(code, {'var_s0'})` | **`['pdata']`** — ONE name |
+| `typepool.named_fields(fields, names)` | **`None`** |
+| `typedecl.plan(...)` | `plans: 0` |
+
+The type is known, the offsets are known, and the single member name cannot be placed among sixty
+offsets by source order. `typedecl.plan` then takes branch three:
+
+```python
+        keep = typepool.named_fields(fields, names)
+        if keep is None:
+            if source == "pooled" or len(names) > len(fields):
+                continue
+```
+
+with its own comment: *"Positional zip is only defensible when the counts are close. Over a pooled
+struct it would place two members among dozens of offsets by source order alone -- a guess dressed as a
+layout."*
+
+**So the refusal is the project's central rule working as designed** — unknown is the default, and
+inventing a field to satisfy a name is the fabrication this project exists to prevent. The 166
+never-attempted drafts are therefore not blocked by a bug I can fix, and the `do` ban was never their
+cause. Two legitimate routes exist, and both are a different objective from this one:
+
+1. **Make `named_fields` defensible** by attributing each member name to an offset from *across* drafts
+   rather than by position within one — `typepool.member_offsets` exists for this.
+2. **An `unk`-only declaration route for admission**: declare the pooled offsets as `unk_00..` and
+   rewrite the draft's unresolved member uses, accepting that the result scores badly but parses —
+   converting "never attempted" into "attempted", which is what the knowledge base needs to learn from.
+
+This closes the investigation the `do` ban opened. Item (4) of the objective is executed and reported:
+the live 54 gave 2 exact (1 capability), and the never-attempted 166 are diagnosed to a deliberate
+refusal with two named routes, not to a defect.
+
 ## Reproduce
 
 ```bash
