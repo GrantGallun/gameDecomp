@@ -226,6 +226,36 @@ And `typedecl.synthesize` **declines on it** (`harvest_stages=[]`, `plans=0`).
 pointer type** — the name harvest it needs already exists (`solver/buildtypes.type_names`,
 `solver/typepool.py`), and this draft is one line away from parsing.
 
+### Round 6: the pool was genuinely missing, and it is not the whole decline
+
+One real wiring defect found and fixed. `do_base_rescore` was calling
+`repair_chain(conn, name, draft, known)` with **`pool=None`**, and for a local-only type the pool is the
+only possible source of a layout: `typedecl.plan` sets `fields = pooled` for locals, then
+
+```python
+    if not fields:
+        continue                       # no evidence: nothing to declare
+```
+
+so with no pool the planner cannot fire at all. The module docstring names the very type involved —
+"PlayerCommandState is named by 43 drafts as a parameter, so the pool describes it far better than any
+one function could". `main` now builds the pool and symbol table once, exactly as
+`eval/zero_token_harvest.main` does (corpus = **every** bootstrapped draft, not this run's selection),
+and passes them through.
+
+Evidence the wiring is now correct: the `globals` stage newly fires (`harvest_stages=['globals']`),
+where before it was `[]` or `['do-while']` — that stage is gated on `symbols`, so the context is
+reaching `repair_chain`.
+
+**But `plans=0` persists on every draft.** So the decline is not the absent pool; it is inside
+`typedecl.plan` / `pointer_locals`. The three branches that return nothing for a type are: no use
+found at all, empty `fields` for a local, or `typepool.named_fields(fields, names) is None` with
+`source == "pooled"`.
+
+**Next step, precisely: call `typedecl.pointer_locals(code, func)` and
+`typepool.pool(...).get("PlayerCommandState")` directly on `MusStartEffect`'s draft** and see which of
+those three is taken. That is a three-line probe on one function, not a population run.
+
 ## Reproduce
 
 ```bash

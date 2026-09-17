@@ -48,7 +48,8 @@ def profile_of(att) -> dict:
     return {axis: int(getattr(verdict, axis)) for axis in AXES}
 
 
-def run_one(conn, repo: Path, name: str, *, repair: bool, admit: bool = True) -> dict:
+def run_one(conn, repo: Path, name: str, *, repair: bool, admit: bool = True,
+            context: dict | None = None) -> dict:
     row: dict = {"function": name}
     ws = workspace.bootstrap(repo, name)
     draft_path = ws / "base.c"
@@ -117,8 +118,16 @@ def run_one(conn, repo: Path, name: str, *, repair: bool, admit: bool = True) ->
         try:
             from eval import zero_token_harvest as zth
             from solver import buildtypes
-            known = buildtypes.type_names(repo)
-            repaired, stages, plans, declined = zth.repair_chain(conn, name, draft, known)
+            ctx = context or {}
+            known = ctx.get("known_types") or buildtypes.type_names(repo)
+            # THE POOL IS THE WHOLE POINT for a local-only type. `typedecl.plan` gives a local no
+            # per-function evidence key, so `PlayerCommandState *var_s0;` in MusStartEffect can only be
+            # declared from the cross-function pool -- and with `pool=None` the planner hits
+            # `if not fields: continue` and returns no plans, which is exactly what the round-5 probe
+            # measured (`plans=0`). Built once in `main` over every bootstrapped draft, as
+            # `zero_token_harvest.main` does; rebuilding it per function would be 2,022 drafts per call.
+            repaired, stages, plans, declined = zth.repair_chain(
+                conn, name, draft, known, ctx.get("pool"), ctx.get("symbols"))
             row["harvest_stages"] = stages
             row["harvest_plans"] = len(plans or ())
             if declined:
@@ -225,6 +234,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--functions", default="")
     ap.add_argument("--survey", action="store_true", help="report draft availability and stop")
     ap.add_argument("--repair", action="store_true")
+    ap.add_argument("--no-pool", action="store_true",
+                    help="skip the cross-function type pool. It is ON by default: a locale-only type "
+                         "such as PlayerCommandState has no per-function evidence key, so without the "
+                         "pool `typedecl.plan` returns no plans at all and the admission pass cannot "
+                         "fire (measured round 5)")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--seconds", type=float, default=0.0)
     args = ap.parse_args(argv)
@@ -251,6 +265,21 @@ def main(argv: list[str] | None = None) -> int:
     state_path = args.out / "state.json"
     state = json.loads(state_path.read_text()) if state_path.is_file() else {}
     conn = sqlite3.connect(args.db, timeout=120)
+    context: dict = {}
+    if not args.no_pool:
+        # Same construction as `eval/zero_token_harvest.main`: the corpus is EVERY bootstrapped draft,
+        # not this run's selection -- a type's layout is only as complete as the functions that
+        # contributed to it.
+        from eval import zero_token_harvest as zth
+        from solver import buildtypes, typepool, unknowns
+        known_types = buildtypes.type_names(args.repo)
+        corpus = sorted(p.name for p in (args.repo / "nonmatchings").iterdir()
+                        if (p / "base.c").is_file())
+        context = {"known_types": known_types,
+                   "pool": typepool.pool(conn, typepool.type_uses(args.repo, corpus), known_types),
+                   "symbols": unknowns.symbol_table(args.repo)}
+        print(f"context: {len(known_types)} known types, {len(context['pool'])} pooled types "
+              f"from {len(corpus)} drafts", flush=True)
     started = time.time()
     for name in names:
         if name in state:
@@ -259,7 +288,7 @@ def main(argv: list[str] | None = None) -> int:
             print("BUDGET reached", flush=True)
             break
         try:
-            state[name] = run_one(conn, args.repo, name, repair=args.repair)
+            state[name] = run_one(conn, args.repo, name, repair=args.repair, context=context)
         except Exception as exc:                                         # noqa: BLE001
             state[name] = {"function": name, "status": "raised",
                            "error": f"{type(exc).__name__}: {exc}"}
