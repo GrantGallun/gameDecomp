@@ -195,6 +195,47 @@ def hunk_store_orders(diff: str, bases: set[str] | None = None
     return candidate_stores, target_stores
 
 
+def hunk_permutation(diff: str) -> list[int] | None:
+    """The position permutation ONE hunk states, or None when the hunk is not a pure permutation.
+
+    Returns `order` such that `target == [candidate[i] for i in order]` -- the FULL permutation, not a
+    list of adjacent swaps. `StoreOrderRule` computes this for stores sharing one base; this computes it
+    for the hunk as a whole, using instruction TEXT rather than a store base to identify the group, so
+    it is not restricted to a mnemonic class.
+
+    Declines -- deliberately, and for the same reason the store rule does -- on anything ambiguous:
+
+        not exactly one hunk        the permutation would have to be guessed across hunks
+        unequal lengths             an insert or delete, not a permutation
+        unequal multisets           the instructions themselves changed
+        a repeated instruction text the mapping from target position to candidate position is not
+                                    unique, so any answer would be one of several
+
+    Measured context: `eval/order_class_census.py` finds the live set has ONE `order` residual and it
+    is the refuted LOAD case, so this transform has no live queue behind it. It exists because the
+    store-only template already proved the shape works (Fstop), and because the alternative --
+    enumerating adjacent swaps -- measurably cannot reach a composition: 7,305 attempts, 0 closures.
+    """
+    hunks = _hunks(diff)
+    if len(hunks) != 1:
+        return None
+    target, candidate = _sequences(hunks[0])
+    target = [t.strip() for t in target]
+    candidate = [c.strip() for c in candidate]
+    if len(target) != len(candidate) or not target:
+        return None
+    if collections.Counter(target) != collections.Counter(candidate):
+        return None
+    counts = collections.Counter(candidate)
+    if any(n > 1 for n in counts.values()):
+        return None
+    index_of = {text: index for index, text in enumerate(candidate)}
+    order = [index_of[text] for text in target]
+    if sorted(order) != list(range(len(target))) or order == sorted(order):
+        return None
+    return order
+
+
 def classify(diff: str) -> Cause:
     """Which cause does this residual's diff indicate?
 
