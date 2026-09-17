@@ -60,6 +60,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import json
 import os
 import sqlite3
 import subprocess
@@ -159,16 +160,81 @@ def tests() -> int:
     return 0
 
 
+def uncounted(build_tree: Path, results: Path) -> dict:
+    """Verified matches that THIS module cannot count, reported so they stop being invisible.
+
+    Two independent mechanisms, both measured 2026-09-17, both of which leave the headline unchanged
+    while producing real evidence:
+
+    `function_exact`  The per-attempt certificate carries `function_boundary.function_exact`, a
+                      ROM-backed byte comparison of the function's own extent and its external call
+                      relocations. `exact` is the OBJECT-SECTION verdict instead, and for a
+                      single-function candidate compiled against a TU object holding more than that
+                      function, the section test is structurally unsatisfiable -- measured on rmonPrintf,
+                      28 B of function against a 48 B .text, so +20 bytes that are neither padding nor
+                      this function. These are NOT added to `solved`; the tier question is the
+                      operator's, and this row exists so it is asked with a number.
+
+    `fresh_cohort`    `eval/experiments/campaign-gap-audit/fresh_run_v1.py` writes its own ledger
+                      (`nodes`, not the attempts table), so a cohort run that produces object-exact
+                      functions moves nothing here. Measured on v9: 2 of 12 cold functions exact
+                      (`alMainBusNew`, `waitStartupRumbleInit`) and this module's output byte-identical
+                      before and after. The row counts EVERY `failure-coverage-fresh-paired-*` ledger,
+                      so it accumulates across versions and is NOT de-duplicated against the knowledge
+                      base or against functions later closed by another route -- read it as an upper
+                      bound on the backlog, not as a count of matches.
+
+    Deliberately NEVER summed into `exact` or `solved`. Counting more is not the same as measuring
+    more, and a number that grows without a tier behind it is the failure this module was written to
+    prevent.
+    """
+    functions: set[str] = set()
+    tree = build_tree / "nonmatchings"
+    if tree.is_dir():
+        for path in tree.glob("*/*.verification.json"):
+            try:
+                d = json.loads(path.read_text())
+            except (OSError, ValueError):
+                continue
+            if d.get("kind") != "mips_object_section_certificate" or d.get("exact"):
+                continue
+            if (d.get("function_boundary") or {}).get("function_exact"):
+                functions.add(path.parent.name)
+    cohort: dict[str, str] = {}
+    for path in sorted(results.glob("failure-coverage-fresh-paired-*.json")):
+        try:
+            d = json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+        nodes = d.get("nodes") or {}
+        # `nodes` is a mapping of function NAME to node, and the name is the key -- reading only the
+        # node body found nothing. The exact flag is also a boolean on the node (`object_exact`), not
+        # only a state string, which is why the first two attempts at this row reported 1 and 0.
+        pairs = nodes.items() if isinstance(nodes, dict) else ((None, n) for n in nodes)
+        for key, node in pairs:
+            if not isinstance(node, dict):
+                continue
+            state = node.get("state") or node.get("status")
+            name = key or node.get("function") or node.get("name")
+            if name and (node.get("object_exact") or state == "object_exact"):
+                cohort[str(name)] = path.name
+    return {"function_exact": sorted(functions), "fresh_cohort": cohort}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", type=Path,
                     default=Path.home() / "decomp/kb-sbk1.sqlite")
+    ap.add_argument("--build-tree", type=Path, default=Path.home() / "decomp/sbk1")
+    ap.add_argument("--results", type=Path,
+                    default=Path(__file__).resolve().parents[1] / "eval/results")
     ap.add_argument("--check", action="store_true",
                     help="exit non-zero if CLAUDE.md's match count is stale")
     args = ap.parse_args()
 
     c = counts(args.db)
     n_tests = tests()
+    extra = uncounted(args.build_tree, args.results)
 
     print(f"| functions byte-exact | **{c['exact']}** of {c['attempted']} attempted |")
     print(f"| — of which SOLVED | **{c['solved']}** |")
@@ -179,6 +245,20 @@ def main() -> int:
     print(f"| evidence rows | {c['evidence']:,} |")
     print(f"| **inference rows** | **{c['inference']}** |")
     print(f"| tests | {n_tests} |")
+    print()
+    print("Not counted above, and never added to it -- each is a different claim:")
+    print(f"| ROM-backed FUNCTION-exact, object section differs | "
+          f"**{len(extra['function_exact'])}** |")
+    print(f"| fresh-cohort object-exact in the campaign's own ledgers | "
+          f"**{len(extra['fresh_cohort'])}** |")
+    if extra["function_exact"]:
+        print(f"\n  function-exact: {', '.join(extra['function_exact'])}")
+    if extra["fresh_cohort"]:
+        named = ", ".join(sorted(extra["fresh_cohort"]))
+        print(f"  fresh-cohort:  {named}")
+    print("\n(Neither row is a capability number. `SOLVED` is the only one, and the tier question for"
+          "\n the first row is recorded in eval/status.py's SECOND KNOWN GAP and in"
+          "\n eval/results/function-cert-20260917/RESULT.md.)")
     if c["exact_disk_only"]:
         print(f"\n({c['exact_disk_only']} verified match(es) exist only as files "
               f"in matched_recovered/ and are absent from the attempts table --"
