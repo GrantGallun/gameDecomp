@@ -171,6 +171,29 @@ That is the classic silent decline and it is the next step, stated precisely: **
 drafts through `compile_recovery`'s typedecl/globals/byte-index machinery rather than through
 `repair_context.normalize`**, which is a wiring job, not a research question.
 
+### Round 3: the wiring is half done, and the other half has a name
+
+`do_base_rescore` now calls `solver.compile_recovery.variants` FIRST and only falls back to
+`repair_context.normalize`. That path produces 12–14 stages per draft and converts
+`__osContRamRead` (admitted by `assembly-byteview-redraft`, score 50.611) where `normalize` alone
+converted 0 of 30. On the 7 that still fail the stages are populated and the terminal error is
+unchanged `Syntax Error` / `Empty declaration specifiers`.
+
+The registry maps those to `typedecl` and `byte-index`. Tracing the callers of `solver/typedecl.py`:
+
+| caller | what it does |
+|---|---|
+| `compilefix.refine` | reads `pointer_parameters` / `declared_in` to CLASSIFY the error |
+| `compile_obligations` | runs `typedecl.plan` + `.apply` for the `opaque-parameter-layout` stage |
+| `eval/zero_token_harvest.py` | runs `typedecl.synthesize` + `typepool` via `repair_chain` / `harvest_one` |
+
+So the applier for the dominant class is **`eval/zero_token_harvest.py`**, and nothing in
+`compile_recovery.variants` reaches it. That is the missing link, and it is consistent with the
+knowledge base: the strategies carrying the most ban-refused attempts are
+`zero-token-m2c-harvest-m2c` (411) and `zero-token-m2c-harvest` (8) — the harvest path is the one that
+was producing candidates for exactly these functions, and the ban refused its output.
+**Next step: drive `zero_token_harvest.repair_chain` / `harvest_one` over the 166 drafts.**
+
 ## Reproduce
 
 ```bash

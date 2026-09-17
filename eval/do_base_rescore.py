@@ -76,25 +76,46 @@ def run_one(conn, repo: Path, name: str, *, repair: bool, admit: bool = True) ->
         # specifiers`, which is an admission wall and not the `do` wall.
         if not admit:
             return row
-        from solver import repair_context
-        for label, candidate in repair_context.normalize(draft, att.compiler_stderr or "", name):
+        # `repair_context.normalize` is NOT the admission applier: it covers only C89 spellings and the
+        # void-pointer byte-arithmetic families, and it returns NOTHING for
+        # `Syntax Error/contradicted-primitive-pointer` (drawCourseRecordBanner) or only a `c89` variant
+        # for `Syntax Error/undeclared-param-type` (drawCharacterSelectCourseListOptions) -- the two
+        # classes that dominate this population. The registered fixes for those are `byte-index`,
+        # `typedecl` and `globals`, applied by `solver.compile_recovery.variants`. Route there first.
+        admitted = None
+        try:
+            from solver import compile_recovery
+            rows, reports = compile_recovery.variants(conn, repo, name, ws, draft, att)
+            row["recovery_stages"] = [r.get("stage") for r in reports if isinstance(r, dict)]
+            admitted = rows
+        except Exception as exc:                                         # noqa: BLE001
+            row["recovery_error"] = f"{type(exc).__name__}: {exc}"
+            admitted = None
+        if not admitted:
+            from solver import repair_context
+            admitted = list(repair_context.normalize(draft, att.compiler_stderr or "", name))
+            row["admitted_via"] = "repair_context.normalize"
+        else:
+            row["admitted_via"] = "compile_recovery.variants"
+        for label, candidate in admitted:
             fixed = workspace.score(ws, repo, name, candidate, conn=conn, func=name,
-                                    strategy=f"do-base-rescore:normalize:{label}", iteration=0,
-                                    run_kind="do-base-rescore")
+                                    strategy=f"do-base-rescore:{label}", iteration=0,
+                                    run_kind="do-base-rescore", parent_attempt_id=att.receipt_id,
+                                    relation="do-base-rescore")
             if not fixed.compiled:
                 continue
             row.update(compiled=True, score=fixed.score, profile=profile_of(fixed),
-                       admitted_by=label, status="compiled" if not fixed.exact else "exact",
-                       draft=att, source=candidate)
+                       admitted_by=label, status="compiled",
+                       error=None)
             if fixed.exact:
-                row["exact"] = True
-                row["exact_source"] = candidate
+                row.update(exact=True, status="exact", exact_source=candidate)
                 return row
             draft, att = candidate, fixed
             break
         else:
+            row["admission"] = "no candidate compiled"
             return row
-    row.setdefault("draft", att)
+    row["admitted_source"] = draft
     row["status"] = "compiled"
     if not repair:
         return row
