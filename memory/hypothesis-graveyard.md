@@ -414,13 +414,14 @@ Created: 2026-08-29
     evidence that a register changed. Use `regalloc_signature.Report.renames` to tell the readings
     apart.
 - Still open, and now explained: which source shape makes IDO emit the first of two saved-register
-  writes into the LOWER register. uopt's own trace says the two are locked: colour is assigned in
-  descending `adjsave` and the emission order is the reverse of that ranking, so inside one block the
-  first-emitted value always takes the higher register. Baseline tileIndex adjsave 14.4 -> s3, offset
-  17.0 -> s2 (emission tileIndex, offset); best tileIndex 18.0 -> s2, offset 17.0 -> s3 (emission
-  offset, tileIndex). The target needs tileIndex both first and in s2, which is impossible in one
-  block -- so the falsifiable prediction is a BLOCK BOUNDARY between the target's two
-  zero-initialisations. HYPOTHESIS on two compiles, `confirmed_on=[]`, routes nothing; see
-  `patterns/catalog.py` `saved-colour-follows-adjsave-and-locks-emission-order` and
+  writes into the LOWER register. uopt's own trace shows colour is assigned in descending `adjsave`
+  and that in both measured compiles the emission order is the reverse of that ranking: baseline
+  tileIndex adjsave 14.4 -> s3, offset 17.0 -> s2 (emission tileIndex, offset); best tileIndex 18.0
+  -> s2, offset 17.0 -> s3 (emission offset, tileIndex). Two compiles cannot separate two readings,
+  and both are kept: either the orders are locked and the target's two zero-initialisations must be in
+  DIFFERENT blocks (it needs the tile index both first and in s2), or the u-code order is an
+  independent lever and a source shape flips it while leaving the adjsave ranking alone. HYPOTHESIS,
+  `confirmed_on=[]`, routes nothing; see `patterns/catalog.py`
+  `saved-colour-follows-adjsave-and-locks-emission-order` and
   `eval/results/rename-wall-20260917/adjsave_probe.py`.
 - Linked ideas: HYP-20260914-01
