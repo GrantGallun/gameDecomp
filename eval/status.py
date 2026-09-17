@@ -226,6 +226,21 @@ def uncounted(build_tree: Path, results: Path) -> dict:
                 functions.add(path.parent.name)
             else:
                 narrow.add(path.parent.name)
+    # Re-certification receipts, written by eval/function_exact_v3_recertify.py BESIDE the originals
+    # (never over them -- the evidence tier is immutable). A function whose schema-1 scope was
+    # "external call relocations only" is moved into the counted row when the broader check -- function
+    # bytes, rodata read by the function, absolute-address literals, each resolved against the ROM --
+    # has since been asked and passed.
+    if tree.is_dir():
+        for path in tree.glob("*/*.recertified.json"):
+            try:
+                d = json.loads(path.read_text())
+            except (OSError, ValueError):
+                continue
+            if d.get("function_exact") and d.get("schema_version", 0) >= 2:
+                name = path.parent.name
+                functions.add(name)
+                narrow.discard(name)
     cohort: dict[str, str] = {}
     for path in sorted(results.glob("failure-coverage-fresh-paired-*.json")):
         try:
