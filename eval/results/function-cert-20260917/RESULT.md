@@ -99,7 +99,38 @@ tool to re-derive it: `eval/function_certificate_census.py`.
 right — a ROM-backed per-function byte comparison, distinct from both the object-section tier and the
 whole-ROM tier. If yes, it is 11 functions today and the tool re-measures the population on demand.
 
-## Reproduce
+## 5. The audit: is the extra `.text` padding, or code?
+
+`ws/target.o` is not a single-function object. Measured directly:
+
+| function | KB function size | target `.text` | delta | normalized dump |
+|---|---:|---:|---:|---:|
+| `osSpTaskStartGo` | 64 B (16 insn) | **80 B** (0x50) | +16 | 15 lines |
+| `rmonPrintf` | 28 B (7 insn) | **48 B** (0x30) | **+20** | 7 lines |
+| `updateRaceCameraMenuPreview` | 32 B (8 insn) | **48 B** (0x30) | +16 | 7 lines |
+| `drawMainMenuModeSelectMenuOptions` | 816 B (204 insn) | **816 B** (0x330) | 0 | 203 lines |
+
+**The deltas are not always alignment.** `+16` on `osSpTaskStartGo` is consistent with four trailing
+nops (its normalized dump has 3 in-body nops and `strip_padding` removes the `jr ra` delay slot, so
+15 dump lines + the stripped delay slot = the 16-instruction function). But `rmonPrintf` is `+20` —
+**five instructions, not a 16-byte multiple** — so `target.o`'s `.text` holds material that is not
+padding and is not this function.
+
+So the two shapes have different explanations, and only one of them is the documented
+"compiler padding rather than code" unreachability:
+
+* **size mismatch** (`osSpTaskStartGo`, `rmonPrintf`, `updateRaceCameraMenuPreview`,
+  `updateRacePlayerPostUpdateAttack`, `calculateFixedAngleBetweenXZPoints`): the section verdict
+  compares a SINGLE-FUNCTION candidate against a TU object that contains more than the function. It is
+  **structurally unsatisfiable** for those functions however good the C is.
+* **equal size** (`drawMainMenuModeSelectMenuOptions` 816=816, `func_8005905C` 1216=1216,
+  `initControllerPakFileDeleteFlow`, `initMainMenu`, `initRaceTypeSelectMenu`): extent matches, so the
+  difference is relocation or composition, and `relocation_order_equivalent` is False on every one.
+
+**This does not by itself settle the tier question**, and it does not promote anything. What it does
+establish is that for at least the size-mismatch subset the object-section flag cannot be the right
+test — `function_boundary.certify` was written for exactly that, and on those functions it returns
+`function_exact: true` with scope *"annotated function bytes and external call relocations only"*.
 
 ```bash
 python3 eval/order_class_census.py --out eval/results/order-class-20260917.json
