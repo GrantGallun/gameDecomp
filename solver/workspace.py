@@ -637,7 +637,18 @@ def score(ws: Path, repo: Path, name: str, code: str, conn=None,
             # against `%lo(D_800E08B8)`, or a hardware literal against a register
             # symbol) can still link to the ROM's bytes: let the ROM-backed
             # certificate decide instead of never asking it.
-            if normalized_exact or operand_only_diff(diff_text):
+            # A HUNKLESS diff is the STRONGEST case for certification, not an exclusion. This gate
+            # used to require `normalized_exact or operand_only_diff(diff_text)`, and
+            # `operand_only_diff` examines the diff's changed lines -- so an EMPTY diff returns False
+            # and the candidate is never certified. But an empty diff on a compiling attempt means the
+            # normalized dumps are identical while the build script still reported not-exact, which is
+            # exactly the relocation/operand-spelling class the ROM-backed certificate exists for.
+            # Measured 2026-09-17 on osSpTaskStartGo (attempt 28843, score 100.0, empty diff, all six
+            # fault axes zero): never certified, so never counted. Certifying more candidates is safe
+            # by construction -- `byte_certificate.certify` IS an object/ROM comparison, so it can only
+            # find a real match, never fabricate one.
+            hunkless = not any(line.startswith("@@") for line in diff_text.splitlines())
+            if normalized_exact or operand_only_diff(diff_text) or hunkless:
                 build_inputs = {}
                 paths = [ws / "build.sh", ws / "prelude.inc", repo / "Makefile",
                          repo / "tools/textconv.py", repo / "tools/charmap.txt"]
