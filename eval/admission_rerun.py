@@ -270,6 +270,33 @@ def attempt_one(conn, repo: Path, endpoint: str, model: str, func: str, *,
     return row
 
 
+def single_instance_lock(out: Path):
+    """Refuse to start a second run against the same output directory. Returns the held handle.
+
+    Two processes were started by accident on 2026-09-16 (an earlier launch that looked killed was
+    still alive). They competed for one inference slot and both wrote the SAME `state.json`, each
+    holding a dict loaded at its own start and saving the whole thing -- so entries from one process
+    were silently overwritten by the other. Atomic writes prevent corruption, not lost work.
+
+    Non-blocking on purpose: a second invocation should say so and exit, not queue behind the first.
+    Degrades to a no-op where flock is unavailable, matching `solver/workspace.py`.
+    """
+    handle = open(out / ".run.lock", "w")
+    try:
+        import fcntl
+    except ImportError:
+        return handle
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        raise SystemExit(
+            f"another admission_rerun is already writing {out} "
+            f"(lock held on {out / '.run.lock'}). Two runs would race on state.json and one "
+            f"would silently overwrite the other's entries.")
+    return handle
+
+
 def summarise(rows: list[dict]) -> dict:
     compiled = [r for r in rows if r.get("compiled")]
     exact = [r for r in rows if r.get("exact")]
@@ -394,6 +421,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     args.out.mkdir(parents=True, exist_ok=True)
+    _lock = single_instance_lock(args.out)          # held for the process lifetime
     state_path = args.out / "state.json"
     state = {} if args.redo else load_state(state_path)
 
