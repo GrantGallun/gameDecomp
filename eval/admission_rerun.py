@@ -90,7 +90,8 @@ def save_state(path: Path, state: dict) -> None:
 
 
 def attempt_one(conn, repo: Path, endpoint: str, model: str, func: str, *,
-                temperature: float, declarations: bool, draws: int) -> dict:
+                temperature: float, declarations: bool, draws: int,
+                timeout: int = 900) -> dict:
     """One function: draft, prompt, generate, extract, compile, log. Never raises."""
     row: dict = {"function": func, "model": model, "draws": [], "status": "ok"}
     t_start = time.time()
@@ -120,7 +121,7 @@ def attempt_one(conn, repo: Path, endpoint: str, model: str, func: str, *,
         t_draw = time.time()
         try:
             text, meta = llm.generate(endpoint, model, prompt, temperature=temperature,
-                                      timeout=900, prefill=pipeline.PREFILL)
+                                      timeout=timeout, prefill=pipeline.PREFILL)
         except Exception as exc:                                    # noqa: BLE001
             row["draws"].append({"draw": draw, "outcome": "generate-failed",
                                  "error": f"{type(exc).__name__}: {exc}"})
@@ -288,6 +289,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--temperature", type=float, default=0.7)
     ap.add_argument("--max", type=int, default=0, help="0 = whole population")
     ap.add_argument("--seconds", type=float, default=0.0, help="0 = no wall-clock cap")
+    ap.add_argument("--timeout", type=int, default=900,
+                    help="per-generation timeout. Lower it to make a stalled request surface as a "
+                         "recorded failure instead of a silent 15-minute gap: a hung draw and a slow "
+                         "one are indistinguishable from outside, which is the 'silent decline' shape "
+                         "this project keeps catching")
     ap.add_argument("--declarations", action="store_true",
                     help="OFF by default: turning it on makes matches header-assisted, "
                          "which CLAUDE.md requires be reported separately from SOLVED")
@@ -325,7 +331,8 @@ def main(argv: list[str] | None = None) -> int:
                 break
             row = attempt_one(conn, args.repo, endpoint, model, func,
                               temperature=args.temperature,
-                              declarations=args.declarations, draws=args.draws)
+                              declarations=args.declarations, draws=args.draws,
+                              timeout=args.timeout)
             state[key] = row
             save_state(state_path, state)
             done += 1
