@@ -25,6 +25,41 @@ primitive pointer views, verified by target load/store offsets and widths.
 
 ## Progress
 
+Recursive-improvement rounds 4-8 (2026-09-17). The cohort mechanism was bound by SELECTION, not by the
+pipeline. Measured object-exact per cold cohort, zero model calls throughout:
+
+| per-stratum | cohort | exact | rate |
+|---|---:|---:|---:|
+| 1 | 9 | 0 | 0% |
+| 3 | 24 | 4 | 17% |
+| 5 | 36 | 6 | 17% |
+| 8 | 48 | 12 | 25% |
+| 12 | in flight (v16, v17) | | |
+
+Widening the selection does not dilute it -- the rate RISES, because the extra functions come from
+strata the narrow selector never reached. `per_stratum_per_batch = 1` had been sampling a closing
+stratum set while 1,611 functions had still never been attempted.
+
+**A cohort's exacts are invisible until reconciled.** `fresh_run_v1.py` writes its own ledger and never
+touches kb-sbk1.sqlite, so three separate veins of finished, verified work were sitting outside every
+count: 22 in the fresh-paired ledgers, 4 in rom-paired, 16 more from v12+v13, 12 from v14, 2 from v15 --
+**56 matches** that existed and were not counted. `eval/cohort_reconcile.py` recompiles each candidate
+through the ordinary path and logs it; nothing is taken on a ledger's word. Every one of the 56
+reproduced at score 100.0.
+
+TWO PROCESS RULES, both learned the hard way here:
+
+* **One cohort run at a time.** Two were in flight at once and shared the build workspaces under
+  `~/decomp/sbk1/nonmatchings/`, which slows both. Ledgers and code freezes are separate, so no result is
+  corrupted -- exactness is the object comparison's verdict either way -- but the wall time is wasted.
+* **A missing `summary` is not an empty cohort.** The ledger JSON is written incrementally, so reading it
+  mid-write yields an absent summary. That was misread as "the selector is exhausting its stratum space"
+  and reported as a finding before a settled read showed `n=24`. Fifth receipt-read-too-early error of
+  the session; readers should say which they saw.
+
+`eval/ledger_inventory.py`'s "783 uncounted across 91 ledgers" was the loose matcher talking, confirmed
+by three reconciles that each returned zero. The real ledgers were fresh-paired and rom-paired.
+
 Freshv6 validation launched with current frozen code and zero modelcalls; preflight
 integrity passed,638knownexposures201selectionreceipts filtered. Run result pending.
 Do not infer fresh success from original31/31 frontendreplays.
