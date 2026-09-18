@@ -179,11 +179,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.functions:
         names = [n.strip() for n in args.functions.split(",") if n.strip()]
     else:
-        names = [n.name for n in sorted((args.repo / "nonmatchings").iterdir())
+        # Workspace directories may carry a numeric suffix (`__MusIntPowerOf2-2`), and
+        # `workspace.bootstrap` refuses anything but `[A-Za-z_]\w*` -- so the FUNCTION name is the
+        # directory name with the suffix removed. Taking the directory name verbatim raised
+        # `ValueError: invalid function identifier` on those and skipped them; measured on the first
+        # pass, which is how this was found.
+        names = [re.sub(r"-\d+$", "", n.name) for n in sorted((args.repo / "nonmatchings").iterdir())
                  if (n / "base.c").is_file()
                  and not conn.execute(
                      "select 1 from attempts a join functions f on f.addr = a.func_addr "
-                     "where f.name = ? and a.compiled = 1 limit 1", (n.name,)).fetchone()]
+                     "where f.name = ? and a.compiled = 1 limit 1",
+                     (re.sub(r"-\d+$", "", n.name),)).fetchone()]
     if args.limit:
         names = names[:args.limit]
     print(f"never-compiling functions with an m2c draft: {len(names)}", flush=True)
