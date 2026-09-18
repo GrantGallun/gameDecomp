@@ -1,5 +1,28 @@
 # Rounds 6–7: the selector is NOT exhausting, and I misread a partially-written file
 
+## v15 finished — nothing new, and one independent replication
+
+`run_cohorts_r5.sh` completed. v15 batch 2: 24 cohort functions, **5 object-exact**, 1
+`function_exact_pending_integration`, 1 parked, status `awaiting_integration` (every other cohort ended
+`stalled_requires_new_strategy_or_evidence`). The closing reconcile returned **19 nodes, all
+`already-counted`** — every one had been picked up by the mid-run reconciles in rounds 6 and 9, which is
+what reading a running ledger buys. Ratchet unchanged at 287 / 221.
+
+**The one node in the new state is `drawMainMenuModeSelectMenuOptions`**, and it is already in the
+counted function-exact tier. Its certificate, produced independently by this fresh cohort:
+
+    verification status      object_sections_differ
+    exact                    False
+    function_boundary        exact=True, schema=2, function_exact_pending_integration
+
+That is the same verdict my own schema-2/3 audit reached, from a different run, on a different source
+path. **Independent replication of the function-exact tier**, which matters because the tier's whole
+justification is that the object-section test is unsatisfiable for a single-function candidate — and here
+the campaign reached that conclusion on its own, twice.
+
+Nothing here changes a number. It does mean the tier is not an artefact of one compile, and it is the
+second time a fresh cohort has re-derived a verdict my tooling had already certified.
+
 ## Banked
 
 v15 batch 1 reconciled for **+2**, both reproduced at 100.0 through the ordinary path:
