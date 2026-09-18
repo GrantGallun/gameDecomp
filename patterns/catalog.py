@@ -146,6 +146,21 @@ register(Pattern(
 ))
 
 register(Pattern(
+    id="declaration-and-order-mutation-search-is-inert",
+    name="Blind declaration and statement-order mutation closes nothing, while diff-READ order closes functions",
+    kind="review",
+    looks_like="A register-only or ordering residual where the search enumerates declaration permutations, single-statement moves or adjacent swaps and the gradient wanders without reaching [0,0,0].",
+    means="MEASURED 2026-09-17 over the whole knowledge base (`eval/family_yield.py`): the register search's declaration and order families cost thousands of attempts and closed NOTHING. `local_type` 5,403 attempts / 0 exact; `stmt_move` 5,719 / 0; `stmt_order` 1,586 / 0; `commutative` 3,479 / 1; `decl_order` 1,194 / 1. Twelve of fifteen families have zero exact closures in the corpus. The reference project measured the same thing independently and recorded it in DECOMPILATION_LEARNINGS.md (commits fd27a480, d5dcbb8e): for a symmetric value-kind grouping, declaration order, statement order, per-axis nested scopes, expression grouping, separate carrier variables and source-line layout were ALL inert, because uopt's v0/v1/a0/a1 group is assigned by value KIND rather than source order -- only the order WITHIN each pair follows source. The same note records 65 declaration-order permutations and 183 blank-line layouts with no effect. Against that: reading the target's order OFF THE DIFF and applying it whole closed Fstop (99.999 -> 100.0).",
+    prescription="Do not spend search budget on declaration permutations or on blind adjacent-swap enumeration for an allocation-shaped residual. The families are not worthless as GRADIENT steps -- a function usually needs several levers composed, and positional word mismatch is the gradient, so a family can be a necessary stepping stone while never landing the final object; the reference's own imported entry `ido-statement-order-is-an-allocation-lever` shows 24 permutations moving mismatches 271 -> 397 of 422. What is refuted is that they CLOSE anything on their own. Prefer (a) diff-read order where the instruction class carries an identifying operand (see `diff-read-permutation-needs-a-group-discriminator`), and (b) the admission and intake paths, which measure 11-14% per attempt against 0.02% for these families.",
+    confirmed_on=[
+        "census 2026-09-17, eval/family_yield.py over all 51,095 attempts: local_type 5,403/0, stmt_move 5,719/0, stmt_order 1,586/0, commutative 3,479/1, decl_order 1,194/1; 12 of 15 families with zero exact closures. eval/results/family-yield-20260917/RESULT.md",
+        "by strategy root, the same census: faultsearch-d2 2,478 attempts / 2 exact, zero-token-m2c-harvest-m2c 1,726/3, repair-pair 1,260/1 (5,464 attempts for 6 exacts) against campaign-intake 1,158/157 (13.6%) and zero-token-m2c-harvest-typedecl 154/18 (11.7%).",
+        "independent corroboration, reference DECOMPILATION_LEARNINGS.md commits fd27a480 and d5dcbb8e, imported as `ido-value-kind-colors-the-argument-group` and `ido-statement-order-is-an-allocation-lever`.",
+        "the positive half: Fstop closed exactly by reading the target's emission order off the diff (patterns/catalog.py `ordering-residual-states-the-statement-order`).",
+    ],
+))
+
+register(Pattern(
     id="split-byte-zero-test-load",
     name="An immediately tested byte load need not remain a named register web",
     kind="solver",
