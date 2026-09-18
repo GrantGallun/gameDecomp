@@ -62,6 +62,10 @@ def cohort_nodes(results: Path, pattern: str = "failure-coverage-fresh-paired-*.
             d = json.loads(path.read_text())
         except (OSError, ValueError):
             continue
+        if not isinstance(d, dict):
+            # `impact-20260912/*.json` and friends are list-rooted. They are not ledgers; skip rather
+            # than crash, which is what the first version did.
+            continue
         nodes = d.get("nodes") or {}
         pairs = nodes.items() if isinstance(nodes, dict) else ((None, n) for n in nodes)
         for key, node in pairs:
