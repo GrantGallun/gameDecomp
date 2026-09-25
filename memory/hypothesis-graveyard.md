@@ -425,3 +425,11 @@ Created: 2026-08-29
   `saved-colour-follows-adjsave-and-locks-emission-order` and
   `eval/results/rename-wall-20260917/adjsave_probe.py`.
 - Linked ideas: HYP-20260914-01
+
+### HYP-20260924-01: The reference's local-type changes, localized to width residuals by the compiler's line records, yield new type rules (draft type at a residual -> reference type).
+- Status: Refuted on the mining split (null); two sub-leads withdrawn
+- Tested: 2026-09-24
+- Test: `eval/results/width-mining-20260924/` (PROTOCOL.md first). 500 draft/reference mining pairs (population and sealed sets excluded) recompiled with `source_attribution.prepare` line capture; target/draft aligned; width events (sll sra srl andi lb lbu lh lhu sb sh) paired to the single primitive variable, or the assigned one, on each side's line; clone families collapsed.
+- Evidence: 4,485 events, 904 paired (20%). 0 type-changing rule candidates (9 candidates, all keep the draft type). Positive control untestable (n < 8). Type changed on 40% of paired events; post hoc, the changes widen s16/u8 to s32 (20/27 on shift residuals), which is the existing `ido53-narrow-local-mask` / evidence_site retype.
+- Decision: the function-level co-occurrence (319/504 pairs differ in local types, `draft-reference-mining-20260924/scope.py`) does not localize and overstated the lever. Do not build a local-type width mechanism beyond evidence_site. Also withdrawn the same day: the switch association (one clone family, `draft-reference-mining-20260924/dedup.py`), and `register` at -O2 (inert, 36/36 identical; `register-o2-20260924`). The mining's -O1 `register` lead held (two exacts).
+- Linked ideas: eval/results/draft-reference-mining-20260924, eval/results/register-o2-20260924

@@ -1,0 +1,17 @@
+{
+ "binary_context.py": "606b1393ae1de58b3c727f28c3ae377e52762b6df0924298d908f35fe6f3d4f0",
+ "run_binary.py": "47a7a61da67b6e297cecb528ffa60a7a9720cb17b3a0c89371ca2060ec17b523",
+ "ablate.py": "2e688a84cbef2e591f3ccc096c4d7a14e33c668b2638283d316eacad48c3c690",
+ "identity.py": "d7725bfc5d8760e9293145b5e5048f61adefa4c88f2190e40db3dabb9185a03e",
+ "score.py": "3f51985b53af30112fad8e0ca8a537d2ee9274fd0846409e46be27ec2f8a1176",
+ "score.json": "343c0b1734898206a2908112267bf0df4e18ca3e3eada0220a639e353f89d870",
+ "facts.json": "d7a558d0290389cd23129bdbec106acccc5242f25d4a2e574b29a0e34e914c2a",
+ "chosen_variant": "D32",
+ "dev_result_clean_prelude": {
+  "exact": 34,
+  "compiled": 60,
+  "not_compiled": 56,
+  "n": 150
+ },
+ "note": "re-frozen after A6 (clean prelude); first CHECK run stopped unread"
+}

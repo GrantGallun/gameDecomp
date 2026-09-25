@@ -4560,3 +4560,23 @@ Standalone tools; none is called by the pipeline yet. Receipts under `eval/resul
 `tools/n64_corpus.extract_functions` skipped any function preceded by a preprocessor directive
 (119 SBK1, 18 SBK2 functions); fixed with `_after_directives`. It still abandons the rest of a
 file when conditional branches leave braces unbalanced (DKR menu.c/objects.c).
+
+## September 24: -O1 register locals (wired) and binary-derived type contexts (NOT wired)
+
+**Wired:** `solver.branch_shape.o1_register_saved` is a `branch_shape.families()` member, so it reaches every caller of
+`solver.regalloc_mutations.variants`. Gate: recipe `C_OPT == -O1` and a callee-saved save (`-sw sN`) in the target
+that the candidate lacks; it marks locals `register` (m2c's register-named local first) with and without a
+pipeline `framePad`. Rule `ido53-o1-register-local-saved` (catalog): at -O2 `register` is inert (36/36 ablation), so
+the family never proposes it there. Tests: `tests/test_branch_shape.py` (fires on `__osSetGlobalIntMask`, declines at
+-O2 and without the save). The paired population rerun that normally precedes wiring was NOT run.
+Receipts 95897/95899; `eval/results/register-o2-20260924/`.
+
+**Not wired (experiment scripts only):** binary-derived type contexts. Chain: `eval/results/struct-identity-20260924/
+identity.py` (binary dataflow facts: CFG meet, table elements) -> `score.py` (union-find with structural merge,
+variant chosen on FIT) -> `eval/results/context-ablation-20260924/binary_context.py` (per-function declarations:
+`T<n>` structs at observed offsets, binary-arity prototypes, globals by ELF extent, stride arrays) -> m2c with that
+context behind a clean public prelude -> standalone compile. Capability runs 1-3 and the gate/search follow-ups are in
+`eval/results/binary-types-capability-20260924/` (recorded strategies `binary-types*-20260924:source-independent`).
+Nothing in `solver/workspace.m2c_draft`, intake or the campaign uses it yet. Wiring it means: facts regenerated from
+the ELF, a draft route next to the assembly-only one, and its own tests (fires on a known function, declines when the
+identity facts are missing).

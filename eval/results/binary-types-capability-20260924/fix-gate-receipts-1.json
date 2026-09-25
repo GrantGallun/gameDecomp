@@ -1,0 +1,218 @@
+{
+ "counts": {
+  "new-object-exact": 38,
+  "no-object-exact-source": 5
+ },
+ "results": [
+  {
+   "function": "drawCharacterSelectCourseListCursor",
+   "status": "new-object-exact",
+   "receipt_id": 96279
+  },
+  {
+   "function": "drawCharacterSelectCourseRecordsFrame",
+   "status": "new-object-exact",
+   "receipt_id": 96280
+  },
+  {
+   "function": "drawCharacterSelectCourseTitleCursor",
+   "status": "new-object-exact",
+   "receipt_id": 96281
+  },
+  {
+   "function": "drawCourseSelectCourseListBackdrop",
+   "status": "new-object-exact",
+   "receipt_id": 96282
+  },
+  {
+   "function": "drawEndingCreditsCharacterAura",
+   "status": "new-object-exact",
+   "receipt_id": 96283
+  },
+  {
+   "function": "drawEndingCreditsCharacterLoopingSparkle",
+   "status": "new-object-exact",
+   "receipt_id": 96284
+  },
+  {
+   "function": "drawEndingCreditsCharacterVanishPoof",
+   "status": "new-object-exact",
+   "receipt_id": 96285
+  },
+  {
+   "function": "drawEndingCreditsDelayedSparkle",
+   "status": "new-object-exact",
+   "receipt_id": 96286
+  },
+  {
+   "function": "drawEndingCreditsIdleSparkle",
+   "status": "new-object-exact",
+   "receipt_id": 96287
+  },
+  {
+   "function": "drawEndingCreditsNancyRunDust",
+   "status": "new-object-exact",
+   "receipt_id": 96288
+  },
+  {
+   "function": "drawEndingCreditsPhaseAdvanceSparkle",
+   "status": "new-object-exact",
+   "receipt_id": 96289
+  },
+  {
+   "function": "drawEndingCreditsSlashRisingStar",
+   "status": "new-object-exact",
+   "receipt_id": 96290
+  },
+  {
+   "function": "drawEndingCreditsSmallBurst",
+   "status": "new-object-exact",
+   "receipt_id": 96291
+  },
+  {
+   "function": "drawEndingCreditsTheEndText",
+   "status": "new-object-exact",
+   "receipt_id": 96292
+  },
+  {
+   "function": "drawEndingCreditsTommySnowmanEntrance",
+   "status": "new-object-exact",
+   "receipt_id": 96293
+  },
+  {
+   "function": "drawMainMenuModeIconFlash",
+   "status": "new-object-exact",
+   "receipt_id": 96294
+  },
+  {
+   "function": "drawMainMenuModeSelectMenuOptions",
+   "status": "no-object-exact-source"
+  },
+  {
+   "function": "drawRaceCountdownGoPrompt",
+   "status": "new-object-exact",
+   "receipt_id": 96295
+  },
+  {
+   "function": "drawRaceCountdownReadyPrompt",
+   "status": "new-object-exact",
+   "receipt_id": 96296
+  },
+  {
+   "function": "drawRaceSetupCornerPrompts",
+   "status": "new-object-exact",
+   "receipt_id": 96297
+  },
+  {
+   "function": "drawRaceSetupOnePlayerOption",
+   "status": "new-object-exact",
+   "receipt_id": 96298
+  },
+  {
+   "function": "drawRaceSplitscreenSelectCursor",
+   "status": "new-object-exact",
+   "receipt_id": 96299
+  },
+  {
+   "function": "drawRaceSplitscreenSelectPortrait",
+   "status": "new-object-exact",
+   "receipt_id": 96300
+  },
+  {
+   "function": "drawRaceUiResultAwardBadge",
+   "status": "new-object-exact",
+   "receipt_id": 96301
+  },
+  {
+   "function": "drawShopMenuDescriptionText",
+   "status": "new-object-exact",
+   "receipt_id": 96302
+  },
+  {
+   "function": "drawShopMenuModeCursor",
+   "status": "new-object-exact",
+   "receipt_id": 96303
+  },
+  {
+   "function": "drawShopMenuSidePanel",
+   "status": "new-object-exact",
+   "receipt_id": 96304
+  },
+  {
+   "function": "drawThreePlayerHudDivider",
+   "status": "new-object-exact",
+   "receipt_id": 96305
+  },
+  {
+   "function": "drawTitleMenuSparkle",
+   "status": "new-object-exact",
+   "receipt_id": 96306
+  },
+  {
+   "function": "drawTitleScreenStartPrompt",
+   "status": "no-object-exact-source"
+  },
+  {
+   "function": "drawTrickAttackChallengeLabels",
+   "status": "no-object-exact-source"
+  },
+  {
+   "function": "func_8005AE1C",
+   "status": "no-object-exact-source"
+  },
+  {
+   "function": "func_8005DB3C",
+   "status": "no-object-exact-source"
+  },
+  {
+   "function": "func_80062A10",
+   "status": "new-object-exact",
+   "receipt_id": 96307
+  },
+  {
+   "function": "func_800643B4",
+   "status": "new-object-exact",
+   "receipt_id": 96308
+  },
+  {
+   "function": "initControllerPakMessageIcon",
+   "status": "new-object-exact",
+   "receipt_id": 96309
+  },
+  {
+   "function": "initEndingCreditsTransitionLogoWipe",
+   "status": "new-object-exact",
+   "receipt_id": 96310
+  },
+  {
+   "function": "initEndingCreditsTransitionSnowboardIcon",
+   "status": "new-object-exact",
+   "receipt_id": 96311
+  },
+  {
+   "function": "initEndingCreditsTransitionSnowflakeIcon",
+   "status": "new-object-exact",
+   "receipt_id": 96312
+  },
+  {
+   "function": "initMenuIconTilemapSpriteActor",
+   "status": "new-object-exact",
+   "receipt_id": 96313
+  },
+  {
+   "function": "initRaceIntroBillboard",
+   "status": "new-object-exact",
+   "receipt_id": 96314
+  },
+  {
+   "function": "initTrainingCourseOpeningDialog",
+   "status": "new-object-exact",
+   "receipt_id": 96315
+  },
+  {
+   "function": "startCurrentRdpTask",
+   "status": "new-object-exact",
+   "receipt_id": 96316
+  }
+ ]
+}

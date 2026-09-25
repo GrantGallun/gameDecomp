@@ -1,0 +1,748 @@
+{
+ "counts": {
+  "new-object-exact": 100,
+  "not-confirmed": 7
+ },
+ "before": 833,
+ "after": 834,
+ "results": [
+  {
+   "function": "allocMenuRenderScratchBuffers",
+   "status": "new-object-exact",
+   "receipt_id": 96481,
+   "repairs": [],
+   "source_sha256": "1e6bfcd7880f0a5a68b3ac95947d94771503985855c1ca2465b3f736cc55cf1c"
+  },
+  {
+   "function": "drawFinalLapPromptForViewport",
+   "status": "not-confirmed"
+  },
+  {
+   "function": "drawRaceSetupNamePlate",
+   "status": "not-confirmed"
+  },
+  {
+   "function": "drawRaceUiBoardReversePrompt",
+   "status": "not-confirmed"
+  },
+  {
+   "function": "func_8005B49C",
+   "status": "new-object-exact",
+   "receipt_id": 96485,
+   "repairs": [],
+   "source_sha256": "5a70a9ed96bf31020409cab3e7222011f3a183cac7909aa583497043a448d0e7"
+  },
+  {
+   "function": "func_8005C89C",
+   "status": "new-object-exact",
+   "receipt_id": 96486,
+   "repairs": [],
+   "source_sha256": "09ade184bdc98ed40cad770395e7d38a74567e875d3f9e55d13212501d33842d"
+  },
+  {
+   "function": "func_8005CB74",
+   "status": "new-object-exact",
+   "receipt_id": 96487,
+   "repairs": [],
+   "source_sha256": "1a748d34a17e5a26e4075cd20de9aa43851ec04108e335222ed65e5806551b00"
+  },
+  {
+   "function": "initAudioDmaCallback",
+   "status": "new-object-exact",
+   "receipt_id": 96488,
+   "repairs": [],
+   "source_sha256": "4900290ec9e77c4d56b28c5f2efe2510d80623ef05507eacc600473e9939dbdc"
+  },
+  {
+   "function": "initCourseSelectCompletePanels",
+   "status": "new-object-exact",
+   "receipt_id": 96489,
+   "repairs": [],
+   "source_sha256": "ca36fbabe0905c18e75c1b310dfff562ceade8a83f6fdb6ed435c0599147f2ad"
+  },
+  {
+   "function": "initRaceUiHitPrizePayout",
+   "status": "new-object-exact",
+   "receipt_id": 96490,
+   "repairs": [],
+   "source_sha256": "d6df9af22213e69e1b6b88667011e9b29148ec5b9edc544ff9f8e43e35ba59bc"
+  },
+  {
+   "function": "osPiStartDma",
+   "status": "not-confirmed"
+  },
+  {
+   "function": "osRecvMesg",
+   "status": "not-confirmed"
+  },
+  {
+   "function": "osStopThread",
+   "status": "new-object-exact",
+   "receipt_id": 96493,
+   "repairs": [],
+   "source_sha256": "4258874a26e9a0c7b38ad3ea43873b2bdff9293b90df6ce6f35c7fa09ac77bc0"
+  },
+  {
+   "function": "osViBlack",
+   "status": "new-object-exact",
+   "receipt_id": 96494,
+   "repairs": [],
+   "source_sha256": "a06ada5175ef92ca4beae67e34d8518144f4be6df7373ce3da45279319fed707"
+  },
+  {
+   "function": "osViSetEvent",
+   "status": "not-confirmed"
+  },
+  {
+   "function": "osViSetMode",
+   "status": "new-object-exact",
+   "receipt_id": 96496,
+   "repairs": [],
+   "source_sha256": "71e449ad250cc0004de89ecfe86c559808878de4f0e9f8e4a97728552b9f5cdd"
+  },
+  {
+   "function": "osViSetSpecialFeatures",
+   "status": "new-object-exact",
+   "receipt_id": 96497,
+   "repairs": [],
+   "source_sha256": "141b02a1783e956a31c3f8d56464e3626e93bd0b98a8ea6bf56560440331567d"
+  },
+  {
+   "function": "osYieldThread",
+   "status": "new-object-exact",
+   "receipt_id": 96498,
+   "repairs": [],
+   "source_sha256": "9744d3b76238425fef56eb1991ab27b2748310842b92463c3bbd99dfefaea884"
+  },
+  {
+   "function": "renderRaceUiSparkle",
+   "status": "not-confirmed"
+  },
+  {
+   "function": "scrollMainMenuModeDescriptionPanelOut",
+   "status": "new-object-exact",
+   "receipt_id": 96501,
+   "repairs": [
+    "frontend_type:all"
+   ],
+   "source_sha256": "ba84d80be87fc54b7bc026cd9874fe9c2cecda88751f501bf2eb48d2ad1c6020"
+  },
+  {
+   "function": "updateCharacterSelectCourseConfirmCursor",
+   "status": "new-object-exact",
+   "receipt_id": 96502,
+   "repairs": [],
+   "source_sha256": "b0ea8fa71d0a46c3da074b018a3e5d8a079529a87107dcd5ac4975473749a7a9"
+  },
+  {
+   "function": "updateCharacterSelectRosterIcons",
+   "status": "new-object-exact",
+   "receipt_id": 96503,
+   "repairs": [],
+   "source_sha256": "852e96255c18b240aebacb156e669d9f281fe0aaf29dee3280b10221c6c7747e"
+  },
+  {
+   "function": "updateControllerPakRaceRecordSaveStatusChoicePrompt",
+   "status": "new-object-exact",
+   "receipt_id": 96504,
+   "repairs": [],
+   "source_sha256": "d3f7ca880bd55b19934491482d0291e5ad5cb3cc6927c0b11a32153be7ae31b5"
+  },
+  {
+   "function": "updateEndingCreditsSmallBurst",
+   "status": "new-object-exact",
+   "receipt_id": 96506,
+   "repairs": [
+    "frontend_type:all"
+   ],
+   "source_sha256": "c9fd4a53041a480946bcdb43fc5baa55fd9b1615b2bbfdf488267ca1e5b23afd"
+  },
+  {
+   "function": "updateEndingCreditsTommySnowmanEntrance",
+   "status": "new-object-exact",
+   "receipt_id": 96508,
+   "repairs": [
+    "frontend_type:all"
+   ],
+   "source_sha256": "316877f37c265b6ae6e2dc73dfcc19818a12f07d0d171852029a2dddd762ff7b"
+  },
+  {
+   "function": "updateEndingCreditsTumblingSnowboardSlideIn",
+   "status": "new-object-exact",
+   "receipt_id": 96509,
+   "repairs": [],
+   "source_sha256": "0995c9405a59369a4e06d3a3f64b6aab805123ddcf54011182ce0213da6eedc9"
+  },
+  {
+   "function": "updateEndingJamAfterVanishWait",
+   "status": "new-object-exact",
+   "receipt_id": 96510,
+   "repairs": [],
+   "source_sha256": "ae486308a10d26f287a86228de9aa264ffd51ffdb08bb75a23b0a3b043da0bad"
+  },
+  {
+   "function": "updateEndingJamDashOffLeftSetPhase31",
+   "status": "new-object-exact",
+   "receipt_id": 96511,
+   "repairs": [],
+   "source_sha256": "d81e1ffef3d515b35edb31414680d3ea898c44f291bf9ceecbe14c1dc1fb108c"
+  },
+  {
+   "function": "updateEndingJamExitLeftAfterPhase21",
+   "status": "new-object-exact",
+   "receipt_id": 96512,
+   "repairs": [],
+   "source_sha256": "54deab68a2ae8c6894e2e9ff27d00415fd27677b59fc914b1c72dc07a6ed6bef"
+  },
+  {
+   "function": "updateEndingJamHandshakeLoopFirst",
+   "status": "new-object-exact",
+   "receipt_id": 96513,
+   "repairs": [],
+   "source_sha256": "922c479a76cefaf82a73cf2b9b828b5bf1c8b4d33a8ee91ad43b41a205e5f8d1"
+  },
+  {
+   "function": "updateEndingJamHandshakeLoopThird",
+   "status": "new-object-exact",
+   "receipt_id": 96514,
+   "repairs": [],
+   "source_sha256": "4e48fbe5ce1cc9623ae17f59dd8b8a9b1306d2baf3231f860bd4b15ad5cba6ab"
+  },
+  {
+   "function": "updateEndingJamSlideFarLeft",
+   "status": "new-object-exact",
+   "receipt_id": 96515,
+   "repairs": [],
+   "source_sha256": "d3e144f4f9fc815c1ca47037671265436fdc93c5b71272c9c20c1ec927f31309"
+  },
+  {
+   "function": "updateEndingJamSlideLeftFromFarRight",
+   "status": "new-object-exact",
+   "receipt_id": 96516,
+   "repairs": [],
+   "source_sha256": "f2dc3a92d579755adf5fb53764b66ee1ef25174a9a196a21368943f0a090b36f"
+  },
+  {
+   "function": "updateEndingJamSlideLeftSetPhase25",
+   "status": "new-object-exact",
+   "receipt_id": 96517,
+   "repairs": [],
+   "source_sha256": "a8e6777fb71aaf9be179aa0aa651625b50087e8029f80ce36636e01f6f505bd8"
+  },
+  {
+   "function": "updateEndingJamSlideLeftSetPhase3B",
+   "status": "new-object-exact",
+   "receipt_id": 96518,
+   "repairs": [],
+   "source_sha256": "8c7778b6aca7388519974f9b8355ef5d148901fcc0dca72bca47e732c19f99ae"
+  },
+  {
+   "function": "updateEndingJamSlideLeftThenVanish",
+   "status": "new-object-exact",
+   "receipt_id": 96519,
+   "repairs": [],
+   "source_sha256": "c1aa7181481c2da120dec785abc888850cbd641d7182abc69021aedefe396c0b"
+  },
+  {
+   "function": "updateEndingJamSlideLeftToIdle",
+   "status": "new-object-exact",
+   "receipt_id": 96520,
+   "repairs": [],
+   "source_sha256": "34c73cd3ce10979624856a96636178c5fb8627ac38e50377571f922675f72ee1"
+  },
+  {
+   "function": "updateEndingJamSlideLeftToMarker",
+   "status": "new-object-exact",
+   "receipt_id": 96521,
+   "repairs": [],
+   "source_sha256": "d893888f385cf4a977e596cea2cc40fcc4b7688a3cf5beab047cb93fd5a861e3"
+  },
+  {
+   "function": "updateEndingJamSlideLeftToPhase15Wait",
+   "status": "new-object-exact",
+   "receipt_id": 96522,
+   "repairs": [],
+   "source_sha256": "95b41c6a6119fdcd49181cb4052e73c0249d9d1b873ce7f28b29a244cc75f667"
+  },
+  {
+   "function": "updateEndingJamStepBackAfterHandshake",
+   "status": "new-object-exact",
+   "receipt_id": 96523,
+   "repairs": [],
+   "source_sha256": "29531b224c8059b02425ccbaef489d5e7249d5da5dfc7530f447cd9a8fa2dd9c"
+  },
+  {
+   "function": "updateEndingJamWaitBeforeIdleAnim1",
+   "status": "new-object-exact",
+   "receipt_id": 96524,
+   "repairs": [],
+   "source_sha256": "b0087ec76387fc7a90a9c39522bd6e061a7ea71de0a2214b8d0382b69176e4c2"
+  },
+  {
+   "function": "updateEndingJamWaitBeforeIdleAnimA",
+   "status": "new-object-exact",
+   "receipt_id": 96525,
+   "repairs": [],
+   "source_sha256": "b348d4f2a9b8df41917b795fc7fa72b8c8c78690c6e5fdc739e0029d9dad1882"
+  },
+  {
+   "function": "updateEndingJamWaitBeforeIdleAnimB",
+   "status": "new-object-exact",
+   "receipt_id": 96526,
+   "repairs": [],
+   "source_sha256": "2a716d9910b688cad7330aa6eb4a5444295e12f20de3d89fd0bf0e3c8713d292"
+  },
+  {
+   "function": "updateEndingLindaHopRightToIdle",
+   "status": "new-object-exact",
+   "receipt_id": 96527,
+   "repairs": [],
+   "source_sha256": "c163d6a0cf964726090617c910c98b0bb8b52f8e02c90d6329f2a65b59ac1b92"
+  },
+  {
+   "function": "updateEndingLindaHopRightToPose",
+   "status": "new-object-exact",
+   "receipt_id": 96528,
+   "repairs": [],
+   "source_sha256": "1465ef4dc8a0d410f66d86b09e4b3afa4559438840807ea3a81bc0243b8bfe8a"
+  },
+  {
+   "function": "updateEndingLindaRunLeftSetPhase2D",
+   "status": "new-object-exact",
+   "receipt_id": 96529,
+   "repairs": [],
+   "source_sha256": "221e03f07842cd05c5195f973f4b57df1c199a99c418225b0b01e9f916fa45f2"
+  },
+  {
+   "function": "updateEndingLindaSlideLeftAfterPause",
+   "status": "new-object-exact",
+   "receipt_id": 96530,
+   "repairs": [],
+   "source_sha256": "ad52e26d4f38dc3cfea40006a821210900202a879bf73b5263dfb4b5d6e522b8"
+  },
+  {
+   "function": "updateEndingLindaSlideLeftSetPhase14",
+   "status": "new-object-exact",
+   "receipt_id": 96531,
+   "repairs": [],
+   "source_sha256": "c0e4e0e0f2498e585c3bf5e204a6116198450957b00585a9c48778f020e11602"
+  },
+  {
+   "function": "updateEndingLindaSlideLeftSetPhase1C",
+   "status": "new-object-exact",
+   "receipt_id": 96532,
+   "repairs": [],
+   "source_sha256": "21eb1f6e8eb5bf5cd32880898e16a44c04a092eb003cda71a291d200fb44cbda"
+  },
+  {
+   "function": "updateEndingLindaSlideLeftSetPhase36",
+   "status": "new-object-exact",
+   "receipt_id": 96533,
+   "repairs": [],
+   "source_sha256": "7975c9bb4d46e6f1e30efa951a91cb2ea2e2d92fdab1b97a5912838913955c84"
+  },
+  {
+   "function": "updateEndingLindaSlideLeftToFarLeft",
+   "status": "new-object-exact",
+   "receipt_id": 96534,
+   "repairs": [],
+   "source_sha256": "10578770fbd09784b8c5d24aaa552b3507be77967f8078531afa4d7fb1311db9"
+  },
+  {
+   "function": "updateEndingLindaSlideLeftToPose",
+   "status": "new-object-exact",
+   "receipt_id": 96535,
+   "repairs": [],
+   "source_sha256": "b454f6084a5c91918112e5376a6ed53452d3fced3c87a0afbd33b5d06de48c52"
+  },
+  {
+   "function": "updateEndingLindaSlideLeftUntilPhase17",
+   "status": "new-object-exact",
+   "receipt_id": 96536,
+   "repairs": [],
+   "source_sha256": "6754539558cc68b4fa75b4a7fb3497694f6f055f76c2b6aa0e6c1496fbf261ae"
+  },
+  {
+   "function": "updateEndingLindaSlideRightAfterPause",
+   "status": "new-object-exact",
+   "receipt_id": 96537,
+   "repairs": [],
+   "source_sha256": "b1ac66e9a8e2725f7415c4f806275d812725a2782b3664eea1db0ff03787772f"
+  },
+  {
+   "function": "updateEndingLindaSlideRightToPhase23Wait",
+   "status": "new-object-exact",
+   "receipt_id": 96538,
+   "repairs": [],
+   "source_sha256": "c5e3f899dda05c1b613e5dfc2479d3ffa805d5e60a01d812dd3cc21d043cac4b"
+  },
+  {
+   "function": "updateEndingLindaSlideRightUntilPhase16",
+   "status": "new-object-exact",
+   "receipt_id": 96539,
+   "repairs": [],
+   "source_sha256": "33f956aa7e805d3b58d2cc0ccfc712d496f8ae05b05c67bb0c01bb6730192b57"
+  },
+  {
+   "function": "updateEndingLindaSpinUntilPhase3F",
+   "status": "new-object-exact",
+   "receipt_id": 96540,
+   "repairs": [],
+   "source_sha256": "aa0f48f2296d7694ecff6444489f8f57de9ed7409a14b9fc103eb36b8c26436c"
+  },
+  {
+   "function": "updateEndingLindaWaitBeforePhase2E",
+   "status": "new-object-exact",
+   "receipt_id": 96541,
+   "repairs": [],
+   "source_sha256": "5e35e88763b92223bc2aa4806cb4177b22bf1a00c4dcf9a6e2b27b9796dd1356"
+  },
+  {
+   "function": "updateEndingLindaWaitPhase3FAnim",
+   "status": "new-object-exact",
+   "receipt_id": 96542,
+   "repairs": [],
+   "source_sha256": "31b8c26faf6ad1e917576318acaea47c4d4df66af2f1800b4f33157d9302a97d"
+  },
+  {
+   "function": "updateEndingNancyDashRightSetPhase2F",
+   "status": "new-object-exact",
+   "receipt_id": 96543,
+   "repairs": [],
+   "source_sha256": "a07bc671258efa6d00a2112cff7044e01d8aeb01eaf862f0ed1b07a2649812c0"
+  },
+  {
+   "function": "updateEndingNancySlideFarLeftSetPhase12",
+   "status": "new-object-exact",
+   "receipt_id": 96544,
+   "repairs": [],
+   "source_sha256": "f787e611c819e50e6327aefda404a9d9a0a5d4f55aecfae890ee8db9351c958a"
+  },
+  {
+   "function": "updateEndingNancySlideLeftSetPhase33",
+   "status": "new-object-exact",
+   "receipt_id": 96545,
+   "repairs": [],
+   "source_sha256": "e5c60ebe89a7ab7cf0cfb47497ec6e81c6970034a558c6b54af90451ec677fa1"
+  },
+  {
+   "function": "updateEndingNancySlideLeftSetPhase37",
+   "status": "new-object-exact",
+   "receipt_id": 96546,
+   "repairs": [],
+   "source_sha256": "0798a6ce0918d062ada458cb41f3908dddbeab44c476a495d61a6af1dd8d3497"
+  },
+  {
+   "function": "updateEndingNancyStartRunDust",
+   "status": "new-object-exact",
+   "receipt_id": 96547,
+   "repairs": [],
+   "source_sha256": "8876a12857cdc17393dfb5f4d8d16c9df90a22af5cc0d246d933618917f906f1"
+  },
+  {
+   "function": "updateEndingNancyWaitBeforeRepeatAnim",
+   "status": "new-object-exact",
+   "receipt_id": 96548,
+   "repairs": [],
+   "source_sha256": "42146e7a562712ca809901df7b0b6b828a78123dec68851ad0c0b65c829f52f0"
+  },
+  {
+   "function": "updateEndingSlashAfterPhase0DAnim",
+   "status": "new-object-exact",
+   "receipt_id": 96549,
+   "repairs": [],
+   "source_sha256": "389fcbdb47757f4bae62d4aff0c5bf8d6badd11b0895ad247373e8b501c09cad"
+  },
+  {
+   "function": "updateEndingSlashDashOffLeft",
+   "status": "new-object-exact",
+   "receipt_id": 96550,
+   "repairs": [],
+   "source_sha256": "f2d5df3b035649a90e1e769e5458e8918127b2ce911f8ab8ea072659be885453"
+  },
+  {
+   "function": "updateEndingSlashEnterFromRight",
+   "status": "new-object-exact",
+   "receipt_id": 96551,
+   "repairs": [],
+   "source_sha256": "f8fa3b14ad1d00a1a08128aa9dd564f59c5a5af0d1f38bc68dce2d3299d385ca"
+  },
+  {
+   "function": "updateEndingSlashExitLeftAfterPhase22",
+   "status": "new-object-exact",
+   "receipt_id": 96552,
+   "repairs": [],
+   "source_sha256": "a05d18e62b7bd7fab157fc8945d23d451b09627ac2944ec08cc36738f698a10d"
+  },
+  {
+   "function": "updateEndingSlashPhase40Prep",
+   "status": "new-object-exact",
+   "receipt_id": 96553,
+   "repairs": [],
+   "source_sha256": "ee7725eb002f11c0d15cc9643354c2ea4c1c70e99157fab329ec49211e26a87c"
+  },
+  {
+   "function": "updateEndingSlashRepeatAnim17",
+   "status": "new-object-exact",
+   "receipt_id": 96554,
+   "repairs": [],
+   "source_sha256": "d1341ce8a21e2eaec5112679ef133167a747a8a517bb1837e00f5124b5104b03"
+  },
+  {
+   "function": "updateEndingSlashSlideFarLeft",
+   "status": "new-object-exact",
+   "receipt_id": 96555,
+   "repairs": [],
+   "source_sha256": "511fb389233426221fdad9a5545361de38a5a80321e140e513b099266ce1637b"
+  },
+  {
+   "function": "updateEndingSlashSlideLeftFromFarRight",
+   "status": "new-object-exact",
+   "receipt_id": 96556,
+   "repairs": [],
+   "source_sha256": "bba80552754cc13dafcc1474f31ed8dcca5dd4da95013b31855bc576809cc4db"
+  },
+  {
+   "function": "updateEndingSlashSlideLeftSetPhase26",
+   "status": "new-object-exact",
+   "receipt_id": 96557,
+   "repairs": [],
+   "source_sha256": "1813bf52bff7dc8988de9a12ab18be192d5ea6e4a612eb570a626827860369aa"
+  },
+  {
+   "function": "updateEndingSlashSlideLeftSlowRotation",
+   "status": "new-object-exact",
+   "receipt_id": 96558,
+   "repairs": [],
+   "source_sha256": "93c85dd8a5468dc812bc55d371b7eaba4624fd846094b5f2e04919197ea6196e"
+  },
+  {
+   "function": "updateEndingSlashSlideLeftToAura",
+   "status": "new-object-exact",
+   "receipt_id": 96559,
+   "repairs": [],
+   "source_sha256": "2e8597d7d1d2fff7800c8a73e5b4aa2a022ffaff3ff6890b7bb9218ba3388535"
+  },
+  {
+   "function": "updateEndingSlashSlideLeftToMarker",
+   "status": "new-object-exact",
+   "receipt_id": 96560,
+   "repairs": [],
+   "source_sha256": "ce98163e7bb621479f44c9d6ce6a6a42aabf4320a8a5941a374d9b53ab6b3511"
+  },
+  {
+   "function": "updateEndingSlashSpinUntilPhase3F",
+   "status": "new-object-exact",
+   "receipt_id": 96561,
+   "repairs": [],
+   "source_sha256": "0b8b2a3d48c64a8a12bfbd1d8e56d8a591c0212986640cfd0e338f0da2437902"
+  },
+  {
+   "function": "updateEndingSlashWaitBeforeIdleAnim1",
+   "status": "new-object-exact",
+   "receipt_id": 96562,
+   "repairs": [],
+   "source_sha256": "3bb9d5a16c7e334e32f5ba445a2e61f56f854dfbbf56d681f99d9d7d168a0c69"
+  },
+  {
+   "function": "updateEndingSlashWaitBeforeIdleAnim2",
+   "status": "new-object-exact",
+   "receipt_id": 96563,
+   "repairs": [],
+   "source_sha256": "2602bc09848ea0e00917ec78c562bbb4bb11125179d9dd725661a0e9aa948571"
+  },
+  {
+   "function": "updateEndingSlashWaitPhase5To7",
+   "status": "new-object-exact",
+   "receipt_id": 96564,
+   "repairs": [],
+   "source_sha256": "6fc974e6b58983a7af39afb57961adea4cf15b73b0e8ce0d2bb324d1580a9a96"
+  },
+  {
+   "function": "updateEndingTommyEnterToCenter",
+   "status": "new-object-exact",
+   "receipt_id": 96565,
+   "repairs": [],
+   "source_sha256": "d793fc1c1a2742c75c4b32b0a4c2d93ed2d6c256d9cdbc60cd388cb84daaf65b"
+  },
+  {
+   "function": "updateEndingTommyRepeatAnimThenPhase07",
+   "status": "new-object-exact",
+   "receipt_id": 96566,
+   "repairs": [],
+   "source_sha256": "b29ab15f494825f3628ef93b4d2f2800db3cbfbb82e56f9aa3f3270a8e621471"
+  },
+  {
+   "function": "updateEndingTommySlideLeftAfterBurst",
+   "status": "new-object-exact",
+   "receipt_id": 96567,
+   "repairs": [],
+   "source_sha256": "f7135841ec23007adb4aa015f6fdc4fc32b384d1189bef1c22802dc9d9b2f6d2"
+  },
+  {
+   "function": "updateEndingTommySlideLeftToPhase0A",
+   "status": "new-object-exact",
+   "receipt_id": 96568,
+   "repairs": [],
+   "source_sha256": "bb046c988d28db2db142fb929a6db6960b1512d9dc9a51b11da3ace66012786c"
+  },
+  {
+   "function": "updateEndingTommyWaitBeforePhase0CAuras",
+   "status": "new-object-exact",
+   "receipt_id": 96569,
+   "repairs": [],
+   "source_sha256": "05b9d220998839be0453407d32986aa1773bfc97c63b43ac29e4be7a933f7447"
+  },
+  {
+   "function": "updateGhostSlowdownDriftAway",
+   "status": "new-object-exact",
+   "receipt_id": 96571,
+   "repairs": [
+    "frontend_type:all"
+   ],
+   "source_sha256": "9d0c0282b3adabbfbc755cce1fedd5f43c130565f11abf8cd275f473058504c2"
+  },
+  {
+   "function": "updateMainMenuTitleOptions",
+   "status": "new-object-exact",
+   "receipt_id": 96572,
+   "repairs": [],
+   "source_sha256": "74875a7fa99d2396e5b1cb44de8de551cfc6896de817bcdc69542fbdd2379d46"
+  },
+  {
+   "function": "updateRaceCountdownGoPromptHold",
+   "status": "new-object-exact",
+   "receipt_id": 96573,
+   "repairs": [],
+   "source_sha256": "81529b246813fc884d360e54c497f17dad8294d7bfa959cbb2508b496da06c68"
+  },
+  {
+   "function": "updateRaceCountdownInitialDelay",
+   "status": "new-object-exact",
+   "receipt_id": 96574,
+   "repairs": [],
+   "source_sha256": "97217bae6c86782023d0f71f31e706f29780cc0a9d3f834ea54b5a54cbcc6417"
+  },
+  {
+   "function": "updateRaceCountdownReadyPromptHold",
+   "status": "new-object-exact",
+   "receipt_id": 96575,
+   "repairs": [],
+   "source_sha256": "97599dd593a8ef01d4e66bd871177c857e3a51eb617d2060007667d7254e7b16"
+  },
+  {
+   "function": "updateRaceUiCourseRecordHoldFinalMoney",
+   "status": "new-object-exact",
+   "receipt_id": 96576,
+   "repairs": [],
+   "source_sha256": "f6722c384d66b09315a87ede708d91fbb905d0f0306cbd55008e1f427ffd8dd4"
+  },
+  {
+   "function": "updateRaceUiCourseRecordRevealFinalMoney",
+   "status": "new-object-exact",
+   "receipt_id": 96577,
+   "repairs": [],
+   "source_sha256": "598e0ffbdd256a8b4bad4d0ce719ac052f3f41493b2ea85f110239f90e4f9058"
+  },
+  {
+   "function": "updateRaceUiCourseRecordRevealPerfectGet",
+   "status": "new-object-exact",
+   "receipt_id": 96578,
+   "repairs": [],
+   "source_sha256": "71b44f40bd24abf12340bd6d6581a79d3bc83314c4170ecc79f1f5dc24079f73"
+  },
+  {
+   "function": "updateRaceUiCrashScorePopupHold",
+   "status": "new-object-exact",
+   "receipt_id": 96579,
+   "repairs": [],
+   "source_sha256": "aa52469c95361473d584b671e4cece56cfb0cb2933f14661f93434b2bb448db9"
+  },
+  {
+   "function": "updateRaceUiHitPrizeRevealPerfectHit",
+   "status": "new-object-exact",
+   "receipt_id": 96580,
+   "repairs": [],
+   "source_sha256": "2bad57c6a49b4f9d14f8b7c5b0d81a24e5871d6e92c703deae5349bffdfac14f"
+  },
+  {
+   "function": "updateRaceUiHitPrizeRevealTotalMoney",
+   "status": "new-object-exact",
+   "receipt_id": 96581,
+   "repairs": [],
+   "source_sha256": "77527e0eb5fb68fbca9e25d2929169fe80c598edd670bcc0bbe98f2bcaf3c532"
+  },
+  {
+   "function": "updateRaceUiHitPrizeWaitBeforePayout",
+   "status": "new-object-exact",
+   "receipt_id": 96582,
+   "repairs": [],
+   "source_sha256": "b0146fd03a725cdf710a08aa3a273eeaafa8c2aaf11a8728902d1bdb2a9cbdd3"
+  },
+  {
+   "function": "updateRaceUiScorePopupHold",
+   "status": "new-object-exact",
+   "receipt_id": 96583,
+   "repairs": [],
+   "source_sha256": "fec84c8964208555a404fbc2a7fd35e0573dc49fb334dbb503639eb0fc52686c"
+  },
+  {
+   "function": "updateRaceUiSparkle",
+   "status": "new-object-exact",
+   "receipt_id": 96585,
+   "repairs": [
+    "frontend_type:all"
+   ],
+   "source_sha256": "f096f54fbe4bffa61a063519dbab2a035b561d9ed5966b1e2f069e6c7ae3ab7c"
+  },
+  {
+   "function": "updateRaceUiTrickPrizePayoutHoldMoneyRow",
+   "status": "new-object-exact",
+   "receipt_id": 96586,
+   "repairs": [],
+   "source_sha256": "ea0076fe264a7848af08f49236b66a4e3add0466a0d78376768a91a802453a4b"
+  },
+  {
+   "function": "updateRaceUiTrickPrizePayoutRevealCompleteBonus",
+   "status": "new-object-exact",
+   "receipt_id": 96587,
+   "repairs": [],
+   "source_sha256": "f1f2ceb08821378718513b93851284bd1948ea584be354889436fc6082f78b72"
+  },
+  {
+   "function": "updateRaceUiTrickPrizePayoutRevealMakeBonus",
+   "status": "new-object-exact",
+   "receipt_id": 96588,
+   "repairs": [],
+   "source_sha256": "8f10453c4c1c9c14aa6ae7a42d90cb8a49c8f9b1c9157c62fb005e5ce7adadcc"
+  },
+  {
+   "function": "updateRaceUiTrickScorePopupHold",
+   "status": "new-object-exact",
+   "receipt_id": 96589,
+   "repairs": [],
+   "source_sha256": "46f5cdc449691aa6b79f571771420f56f7b4772d1fffb4207210650e3490948d"
+  },
+  {
+   "function": "updateTimeTrialRecordDeltaPopupHold",
+   "status": "new-object-exact",
+   "receipt_id": 96590,
+   "repairs": [],
+   "source_sha256": "9fe42680ac88a73c8fcc7f3ec45bb5f3df04f7cf0294ec1cd7258fc5516d02d3"
+  },
+  {
+   "function": "waitEndingJamPhase33Aura",
+   "status": "new-object-exact",
+   "receipt_id": 96591,
+   "repairs": [],
+   "source_sha256": "c104e223f82df7c00768ba4c5ea75363e669810f6dc994d37b6e07f4fe03721a"
+  },
+  {
+   "function": "waitEndingNancyPhase0C",
+   "status": "new-object-exact",
+   "receipt_id": 96592,
+   "repairs": [],
+   "source_sha256": "abaec3f21b2f1b51e0fec452aa09465961b422be78cc20b87b7ee86d9f9b8421"
+  }
+ ]
+}

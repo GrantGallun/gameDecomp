@@ -1,0 +1,216 @@
+{
+ "facts": {
+  "accesses": 33413,
+  "calls": 12254,
+  "store_unify": 1852,
+  "returns": 1020
+ },
+ "labeled_slots": 1108,
+ "fit_items": 561,
+ "check_items": 547,
+ "fit": {
+  "A": {
+   "precision": 1.0,
+   "recall": 0.1747,
+   "f1": 0.2974,
+   "baseline_recall": 0.1747
+  },
+  "B": {
+   "precision": 0.2843,
+   "recall": 0.6914,
+   "f1": 0.4029,
+   "baseline_recall": 0.1747
+  },
+  "C2": {
+   "precision": 1.0,
+   "recall": 0.1809,
+   "f1": 0.3064,
+   "baseline_recall": 0.1747
+  },
+  "C3": {
+   "precision": 1.0,
+   "recall": 0.1812,
+   "f1": 0.3068,
+   "baseline_recall": 0.1747
+  },
+  "C4": {
+   "precision": 1.0,
+   "recall": 0.1851,
+   "f1": 0.3123,
+   "baseline_recall": 0.1747
+  },
+  "C6": {
+   "precision": 0.9976,
+   "recall": 0.1869,
+   "f1": 0.3148,
+   "baseline_recall": 0.1747
+  },
+  "C8": {
+   "precision": 0.9929,
+   "recall": 0.1912,
+   "f1": 0.3207,
+   "baseline_recall": 0.1747
+  },
+  "C12": {
+   "precision": 0.9705,
+   "recall": 0.2085,
+   "f1": 0.3433,
+   "baseline_recall": 0.1747
+  },
+  "C16": {
+   "precision": 0.9643,
+   "recall": 0.2169,
+   "f1": 0.3542,
+   "baseline_recall": 0.1747
+  },
+  "C24": {
+   "precision": 0.9222,
+   "recall": 0.2221,
+   "f1": 0.358,
+   "baseline_recall": 0.1747
+  },
+  "D0": {
+   "precision": 0.2434,
+   "recall": 0.8519,
+   "f1": 0.3786,
+   "baseline_recall": 0.1747
+  },
+  "D16": {
+   "precision": 0.6987,
+   "recall": 0.6827,
+   "f1": 0.6906,
+   "baseline_recall": 0.1747
+  },
+  "D32": {
+   "precision": 0.9618,
+   "recall": 0.5466,
+   "f1": 0.6971,
+   "baseline_recall": 0.1747
+  }
+ },
+ "chosen_C": "D32",
+ "check": {
+  "A": {
+   "bcubed": {
+    "items": 547,
+    "precision": 1.0,
+    "recall": 0.17,
+    "f1": 0.2906,
+    "baseline_recall": 0.17,
+    "per_struct_recall": {
+     "EndingCreditsSlash": 0.032,
+     "EndingCreditsTommy": 0.091,
+     "EndingCreditsNancy": 0.071,
+     "EndingCreditsEffectActor": 0.029,
+     "EndingCreditsJam": 0.029,
+     "RaceItemProjectileActor": 0.077,
+     "RaceIntroEffectActor": 0.067,
+     "RacePlayer": 0.014,
+     "RaceUiCourseStatsActor": 0.1,
+     "CharacterSelectCourseWidgetActor": 0.027,
+     "MenuScreenEffectActor": 0.067,
+     "RaceTypeSelectWidgetActor": 0.059,
+     "ShopMenuWidgetActor": 0.037,
+     "RaceSplitscreenSelectWidgetActor": 0.077,
+     "TrainingCourseUiActor": 0.1
+    }
+   },
+   "layout": {
+    "agree": 0,
+    "disagree": 0,
+    "unchecked": 0,
+    "agreement": null
+   },
+   "gain": {
+    "slots_in_multi_function_groups": 0,
+    "median_extra_offsets": 0,
+    "mean_extra_offsets": 0
+   }
+  },
+  "B": {
+   "bcubed": {
+    "items": 547,
+    "precision": 0.2976,
+    "recall": 0.6628,
+    "f1": 0.4108,
+    "baseline_recall": 0.17,
+    "per_struct_recall": {
+     "EndingCreditsSlash": 1.0,
+     "EndingCreditsTommy": 1.0,
+     "EndingCreditsNancy": 1.0,
+     "EndingCreditsEffectActor": 0.507,
+     "EndingCreditsJam": 0.943,
+     "RaceItemProjectileActor": 1.0,
+     "RaceIntroEffectActor": 0.76,
+     "RacePlayer": 0.655,
+     "RaceUiCourseStatsActor": 0.82,
+     "CharacterSelectCourseWidgetActor": 0.226,
+     "MenuScreenEffectActor": 0.467,
+     "RaceTypeSelectWidgetActor": 0.253,
+     "ShopMenuWidgetActor": 0.287,
+     "RaceSplitscreenSelectWidgetActor": 0.195,
+     "TrainingCourseUiActor": 0.66
+    }
+   },
+   "layout": {
+    "agree": 4217,
+    "disagree": 9902,
+    "unchecked": 5579,
+    "agreement": 0.2987
+   },
+   "gain": {
+    "slots_in_multi_function_groups": 414,
+    "median_extra_offsets": 307.0,
+    "mean_extra_offsets": 299.7
+   }
+  },
+  "D32": {
+   "bcubed": {
+    "items": 547,
+    "precision": 0.9791,
+    "recall": 0.5465,
+    "f1": 0.7015,
+    "baseline_recall": 0.17,
+    "per_struct_recall": {
+     "EndingCreditsSlash": 1.0,
+     "EndingCreditsTommy": 1.0,
+     "EndingCreditsNancy": 1.0,
+     "EndingCreditsEffectActor": 0.125,
+     "EndingCreditsJam": 1.0,
+     "RaceItemProjectileActor": 0.172,
+     "RaceIntroEffectActor": 0.769,
+     "RacePlayer": 0.447,
+     "RaceUiCourseStatsActor": 0.58,
+     "CharacterSelectCourseWidgetActor": 0.042,
+     "MenuScreenEffectActor": 0.138,
+     "RaceTypeSelectWidgetActor": 0.093,
+     "ShopMenuWidgetActor": 0.075,
+     "RaceSplitscreenSelectWidgetActor": 0.112,
+     "TrainingCourseUiActor": 0.38
+    }
+   },
+   "layout": {
+    "agree": 5473,
+    "disagree": 63,
+    "unchecked": 1685,
+    "agreement": 0.9886
+   },
+   "gain": {
+    "slots_in_multi_function_groups": 483,
+    "median_extra_offsets": 4,
+    "mean_extra_offsets": 17.7
+   }
+  }
+ },
+ "fires": {
+  "structs_ge10_slots_with_recall_ge_0.5": [
+   "EndingCreditsSlash",
+   "EndingCreditsTommy",
+   "EndingCreditsNancy",
+   "EndingCreditsJam",
+   "RaceIntroEffectActor",
+   "RaceUiCourseStatsActor"
+  ]
+ },
+ "verdict": "gets us somewhere"
+}

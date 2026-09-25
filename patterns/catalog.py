@@ -1014,3 +1014,27 @@ if __name__ == "__main__":
     unconfirmed = [p.id for p in CATALOG.values() if p.is_hypothesis]
     if unconfirmed:
         print(f"\nunconfirmed: {', '.join(unconfirmed)}")
+
+
+register(Pattern(
+    id="ido53-o1-register-local-saved",
+    name="IDO 5.3 -O1: a `register` local takes a callee-saved register; at -O2 `register` is inert",
+    kind="solver",
+    looks_like="-O1 target `sw s0,N(sp)` save plus `move s0,v0` after a call, where the candidate stores the value "
+               "to its stack slot (`sw v0,N(sp)`, later `lw`); m2c names the local after the register (`temp_s0`). "
+               "Typical: libultra `saveMask = __osDisableInt(); ... __osRestoreInt(saveMask);`.",
+    means="At -O1 a plain local lives in its stack slot; declared `register`, it is held in a callee-saved register "
+          "(even when not live across a call) and the frame grows by that register's save. `register` on a "
+          "parameter changes nothing (the incoming home store stays). At -O2 `register` has no effect: 36/36 -O2 "
+          "reference functions compile byte-identically with it removed, while 14/14 -O1 ones change. "
+          "(eval/results/register-o2-20260924: H6 P6a holds, P6b/P6c/P6d refuted as registered; H7 P7a 14/14, "
+          "P7b 36/36.) The lead came from draft-to-reference mining over non-population functions "
+          "(eval/results/draft-reference-mining-20260924, `opcode:move/sw` -> `register+`).",
+    prescription="-O1 recipe and a target-only callee-saved save: mark the local `register`, preferring the one m2c "
+                 "named after the wanted register, and drop a pipeline-invented framePad "
+                 "(solver.branch_shape.o1_register_saved). __osSetGlobalIntMask 75.8 -> 100 and "
+                 "__osResetGlobalIntMask 79.3 -> 100 (receipts 95899, 95897, with frontend_type_repair "
+                 "prototypes); osStartThread 85.2 -> 89.1. Do not propose `register` at -O2.",
+    confirmed_on=["syn_f H6 P6a", "H7 ablation: 14/14 -O1 change, 36/36 -O2 identical",
+                  "__osSetGlobalIntMask", "__osResetGlobalIntMask"],
+))
