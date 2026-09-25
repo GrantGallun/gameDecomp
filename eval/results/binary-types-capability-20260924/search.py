@@ -23,7 +23,12 @@ from ablate import pairs, mine  # noqa: E402
 from solver import regalloc_mutations  # noqa: E402
 
 E = Path.home() / "decomp/experiments/binary-types-capability-20260924"
-PER_STEP, BUDGET, RESTART = 8, 32, 16
+import os
+PER_STEP = 8
+BUDGET = int(os.environ.get("SEARCH_BUDGET", 32))
+RESTART = int(os.environ.get("SEARCH_RESTART", 16))
+RESTARTS = int(os.environ.get("SEARCH_RESTARTS", 1))
+OUT = os.environ.get("SEARCH_OUT", "search")
 
 
 def recipe(ws: Path) -> dict | None:
@@ -86,7 +91,9 @@ def one(mirror, row):
     evidence = {"compiler_recipe": recipe(ws)}
     log = []
     src, best, used = climb(ws, name, row["source"], v, BUDGET, evidence, log)
-    if not best["exact"] and used:
+    for _ in range(RESTARTS):
+        if best["exact"] or not used:
+            break
         log.append({"restart": True})
         src, best, used2 = climb(ws, name, src, best, RESTART, evidence, log)
         used += used2
@@ -108,7 +115,12 @@ def main():
                 rows[x["function"]] = x
             elif x.get("status") == "exact":
                 rows.pop(x["function"], None)
-    out_dir = E / "search"
+    import sqlite3
+    kb = sqlite3.connect(f"file:{Path.home() / 'decomp/kb-sbk1.sqlite'}?mode=ro", uri=True)
+    matched = {n for (n,) in kb.execute("select distinct f.name from attempts a join functions f on f.addr=a.func_addr "
+                                        "where a.exact=1")}
+    rows = {n: r for n, r in rows.items() if n not in matched}      # already exact in the KB: nothing to search
+    out_dir = E / OUT
     out_dir.mkdir(parents=True, exist_ok=True)
     todo = [r for n, r in sorted(rows.items()) if not (out_dir / f"{n}.json").exists()]
     print(len(rows), "compiled-not-exact;", len(todo), "to search", flush=True)
@@ -123,7 +135,7 @@ def main():
     kinds = collections.Counter(s["kind"] for d in done if d["status"] == "exact" for s in d["path"] if "kind" in s)
     s = {"searched": len(done), **c, "exact_functions": sorted(d["function"] for d in done if d["status"] == "exact"),
          "families_on_exact_paths": dict(kinds.most_common())}
-    (HERE / "search-summary.json").write_text(json.dumps(s, indent=1))
+    (HERE / f"{OUT}-summary.json").write_text(json.dumps(s, indent=1))
     print(json.dumps({k: v for k, v in s.items() if k != "exact_functions"}, indent=1))
 
 

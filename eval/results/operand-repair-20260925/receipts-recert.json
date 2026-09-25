@@ -1,0 +1,63 @@
+{
+ "counts": {
+  "recorded-exact|project-header-assisted": 5,
+  "recorded-exact|source-independent": 1
+ },
+ "new_to_campaign": 6,
+ "results": [
+  {
+   "function": "drawMainMenuModeSelectMenuOptions",
+   "status": "recorded-exact",
+   "tier": "project-header-assisted",
+   "receipt_id": 96692,
+   "new_to_campaign": true,
+   "pairing_normalized": true,
+   "rodata_values_compared": false
+  },
+  {
+   "function": "osCreateMesgQueue",
+   "status": "recorded-exact",
+   "tier": "source-independent",
+   "receipt_id": 96693,
+   "new_to_campaign": true,
+   "pairing_normalized": true,
+   "rodata_values_compared": false
+  },
+  {
+   "function": "updateCourseSelectExtraCourseIconListOut",
+   "status": "recorded-exact",
+   "tier": "project-header-assisted",
+   "receipt_id": 96694,
+   "new_to_campaign": true,
+   "pairing_normalized": true,
+   "rodata_values_compared": false
+  },
+  {
+   "function": "waitEndingJamPhase17",
+   "status": "recorded-exact",
+   "tier": "project-header-assisted",
+   "receipt_id": 96695,
+   "new_to_campaign": true,
+   "pairing_normalized": true,
+   "rodata_values_compared": false
+  },
+  {
+   "function": "waitEndingSlashRotationPhase14",
+   "status": "recorded-exact",
+   "tier": "project-header-assisted",
+   "receipt_id": 96696,
+   "new_to_campaign": true,
+   "pairing_normalized": true,
+   "rodata_values_compared": false
+  },
+  {
+   "function": "waitEndingTommyPhase39",
+   "status": "recorded-exact",
+   "tier": "project-header-assisted",
+   "receipt_id": 96697,
+   "new_to_campaign": true,
+   "pairing_normalized": true,
+   "rodata_values_compared": false
+  }
+ ]
+}

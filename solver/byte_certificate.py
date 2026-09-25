@@ -46,6 +46,158 @@ def independent_relocation_groups(rows: list) -> tuple | None:
     return tuple(sorted(groups))
 
 
+def same_addend_pairing_groups(rows: list, contents: bytes) -> tuple | None:
+    """Like `independent_relocation_groups`, but HI16/LO16 pairs of one symbol whose pairs ALL carry the same
+    instruction immediates (the REL addend halves) are canonicalized as a set of HI16 offsets and a set of LO16
+    offsets: the linker then computes the same value whichever HI16 a LO16 is paired with.
+
+    Found 2026-09-24 (eval/results/reloc-pairing-20260924): IDO's assembler lists such pairs in instruction order
+    while the GNU-as-assembled target lists each HI16 before its partner, so the reference decomp's OWN source for
+    osCreateMesgQueue, compiled in its own translation unit, failed strict pairing with identical bytes. Pairs of one
+    symbol with DIFFERENT immediates (`sym+4` against `sym+8`) keep strict pairing: this returns None.
+    """
+    groups = independent_relocation_groups(rows)
+    if groups is None:
+        return None
+    scalars, pairs = [], {}
+    for group in groups:
+        if len(group) == 1:
+            scalars.append(group)
+            continue
+        (hi_at, _, symbol), (lo_at, _, _) = group
+        if hi_at + 4 > len(contents) or lo_at + 4 > len(contents):
+            return None
+        pairs.setdefault(symbol, []).append((hi_at, lo_at, contents[hi_at + 2:hi_at + 4], contents[lo_at + 2:lo_at + 4]))
+    canonical = []
+    for symbol, members in pairs.items():
+        immediates = {(hi, lo) for _, _, hi, lo in members}
+        if len(immediates) != 1:
+            return None
+        canonical.append((symbol, tuple(sorted(m[0] for m in members)), tuple(sorted(m[1] for m in members)),
+                          tuple(immediates)))
+    return tuple(sorted(scalars)), tuple(sorted(canonical))
+
+
+def section_contents(data: bytes) -> dict[str, bytes]:
+    """Allocated PROGBITS contents by section name (relocation immediates for `same_addend_pairing_groups`)."""
+    header = struct.unpack_from(">HHIIIIIHHHHHH", data, 16)
+    shoff, count, names_index = header[5], header[11], header[12]
+    rows = [struct.unpack_from(">IIIIIIIIII", data, shoff + i * 40) for i in range(count)]
+    names = data[rows[names_index][4]:rows[names_index][4] + rows[names_index][5]]
+    out = {}
+    for row in rows:
+        name = names[row[0]:names.find(b"\0", row[0])].decode("utf-8", errors="strict")
+        if row[2] & 2 and row[1] == 1:
+            out[name] = data[row[4]:row[4] + row[5]]
+    return out
+
+
+RODATA = {".rodata", ".late_rodata"}
+_LOAD_WIDTH = {0x23: 4, 0x31: 4, 0x35: 8, 0x21: 2, 0x25: 2, 0x20: 1, 0x24: 1}   # lw lwc1 ldc1 lh lhu lb lbu
+
+
+def progbits_contents(data: bytes) -> dict[str, bytes]:
+    """Every PROGBITS section's contents by name, allocated or not (asm-processor's .late_rodata is not allocated)."""
+    header = struct.unpack_from(">HHIIIIIHHHHHH", data, 16)
+    shoff, count, names_index = header[5], header[11], header[12]
+    rows = [struct.unpack_from(">IIIIIIIIII", data, shoff + i * 40) for i in range(count)]
+    names = data[rows[names_index][4]:rows[names_index][4] + rows[names_index][5]]
+    return {names[r[0]:names.find(b"\0", r[0])].decode("utf-8", errors="strict"): data[r[4]:r[4] + r[5]]
+            for r in rows if r[1] == 1}
+
+
+def rodata_value_relocations(rows: list, text: bytes, raw: dict[str, bytes]) -> list | None:
+    """Relocations with each section-relative `.rodata`/`.late_rodata` HI16/LO16 pair's identity replaced by the
+    BYTES the paired load reads (width from the load opcode, address = the pair's REL addend).
+
+    Found 2026-09-25 (eval/results/operand-repair-20260925): the target keeps literal constants in asm-processor's
+    `.late_rodata`, which `object_image` skips (not allocated), and the candidate in `.rodata`. Comparing section
+    names both rejected equal constants and ACCEPTED a sign-flipped one (`-4/3` against the ROM's `+4/3`), because the
+    value itself was never read. Returns None when a rodata reference cannot be resolved to bytes."""
+    out, index = [], 0
+    while index < len(rows):
+        at, kind, identity = rows[index]
+        ident = tuple(identity) if isinstance(identity, list) else identity
+        if ident[0] == "section" and ident[1] in RODATA:
+            if kind != 5 or index + 1 >= len(rows):
+                return None
+            lo_at, lo_kind, lo_identity = rows[index + 1]
+            if lo_kind != 6 or tuple(lo_identity) != ident or lo_at + 4 > len(text) or at + 4 > len(text):
+                return None
+            hi = struct.unpack(">H", text[at + 2:at + 4])[0]
+            lo = struct.unpack(">h", text[lo_at + 2:lo_at + 4])[0]
+            width = _LOAD_WIDTH.get(text[lo_at] >> 2)
+            section = raw.get(ident[1], b"")
+            address = (hi << 16) + lo + ident[2]
+            if width is None or address < 0 or address + width > len(section):
+                return None
+            value = ("rodata-bytes", section[address:address + width].hex(), 1, 0)
+            out += [(at, 5, value), (lo_at, 6, value)]
+            index += 2
+            continue
+        out.append((at, kind, ident))
+        index += 1
+    return out
+
+
+def rodata_equivalent(left: dict, right: dict, left_raw: dict, right_raw: dict) -> bool:
+    """Sections equal except that section-relative rodata references compare by the bytes they read.
+
+    An allocated `.rodata` present on only one side (IDO's literal pool in the candidate) is accepted only when its
+    contents equal, byte for byte, the other side's `.late_rodata` (asm-processor's non-allocated copy in the target).
+    """
+    only = set(left) ^ set(right)
+    if only - {".rodata"}:
+        return False
+    if only:
+        mine, theirs = (left_raw, right_raw) if ".rodata" in left else (right_raw, left_raw)
+        if mine.get(".rodata") is None or mine.get(".rodata") != theirs.get(".late_rodata"):
+            return False
+        if (left.get(".rodata") or right.get(".rodata"))["relocations"]:
+            return False
+    for name, section in left.items():
+        if name not in right:
+            continue
+        other = right[name]
+        if {k: v for k, v in section.items() if k != "relocations"} != {
+                k: v for k, v in other.items() if k != "relocations"}:
+            return False
+        a = rodata_value_relocations(section["relocations"], left_raw.get(name, b""), left_raw)
+        b = rodata_value_relocations(other["relocations"], right_raw.get(name, b""), right_raw)
+        if a is None or b is None:
+            return False
+        if a == b:
+            continue
+        ga, gb = _value_groups(a, left_raw.get(name, b"")), _value_groups(b, right_raw.get(name, b""))
+        if ga is None or gb is None or ga != gb:
+            return False
+    return True
+
+
+def _value_groups(rows, text):
+    """Pairing-normalized groups where rodata values stand in for symbols (externals and values both allowed)."""
+    rows = [(at, kind, ("external", *ident[1:]) if ident[0] == "rodata-bytes" else ident) for at, kind, ident in rows]
+    return same_addend_pairing_groups(rows, text)
+
+
+def pairing_equivalent(left: dict, right: dict, left_bytes: dict, right_bytes: dict) -> bool:
+    """Sections equal in everything but relocation order, where the only difference is same-addend HI16/LO16 pairing."""
+    if set(left) != set(right):
+        return False
+    for name, section in left.items():
+        other = right[name]
+        if {k: v for k, v in section.items() if k != "relocations"} != {
+                k: v for k, v in other.items() if k != "relocations"}:
+            return False
+        if section["relocations"] == other["relocations"]:
+            continue
+        first = same_addend_pairing_groups(section["relocations"], left_bytes.get(name, b""))
+        second = same_addend_pairing_groups(other["relocations"], right_bytes.get(name, b""))
+        if first is None or second is None or first != second:
+            return False
+    return True
+
+
 def sections_equivalent(left: dict, right: dict) -> bool:
     if set(left) != set(right):
         return False
@@ -157,6 +309,21 @@ def certify(target: Path, candidate: Path, *, source: str,
         # Extracted GNU-as objects and IDO objects use different architecture
         # flags and symbol types. Those are not bytes or relocation expressions.
         equal = sections_equivalent(left["sections"], right["sections"])
+        # Second stage, recorded explicitly: identical bytes whose relocation tables differ ONLY in the pairing of
+        # same-symbol, same-immediate HI16/LO16 records link identically (see same_addend_pairing_groups).
+        receipt["relocation_pairing_normalized"] = False
+        if not equal and pairing_equivalent(left["sections"], right["sections"],
+                                            section_contents(target_data), section_contents(candidate_data)):
+            equal = True
+            receipt["relocation_pairing_normalized"] = True
+        # Third stage, recorded explicitly: section-relative .rodata/.late_rodata references compared by the bytes
+        # they read, not by section name (see rodata_value_relocations).
+        receipt["rodata_values_compared"] = False
+        if not equal:
+            left_raw, right_raw = progbits_contents(target_data), progbits_contents(candidate_data)
+            if rodata_equivalent(left["sections"], right["sections"], left_raw, right_raw):
+                equal = True
+                receipt["rodata_values_compared"] = True
         receipt["exact"] = equal
         receipt["relocation_order_equivalent"] = equal and left["sections"] != right["sections"]
         receipt["relocation_comparison"] = "raw order or disjoint external scalar/intact HI16-LO16 groups; pairing preserved"

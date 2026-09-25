@@ -97,3 +97,82 @@ def test_failed_build_cannot_reuse_stale_score_banner(tmp_path, monkeypatch):
     (tmp_path / "target.o").write_bytes(elf())
     (tmp_path / "probe.o").write_bytes(elf())
     assert not workspace.score(tmp_path, tmp_path, "probe", "C").compiled
+
+
+def _words(*immediates):
+    """Text bytes: one 4-byte word per entry, the low halfword holding the given immediate."""
+    return b"".join(b"\x3c\x0e" + struct.pack(">H", imm) for imm in immediates)
+
+
+def test_same_addend_pairing_accepts_crossed_pairs_of_one_symbol():
+    # osCreateMesgQueue (reloc-pairing-20260924): two lui/%lo pairs of one symbol, identical immediates;
+    # target lists (HI@4, LO@8), (HI@0, LO@12); IDO lists (HI@0, LO@8), (HI@4, LO@12). Same linked bytes.
+    a = ("external", "__osThreadTail", 1, 0)
+    text = _words(0, 0, 0, 0)
+    target = [(4, 5, a), (8, 6, a), (0, 5, a), (12, 6, a)]
+    ido = [(0, 5, a), (8, 6, a), (4, 5, a), (12, 6, a)]
+    assert cert.independent_relocation_groups(target) != cert.independent_relocation_groups(ido)   # strict: differ
+    assert cert.same_addend_pairing_groups(target, text) == cert.same_addend_pairing_groups(ido, text)
+    left = {".text": {"sha256": "same", "size": 16, "relocations": target}}
+    right = {".text": {"sha256": "same", "size": 16, "relocations": ido}}
+    assert cert.pairing_equivalent(left, right, {".text": text}, {".text": text})
+
+
+def test_same_addend_pairing_declines_different_addends_symbols_or_bytes():
+    a, b = ("external", "a", 1, 0), ("external", "b", 1, 0)
+    crossed = [(0, 5, a), (12, 6, a), (4, 5, a), (8, 6, a)]
+    # `a+4` and `a+8`: the LO16 immediates differ, so pairing decides the linked value -> strict (None)
+    assert cert.same_addend_pairing_groups(crossed, _words(0, 0, 4, 8)) is None
+    # different symbols are never merged
+    mixed = [(0, 5, a), (8, 6, a), (4, 5, b), (12, 6, b)]
+    other = [(0, 5, b), (8, 6, b), (4, 5, a), (12, 6, a)]
+    text = _words(0, 0, 0, 0)
+    assert cert.same_addend_pairing_groups(mixed, text) != cert.same_addend_pairing_groups(other, text)
+    # different bytes are never excused by relocation normalization
+    target = [(4, 5, a), (8, 6, a), (0, 5, a), (12, 6, a)]
+    ido = [(0, 5, a), (8, 6, a), (4, 5, a), (12, 6, a)]
+    left = {".text": {"sha256": "one", "size": 16, "relocations": target}}
+    right = {".text": {"sha256": "two", "size": 16, "relocations": ido}}
+    assert not cert.pairing_equivalent(left, right, {".text": text}, {".text": text})
+
+
+def _hi_lo_text(lo_opcode=0x31):
+    """lui at,0 ; lwc1 $f4,0(at): HI16 at 0, LO16 at 4 (opcode in the top 6 bits of the LO16 word)."""
+    return b"\x3c\x01\x00\x00" + bytes([lo_opcode << 2, 0x24, 0x00, 0x00])
+
+
+def test_rodata_references_compare_by_the_bytes_they_read():
+    text = _hi_lo_text()
+    late = ("section", ".late_rodata", 0, 0, 0)
+    ro = ("section", ".rodata", 0, 0, 0)
+    target = [(0, 5, late), (4, 6, late)]
+    cand = [(0, 5, ro), (4, 6, ro)]
+    left = {".text": {"sha256": "same", "size": 8, "relocations": target}}
+    right = {".text": {"sha256": "same", "size": 8, "relocations": cand}}
+    four_thirds, minus = struct.pack(">f", 4 / 3), struct.pack(">f", -4 / 3)
+    ok_left = {".text": text, ".late_rodata": four_thirds + b"\0" * 12}
+    assert cert.rodata_equivalent(left, right, ok_left, {".text": text, ".rodata": four_thirds})
+    # the sign-flipped literal (initControllerPakFileDeleteFlow's draft) is REJECTED: values are compared now
+    assert not cert.rodata_equivalent(left, right, ok_left, {".text": text, ".rodata": minus})
+    # unresolvable reference (section too short) declines
+    assert not cert.rodata_equivalent(left, right, ok_left, {".text": text, ".rodata": b"\0\0"})
+    # non-rodata differences still decide: a different external symbol is never excused
+    bad = {".text": {"sha256": "same", "size": 8, "relocations": [(0, 5, ("external", "x", 1, 0)),
+                                                                   (4, 6, ("external", "x", 1, 0))]}}
+    assert not cert.rodata_equivalent(left, bad, ok_left, {".text": text})
+
+
+def test_candidate_rodata_pool_matches_target_late_rodata_only_byte_for_byte():
+    text = _hi_lo_text()
+    late = ("section", ".late_rodata", 0, 1, 0)
+    ro = ("section", ".rodata", 0, 0, 0)
+    pool = struct.pack(">f", 4 / 3) + bytes(12)
+    left = {".text": {"sha256": "same", "size": 8, "relocations": [(0, 5, late), (4, 6, late)]}}
+    right = {".text": {"sha256": "same", "size": 8, "relocations": [(0, 5, ro), (4, 6, ro)]},
+             ".rodata": {"sha256": "pool", "size": 16, "relocations": []}}
+    target_raw = {".text": text, ".late_rodata": pool}
+    assert cert.rodata_equivalent(left, right, target_raw, {".text": text, ".rodata": pool})
+    wrong = struct.pack(">f", -4 / 3) + bytes(12)
+    assert not cert.rodata_equivalent(left, right, target_raw, {".text": text, ".rodata": wrong})
+    padded = pool + b"\x00\x00\x00\x01"
+    assert not cert.rodata_equivalent(left, right, target_raw, {".text": text, ".rodata": padded})

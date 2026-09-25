@@ -4580,3 +4580,27 @@ context behind a clean public prelude -> standalone compile. Capability runs 1-3
 Nothing in `solver/workspace.m2c_draft`, intake or the campaign uses it yet. Wiring it means: facts regenerated from
 the ELF, a draft route next to the assembly-only one, and its own tests (fires on a known function, declines when the
 identity facts are missing).
+
+## September 25: certificate stages (wired) and the rodata owner (not wired)
+
+**Wired (every `solver.workspace.score` caller, i.e. the main tree; frozen campaign snapshots are unaffected until
+redeployed):** `solver/byte_certificate.certify` now has two explicit second-stage equivalences after strict equality
+fails, each recorded in the receipt:
+- `relocation_pairing_normalized`: HI16/LO16 records that differ only in pairing, where every pair of a symbol has the
+  same instruction immediates (`same_addend_pairing_groups`). The reference decomp's own osCreateMesgQueue failed strict
+  pairing with identical bytes (`eval/results/reloc-pairing-20260924/`).
+- `rodata_values_compared`: section-relative `.rodata`/`.late_rodata` references compared by the bytes they read, and a
+  candidate-only `.rodata` accepted only when byte-equal to the target's `.late_rodata` (`rodata_equivalent`). This
+  also closes a read-side hole: a sign-flipped constant had looked like "score 100, only a relocation differs".
+Tests: `tests/test_byte_certificate.py`.
+
+**Not wired into `regalloc_mutations.variants`:** `solver/rodata_symbol.py` (constant from binary evidence on the
+attributed line: literal or `extern` symbol). It needs the ELF and the target object, which the stream does not carry;
+used by `eval/results/operand-repair-20260925/operand_repair.py`. Tests: `tests/test_rodata_symbol.py`.
+
+**Wiring lesson:** `evidence_site` fires only with a verdict's `source_attribution`; harnesses that score outside
+`workspace.score` silently disable it (found 2026-09-25).
+
+**Ledgers:** the campaign (`runs/resume-pipeline-20260908/campaign.sqlite`, the dashboard) and the production KB
+(`eval.status`) diverge both ways: on 2026-09-25 the campaign had 952 exact and the KB 183 gate-passing exacts the
+campaign lacks (project union 1,135). Reconciling them is part of integration.

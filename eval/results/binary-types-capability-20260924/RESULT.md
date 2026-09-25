@@ -63,3 +63,16 @@ effective once the drafts had binary-derived types.
 same caveat applies: eval.status also counts object-exact attempts whose C the gate refused, and later recorder runs
 re-logged earlier confirmations as duplicate attempts (the counts are per function, so this does not inflate them).
 Still open: 421 not-compiled, 387 improved-not-exact, 412 flat. The medium/large residual is the structural wall.
+
+## CORRECTION (2026-09-24, same day): two ledgers; 410 of the 441 were already matched by the campaign
+The numbers above count against the production KB (`kb-sbk1.sqlite`, which `eval.status` reads). The running
+campaign (`runs/resume-pipeline-20260908/campaign.sqlite`, the progress dashboard's source) keeps its own ledger:
+972 object-exact-or-integrated of 2,051 (952 functions with an exact attempt), and the KB had drifted far behind it.
+`ledger_overlap.py` -> `ledger_overlap.json`:
+- binary-types confirmations (gate passed): 441
+- already exact in the campaign: **410**
+- **new to the project: 31** (campaign plus binary-types: 983)
+What the 441 still shows: the binary-types route reaches 410 of the campaign's matches from binary evidence alone.
+Many campaign matches came through reference-seeded drafts or game headers (intake-20260921 CONTAMINATION.md,
+type-flywheel-20260924), so this is evidence they are reachable cleanly. It is a capability and provenance result,
+not new coverage. "SOLVED 719" in eval.status is KB-relative and must not be quoted as project progress.
