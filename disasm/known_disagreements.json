@@ -1,0 +1,15 @@
+{
+  "1583bacc9046a360df8ea4d536942155247e154c": {
+    "game": "Snowboard Kids (USA)",
+    "functions": {
+      "0x800a6a14": {
+        "name": "send_mesg",
+        "reason": "Handwritten exceptasm.s. send_mesg ends `jr s2; nop`; the next 52 bytes (handle_CpU) are entered only by `beq` from __osException and leave by branching back into it. No call, pointer or padding separates them, so binary evidence attaches them to the preceding code. The reference gives handle_CpU its own glabel, which is an authoring choice in hand-written asm, not a compiler-visible boundary."
+      },
+      "0x800a6ac8": {
+        "name": "handle_CpU",
+        "reason": "Same fact as send_mesg (0x800a6a14): a branch-only label inside handwritten exceptasm.s, glabel'd by the reference authors."
+      }
+    }
+  }
+}

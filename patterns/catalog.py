@@ -56,6 +56,30 @@ def register(p: Pattern) -> Pattern:
 # ------------------------------------------------------------------ confirmed
 
 register(Pattern(
+    id="text-alignment-padding-is-not-function-body",
+    name="Zero words after a function's last control transfer are .text alignment, and mark a boundary",
+    kind="evidence",
+    looks_like="A function's last control transfer (`jr`, `j`, `b`, `eret`, or a no-return `jal`) and its delay slot, then one to three `nop` words reaching a 16-byte boundary, then the next object's code.",
+    means="Each object's .text is 16-byte aligned; the linker fills the gap with zeros. The compiler's .size excludes them, so a function reassembled with them is not byte-exact (bootThreadMain sat one padding word from exact). spimdisasm folds them into the preceding function. When the following code opens a stack frame (`addiu sp, sp, -N`), the padding is also the only evidence of where that function starts if nothing calls it.",
+    prescription="disasm.functions.split_padding cuts trailing zeros that follow a control transfer's delay slot (the delay-slot nop itself is kept); zeros after ordinary code are NOT padding (an IDO -mips1 load-delay nop). disasm.functions.padding_boundaries seeds a function start at a 16-aligned prologue after such padding; a leaf after padding is left unknown rather than guessed.",
+    confirmed_on=[
+        "2026-10-03 SBK1 boot segment, graded against the reference ELF (disasm.grade): 168 functions carry split padding and all 162 size disagreements of the unsplit spimdisasm baseline became exact; osPfsIsPlug (never called) is found only through the padding after __osCleanupThread's `jal osDestroyThread`. tests/test_disasm_frontend.py.",
+    ],
+))
+
+register(Pattern(
+    id="object-functions-in-reverse-source-order",
+    name="Some objects lay out their functions in exactly reverse source order",
+    kind="review",
+    looks_like="Within one object's .text, the global functions' addresses descend in the order the C file defines them.",
+    means="Measured, cause not established: on SBK1, 98 objects are in forward source order and 9 in exactly reverse order (libultra's env.c among them: _ldexpf < _frexpf < alEnvmixerParam < alEnvmixerPull). Which compiler flag or build step produces this is a hypothesis to test with rule probes, not a fact.",
+    prescription="Never place functions (or recover static functions) by source order. disasm.grade places statics from address-side intervals instead and counts orders in Reference.object_order. A splitter that assigns names or files by order must allow both directions.",
+    confirmed_on=[
+        "2026-10-03 SBK1: disasm.grade.reference object_order {'forward': 98, 'reverse': 9}; env.c checked by hand against ELF addresses.",
+    ],
+))
+
+register(Pattern(
     id="do-token-refusal-forces-a-non-equivalent-lowering",
     name="Refusing the `do` token before IDO runs turned matching sources into near misses and hid every refused candidate's real error",
     kind="evidence",
