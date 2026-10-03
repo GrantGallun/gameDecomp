@@ -131,7 +131,10 @@ def checked_load_vram(ri: RomInfo) -> tuple[int, str]:
     offset is consistent; otherwise this refuses.
     """
     def consistent(load: int) -> bool:
+        # N64 code runs from KSEG0 (0x80000000-0x9FFFFFFF); a load address
+        # below it is not a place IPL3 can put an image.
         return (ri.main_address is not None and ri.bss_start is not None
+                and 0x80000000 <= load < 0xA0000000
                 and load <= ri.main_address < ri.bss_start)
 
     if ri.cic != "unknown":
