@@ -285,3 +285,27 @@ def test_sbk2_overlays_discovered_from_rom():
     assert (g["placed"], g["range_exact"], g["vram_exact"]) == (20, 20, 20)
     assert g["vram_wrong"] == 0 and g["extra"] == 0
     assert g["function_disagreements"] == 0 and g["functions_exact"] >= 720
+
+
+# ------------------------------------------------------------------ emission
+
+@pytest.mark.grounded
+def test_sbk1_emitted_asm_round_trips_to_rom(sbk1, tmp_path):
+    from disasm import emit, roundtrip
+    fe = sbk1[0]
+    assert emit.emit(fe, tmp_path)["functions"] == len(fe["functions"])
+    r = roundtrip.check(tmp_path, fe["data"])
+    assert r["segments_ok"] == r["segments"] == 1, r["results"]
+
+
+@pytest.mark.grounded
+def test_sbk1_rom_evidence_equals_elf_evidence():
+    if not os.path.exists(ROM):
+        pytest.skip("SBK1 ROM not present")
+    from disasm import evidence_check
+    d = evidence_check.compare(ROM, SBK1)
+    assert d["identical"] >= 2108
+    assert d["differ_unexplained"] == [] and d["elf_only_unexplained"] == []
+    assert d["rom_only_other"] == []
+    assert len(d["elf_only_non_cpu"]) == 3          # RSP microcode the ELF calls functions
+    assert len(d["rom_only_static"]) == 20          # IDO statics the ELF path never mined

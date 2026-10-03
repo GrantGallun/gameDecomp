@@ -572,13 +572,112 @@ def extract(repo: Path, target: str, db_path: Path) -> None:
     conn.close()
 
 
+# ------------------------------------------------------------- ROM-only path
+
+
+def funcs_from_frontend(fe: dict) -> list[tuple[str, Func]]:
+    """(segment, Func) for every function the own front end found.
+
+    Words come straight from the ROM at the front end's extents; no ELF, map
+    or symbol file is read. Names are the generated `func_<VRAM>`.
+    """
+    data = fe["data"]
+    segs = [("boot", fe["segment"], fe["functions"])] + [
+        (o["segment"].name, o["segment"], o["functions"]) for o in fe["overlays"]]
+    out = []
+    for seg_name, seg, funcs in segs:
+        for f in funcs:
+            off = seg.rom_start + (f.vram - seg.vram)
+            insns = [Insn(addr=f.vram + i, word=int.from_bytes(data[off + i:off + i + 4], "big"),
+                          decoded=rabbitizer.Instruction(
+                              int.from_bytes(data[off + i:off + i + 4], "big"), vram=f.vram + i))
+                     for i in range(0, f.size, 4)]
+            out.append((seg_name, Func(addr=f.vram, name=f"func_{f.vram:08X}", insns=insns)))
+    return out
+
+
+def extract_rom(rom_path: Path, target: str, db_path: Path) -> dict:
+    """Evidence tier from a ROM alone, through the own front end (disasm/).
+
+    The KB keys functions by vram, so overlays that share a load address
+    cannot coexist in one KB. The boot segment always goes in; an overlay goes
+    in only if its vram range overlaps nothing already written, and every
+    refused overlay is named in the result -- never dropped silently.
+    """
+    from disasm import run as frontend
+    if db_path.exists():
+        raise ValueError('refusing to replace historical evidence; extract into a new database')
+    fe = frontend.front_end(rom_path)
+    pairs = funcs_from_frontend(fe)
+
+    conn = sqlite3.connect(db_path)
+    conn.executescript((Path(__file__).parent.parent / "kb" / "schema.sql").read_text())
+    versions = {
+        "source": "rom-only front end (disasm/)",
+        "frontend_stage_sha256": frontend.stage_digest(),
+        "extractor_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "range_policy": "disasm.functions extents (padding excluded); ROM words",
+        "rabbitizer": getattr(rabbitizer, "__version__", "?"),
+    }
+    cur = conn.execute(
+        "INSERT INTO extraction (target, rom_sha1, elf_path, tool_versions, created_at)"
+        " VALUES (?,?,?,?,?)",
+        # elf_path is NOT NULL in the schema; a ROM-only extraction names its
+        # input with an explicit prefix rather than pretending to have an ELF.
+        (target, fe["info"].sha1, f"rom:{rom_path}", json.dumps(versions), int(time.time())))
+    extraction_id = cur.lastrowid
+
+    by_seg: dict[str, list[Func]] = {}
+    for seg_name, func in pairs:
+        by_seg.setdefault(seg_name, []).append(func)
+    written: set[int] = set()
+    spans: list[tuple[int, int]] = []          # vram ranges already in this KB
+    refused, n_ev = [], 0
+    for seg_name, funcs in by_seg.items():
+        lo = min(f.addr for f in funcs)
+        hi = max(f.addr + f.size for f in funcs)
+        if seg_name != "boot" and any(lo < b and a < hi for a, b in spans):
+            refused.append(seg_name)
+            continue
+        spans.append((lo, hi))
+        for func in funcs:
+            conn.execute(
+                "INSERT INTO functions (addr, name, tu_id, size, insn_count, is_leaf, state)"
+                " VALUES (?,?,?,?,?,?,?)",
+                (func.addr, func.name, None, func.size, len(func.insns),
+                 int(func.is_leaf), "asm"))
+            written.add(func.addr)
+            for row in evidence_rows(func, resolve_bases(func)):
+                conn.execute(
+                    "INSERT INTO evidence"
+                    " (extraction_id, kind, addr, func_addr, op, base, base_reg, offset,"
+                    "  width, signed, class, access, is_load, target_addr)"
+                    " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (extraction_id, row["kind"], row["addr"], row["func_addr"], row["op"],
+                     row.get("base"), row.get("base_reg"), row.get("offset"),
+                     row.get("width"), row.get("signed"), row.get("class"),
+                     row.get("access"), row.get("is_load"), row.get("target_addr")))
+                n_ev += 1
+    conn.commit()
+    conn.close()
+    return {"functions": len(written), "evidence_rows": n_ev,
+            "segments_written": len(by_seg) - len(refused),
+            "overlays_refused_vram_collision": refused}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--repo", required=True, type=Path)
+    src = ap.add_mutually_exclusive_group(required=True)
+    src.add_argument("--repo", type=Path, help="reference build (ELF + map)")
+    src.add_argument("--rom", type=Path, help="ROM only, through the own front end")
     ap.add_argument("--target", required=True)
     ap.add_argument("--db", required=True, type=Path)
     args = ap.parse_args()
-    extract(args.repo.expanduser(), args.target, args.db.expanduser())
+    if args.rom:
+        print(json.dumps(extract_rom(args.rom.expanduser(), args.target,
+                                     args.db.expanduser()), indent=1))
+    else:
+        extract(args.repo.expanduser(), args.target, args.db.expanduser())
 
 
 if __name__ == "__main__":

@@ -164,7 +164,12 @@ def padding_boundaries(dec: Decoder, lo: int, hi: int,
     return out
 
 
-def find(rom: bytes, extent: CodeExtent, seeds: set[int] | None = None) -> list[Function]:
+class Functions(list):
+    """The split, plus the spimdisasm section that produced it (for emission)."""
+    section = None
+
+
+def find(rom: bytes, extent: CodeExtent, seeds: set[int] | None = None) -> Functions:
     seg = extent.segment
     text_rom_end = extent.rom(extent.text_end)
     ctx = spimdisasm.common.Context()
@@ -186,7 +191,8 @@ def find(rom: bytes, extent: CodeExtent, seeds: set[int] | None = None) -> list[
         seg.rom_start, None)
     sec.analyze()
 
-    out = []
+    out = Functions()
+    out.section = sec
     for sym in sec.symbolList:
         size, pad = split_padding(dec, sym.vram, sym.sizew * 4)
         out.append(Function(sym.vram, size, pad, sym.vram in seeds))
