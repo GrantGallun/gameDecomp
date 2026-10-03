@@ -11,5 +11,18 @@
         "reason": "Same fact as send_mesg (0x800a6a14): a branch-only label inside handwritten exceptasm.s, glabel'd by the reference authors."
       }
     }
+  },
+  "5ce896fd64276948bc2b8cccd8cd51c25a9f32aa": {
+    "game": "Snowboard Kids 2 (USA)",
+    "functions": {
+      "0x80084420": {
+        "name": "__divdi3",
+        "reason": "Handwritten libkmc mmuldi3.s: __divdi3 contains `beqz v1, 0x80084590`, a branch into __moddi3's body, so the two share code. Binary evidence makes them one control-flow region; padding_boundaries' branch guard correctly declines to split at __moddi3 (0x800844d0)."
+      },
+      "0x800844d0": {
+        "name": "__moddi3",
+        "reason": "Same fact as __divdi3 (0x80084420): entered by a branch from __divdi3, shared code in handwritten libkmc asm."
+      }
+    }
   }
 }

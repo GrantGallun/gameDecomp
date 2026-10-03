@@ -15,21 +15,36 @@ import json
 import sys
 from pathlib import Path
 
-from disasm import code_extent, functions, rom
+from disasm import accounting, code_extent, functions, rom
 
 
 def front_end(rom_path: Path) -> dict:
     data, ri = rom.read(rom_path)
     seg = rom.boot_segment(ri)
-    entries = [ri.load_vram] + ([ri.main_address] if ri.main_address else [])
+    entries = [seg.vram] + ([ri.main_address] if ri.main_address else [])
     ext = code_extent.find(data, seg, entries)
     funcs = functions.find(data, ext)
     return {"data": data, "info": ri, "segment": seg, "extent": ext, "functions": funcs}
 
 
+def ledger(fe: dict) -> accounting.Ledger:
+    seg, ext, funcs = fe["segment"], fe["extent"], fe["functions"]
+    led = accounting.Ledger(len(fe["data"]))
+    led.add(0, 0x40, "header")
+    led.add(0x40, 0x1000, "ipl3")
+    text_end = ext.rom(ext.text_end)
+    bound = ext.rom(ext.data_bound) if ext.data_bound else seg.rom_end
+    led.add(seg.rom_start, text_end, "cpu_text")
+    led.add(text_end, bound, "non_cpu_or_data")
+    led.add(bound, seg.rom_end, "data")
+    led.text_gaps = accounting.text_gaps(seg.rom_start, seg.vram, seg.vram,
+                                         ext.text_end, funcs)
+    return led
+
+
 def stage_digest() -> str:
     h = hashlib.sha256()
-    for name in ("rom.py", "code_extent.py", "functions.py"):
+    for name in ("rom.py", "code_extent.py", "functions.py", "accounting.py"):
         h.update((Path(__file__).parent / name).read_bytes())
     return h.hexdigest()
 
@@ -44,6 +59,7 @@ def receipt(fe: dict, grade_repo: Path | None) -> dict:
                       "rom_end": f"{seg.rom_end:#x}", "vram": f"{seg.vram:#010x}",
                       "derived_from": seg.derived_from}],
         "code_extent": ext.summary(),
+        "ledger": ledger(fe).summary(),
         "functions": {"count": len(funcs),
                       "seeded": sum(f.seeded for f in funcs),
                       "with_padding_split": sum(1 for f in funcs if f.padding)},
@@ -88,7 +104,7 @@ def main() -> int:
     text = json.dumps(rec, indent=1)
     if args.out:
         args.out.write_text(text, encoding="utf-8")
-    print(json.dumps({k: rec[k] for k in ("code_extent", "functions")}, indent=1))
+    print(json.dumps({k: rec[k] for k in ("code_extent", "ledger", "functions")}, indent=1))
     if "grade" in rec:
         print(json.dumps(rec["grade"]["functions"], indent=1))
     return 0

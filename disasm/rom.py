@@ -117,12 +117,44 @@ def info(rom: bytes, byte_order: str = "z64") -> RomInfo:
     )
 
 
+CIC_OFFSETS = (0, 0x100000, 0x200000)
+
+
+def checked_load_vram(ri: RomInfo) -> tuple[int, str]:
+    """The IPL3 load address, validated against the entry code itself.
+
+    splat maps a CIC to a load offset by IPL3 checksum and silently uses 0 for
+    an unknown CIC -- a wrong segment address with no error anywhere. The
+    entry code states two absolute addresses (where it jumps, where .bss
+    starts); a load address is accepted only if the jump lands inside the
+    loaded image. An unknown CIC is resolved only when exactly one candidate
+    offset is consistent; otherwise this refuses.
+    """
+    def consistent(load: int) -> bool:
+        return (ri.main_address is not None and ri.bss_start is not None
+                and load <= ri.main_address < ri.bss_start)
+
+    if ri.cic != "unknown":
+        if not consistent(ri.load_vram):
+            raise ValueError(f"CIC {ri.cic} load address {ri.load_vram:#x} does not "
+                             f"contain the entry jump {ri.main_address!r:}")
+        return ri.load_vram, f"CIC {ri.cic}, entry jump inside image"
+    ok = [ri.header_entry - off for off in CIC_OFFSETS
+          if consistent(ri.header_entry - off)]
+    if len(ok) != 1:
+        raise ValueError(f"unknown CIC and {len(ok)} consistent load addresses; "
+                         "refusing to guess")
+    return ok[0], "unknown CIC: the only offset whose image contains the entry jump"
+
+
 def boot_segment(ri: RomInfo) -> Segment:
     """ROM 0x1000 loaded at the entry point, ending where .bss begins.
 
     Refuses rather than guesses: without a bss start from the entry code there
     is no binary statement of where the segment's image ends.
     """
+    load, how = checked_load_vram(ri)
+    ri = RomInfo(**{**ri.__dict__, "load_vram": load})
     if ri.bss_start is None:
         raise ValueError("entry code does not state a .bss start; boot segment "
                          "extent unknown (non-traditional entrypoint)")
@@ -137,5 +169,5 @@ def boot_segment(ri: RomInfo) -> Segment:
         vram=ri.load_vram,
         bss_start=ri.bss_start,
         bss_size=ri.bss_size,
-        derived_from="entry code: bss clear start - IPL3 load address",
+        derived_from=f"entry code: bss clear start - IPL3 load address ({how})",
     )

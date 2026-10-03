@@ -66,12 +66,6 @@ def test_padding_boundary_fires_on_osPfsIsPlug_shape():
     assert functions.padding_boundaries(dec, VRAM, VRAM + 32) == {VRAM + 16}
 
 
-def test_padding_boundary_needs_a_prologue():
-    # Same zeros, but a leaf body after them: no split (left to spimdisasm).
-    words = [JAL, MOVE_A0_ZERO, NOP, NOP, ADDIU_V0, JR_RA, NOP, NOP]
-    assert functions.padding_boundaries(dec_of(words), VRAM, VRAM + 32) == set()
-
-
 def test_padding_boundary_ignores_load_delay_nops():
     # lw; nop; nop then a prologue-shaped word on a 16-byte boundary: the zeros
     # follow ordinary code, not a control transfer, so they are not padding.
@@ -119,7 +113,7 @@ def test_sbk1_boot_segment_from_entry_code(sbk1):
 def test_sbk1_code_extent_brackets_rsp_microcode(sbk1):
     ext = sbk1[0]["extent"]
     assert ext.rom(ext.text_end) == 0xB19D0          # CPU .text ends
-    assert ext.rom(ext.data_start) == 0xB3CF0        # first CPU data access
+    assert ext.rom(ext.data_bound) == 0xB3CF0        # first CPU data access
     # rspboot, aspMain, f3dlx: address-taken, never executed by the CPU.
     assert [ext.rom(v) for v in ext.non_cpu_entries] == [0xB19D0, 0xB1AA0, 0xB28C0]
 
@@ -155,3 +149,86 @@ def test_sbk1_grade_every_disagreement_explained(sbk1):
     assert s["start_only_uncheckable_size"] + s["uncheckable_static_start"] == 12
     assert g["reference_object_order"].get("reverse", 0) >= 1
     assert g["reference_unexplained_intervals"] == []
+
+
+# ------------------------------------------------------------------ leaf after padding
+
+LUI_T0 = 0x3C088000                # lui t0, 0x8000
+LW_RA = 0x8FBF0014                 # lw ra, 0x14(sp)
+POP = 0x27BD0018                   # addiu sp, sp, 0x18
+B_BACK = 0x1000FFFF                # b . (infinite loop)
+
+
+def test_leaf_after_padding_fires():
+    # SBK2 setModelEntityVisibility / __moddi3 shape: no prologue, walks to jr ra.
+    words = [ADDIU_V0, JR_RA, NOP, NOP, LUI_T0, JR_RA, NOP, NOP]
+    assert functions.padding_boundaries(dec_of(words), VRAM, VRAM + 32) == {VRAM + 16}
+
+
+def test_dead_epilogue_after_infinite_loop_is_not_a_function():
+    # gameThreadMain: `b .; nop`, a nop, then the unreachable epilogue.
+    words = [PROLOGUE, B_BACK, NOP, NOP, LW_RA, POP, JR_RA, NOP]
+    assert functions.padding_boundaries(dec_of(words), VRAM, VRAM + 32) == set()
+
+
+def test_leading_nop_function_starts_at_the_boundary():
+    # libkmc __muldi3 begins with `nop`: zeros run past 0x10; start is 0x10.
+    words = [ADDIU_V0, JR_RA, NOP, NOP, NOP, ADDU_V0, JR_RA, NOP]
+    assert functions.padding_boundaries(dec_of(words), VRAM, VRAM + 32) == {VRAM + 16}
+
+
+def test_branch_into_following_code_blocks_the_split():
+    BEQZ_FWD = 0x10400005          # beqz v0, +5 -> index 6 (inside the "leaf")
+    words = [BEQZ_FWD, NOP, JR_RA, NOP, LUI_T0, ADDIU_V0, JR_RA, NOP]
+    assert functions.padding_boundaries(dec_of(words), VRAM, VRAM + 32, {VRAM}) == set()
+
+
+SBK2 = os.path.expanduser("~/decomp/sbk2")
+ROM2 = os.path.join(SBK2, "snowboardkids2.z64")
+
+
+@pytest.mark.grounded
+def test_sbk2_gcc_grade_every_disagreement_explained():
+    if not os.path.exists(ROM2):
+        pytest.skip("SBK2 ROM not present")
+    from disasm import run
+    fe = run.front_end(ROM2)
+    g = run.receipt(fe, SBK2)["grade"]
+    s = g["functions"]
+    for bucket in ("size_padding", "size_other", "missed_start", "extra_start",
+                   "stale_whitelist"):
+        assert s[bucket] == 0, (bucket, g["disagreements"].get(bucket))
+    assert s["exact"] >= 2261
+    assert fe["extent"].rom(fe["extent"].text_end) == 0x851F0
+    starts = {f.vram for f in fe["functions"]}
+    assert {0x80000450, 0x80084220} <= starts     # leaf after padding; leading nop
+
+
+def test_call_delay_slot_nop_is_not_padding():
+    # SBK2 __umoddi3: `jal div64_64; nop` then code on a 16-byte boundary.
+    words = [ADDIU_V0, ADDIU_V0, JAL, NOP, MOVE_A0_ZERO, JR_RA, NOP, NOP]
+    assert functions.padding_boundaries(dec_of(words), VRAM, VRAM + 32) == set()
+
+
+def _ri(cic, header_entry, main, bss):
+    return rom.RomInfo(sha1="", byte_order="z64", size=0, title="", game_code="",
+                       libultra_version="", cic=cic, header_entry=header_entry,
+                       load_vram=header_entry, main_address=main, stack_top=None,
+                       bss_start=bss, bss_size=None, traditional_entrypoint=True)
+
+
+def test_unknown_cic_resolved_only_by_the_entry_jump():
+    # 6103-style: header says 0x80100400, image actually loads at 0x80000400.
+    ri = _ri("unknown", 0x80100400, 0x80000500, 0x80010000)
+    assert rom.checked_load_vram(ri)[0] == 0x80000400
+
+
+def test_known_cic_with_inconsistent_entry_refuses():
+    with pytest.raises(ValueError):
+        rom.checked_load_vram(_ri("6102", 0x80000400, 0x80300000, 0x80010000))
+
+
+@pytest.mark.grounded
+def test_sbk1_ledger_has_no_text_gaps(sbk1):
+    led = sbk1[1]["ledger"]
+    assert led["text_gap_bytes"] == 0 and led["overlapping_regions"] == 0

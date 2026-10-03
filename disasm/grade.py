@@ -53,6 +53,8 @@ class Reference:
     # objects whose global functions sit in forward/reverse/mixed source order
     object_order: dict[str, int] = field(default_factory=dict)
     padding_intervals: list[tuple[str, int, int]] = field(default_factory=list)
+    # handwritten-asm objects whose function granularity the reference cannot state
+    unscored_asm_objects: list[tuple[str, int, int]] = field(default_factory=list)
     # (object, its static intervals, statics with no derivable start)
     shared_static_intervals: list[tuple[str, list[tuple[int, int]], int]] =         field(default_factory=list)
 
@@ -73,7 +75,18 @@ def elf_functions(elf: Path) -> dict[int, RefFunc]:
     return funcs
 
 
-TEXT_RE = re.compile(r"^ \.text\s+0x([0-9a-f]+)\s+0x([0-9a-f]+)\s+(\S+\.o)$")
+def asm_object_labels(elf: Path) -> dict[int, str]:
+    """Sizeless `O` symbols: how libultra's handwritten .s (LEAF macro) marks
+    its functions in a KMC/GCC build (SBK2: osInvalDCache, bcopy, sqrtf).
+    Only meaningful inside a map .text range; the caller restricts them."""
+    out: dict[int, str] = {}
+    for t in _symtab(elf):
+        if len(t) >= 6 and "O" in t[1:-3] and t[-3].startswith(".")                 and int(t[-2], 16) == 0 and t[-1] != "gcc2_compiled.":
+            out.setdefault(int(t[0], 16), t[-1])
+    return out
+
+
+TEXT_RE = re.compile(r"^ \.text\s+0x([0-9a-f]+)\s+0x([0-9a-f]+)\s+(\S+\.o\)?)$")
 
 
 def map_text_objects(map_path: Path) -> list[tuple[str, int, int]]:
@@ -102,14 +115,35 @@ def source_definitions(src: Path) -> list[str]:
 def reference(repo: Path) -> Reference:
     repo = Path(repo)
     elf = next(repo.glob("build/*.elf"))
-    map_path = next(repo.glob("build/*.map"))
+    map_path = next(iter(list(repo.glob("build/*.map")) + list(repo.glob("*.map"))), None)
     funcs = elf_functions(elf)
-    ref = Reference(funcs=dict(funcs), objects=map_text_objects(map_path))
+    ref = Reference(funcs=dict(funcs),
+                    objects=map_text_objects(map_path) if map_path else [])
 
     word_at = elf_word_reader(elf)
 
+    # Handwritten asm typed as sizeless objects (KMC/GCC libultra). Its labels
+    # mix function entries with branch targets inside one function (bcopy's
+    # goforwards, exceptasm's IP6_Hdlr) and nothing in the reference tells
+    # them apart, so such an object's granularity is UNSCORED: only its base
+    # is a checkable start, and splits inside it are reported separately.
+    labels = asm_object_labels(elf)
+    for obj_rel, base, size in ref.objects:
+        if any(base <= a < base + size for a in funcs):
+            continue
+        if not any(base <= a < base + size for a in labels):
+            continue
+        ref.unscored_asm_objects.append((obj_rel, base, base + size))
+        ref.funcs.setdefault(base, RefFunc(base, labels.get(base, obj_rel), None,
+                                           "asm-object"))
+    funcs = dict(ref.funcs)
+
     for obj_rel, base, size in ref.objects:
         end = base + size
+        try:
+            word_at(base)
+        except KeyError:
+            continue                    # not loaded (e.g. a 0-address entry)
         inside = sorted((f for f in funcs.values() if base <= f.addr < end),
                         key=lambda f: f.addr)
         src = (repo / re.sub(r"^build/", "", obj_rel)).with_suffix(".c")
@@ -126,10 +160,13 @@ def reference(repo: Path) -> Reference:
 
         # Code in the object that no global covers.
         cursor, intervals = base, []
-        for f in inside:
+        for i, f in enumerate(inside):
             if f.addr > cursor:
                 intervals.append((cursor, f.addr))
-            cursor = max(cursor, f.addr + f.size)
+            # A sizeless asm label covers up to the next function or object end.
+            f_end = (f.addr + f.size if f.size is not None else
+                     inside[i + 1].addr if i + 1 < len(inside) else end)
+            cursor = max(cursor, f_end)
         if cursor < end:
             intervals.append((cursor, end))
         # All-zero intervals are padding, not functions (the object's trailing
@@ -200,6 +237,7 @@ def compare(ours: dict[int, int], reference: Reference, lo: int, hi: int,
     ours = {a: s for a, s in ours.items() if lo <= a < hi}
     b: dict[str, list] = {k: [] for k in (
         "exact", "start_only_uncheckable_size", "uncheckable_static_start",
+        "inside_unscored_asm",
         "size_padding", "size_other", "missed_start", "extra_start",
         "whitelisted")}
     for a, f in sorted(ref.items()):
@@ -219,6 +257,10 @@ def compare(ours: dict[int, int], reference: Reference, lo: int, hi: int,
     starts = sorted(ref)
     budget = {obj: n for obj, _, n in reference.shared_static_intervals}
     for a in sorted(set(ours) - set(ref)):
+        asm_obj = next((o for o, x, y in reference.unscored_asm_objects if x < a < y), None)
+        if asm_obj is not None:
+            b["inside_unscored_asm"].append({"addr": a, "object": asm_obj})
+            continue
         shared = next((obj for obj, ivs, _ in reference.shared_static_intervals
                        if any(x < a < y for x, y in ivs)), None)
         if shared is not None and budget[shared] > 0:

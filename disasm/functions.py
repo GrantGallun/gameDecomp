@@ -19,6 +19,7 @@ Two things are ours:
 
 from __future__ import annotations
 
+import bisect
 from dataclasses import dataclass
 
 import spimdisasm
@@ -74,30 +75,92 @@ def split_padding(dec: Decoder, start: int, size: int) -> tuple[int, int]:
     return body - start, end - body
 
 
-def padding_boundaries(dec: Decoder, lo: int, hi: int) -> set[int]:
+ALIGN = 16
+
+
+def _branch_reaches(dec: Decoder, lo: int, hi: int, target: int) -> bool:
+    """Does any branch or j in [lo, hi) target an address >= target?"""
+    for v in range(lo, hi, 4):
+        d = dec.insn(v)
+        if (d.isBranch() or (d.isJump() and d.isJumpWithAddress()))                 and not d.isFunctionCall():
+            try:
+                if d.getBranchVramGeneric() >= target:
+                    return True
+            except (RuntimeError, ValueError):
+                continue
+    return False
+
+
+def _tears_down_frame(dec: Decoder, lo: int, hi: int) -> bool:
+    """An epilogue, not a leaf: restores ra from the stack or pops a frame.
+
+    IDO keeps the unreachable epilogue after an infinite loop (gameThreadMain,
+    schedulerThreadMain), separated from the loop's `b` by a nop -- the same
+    shape as padding followed by a leaf. A leaf never pops a frame it did not
+    push, so this tells them apart.
+    """
+    for v in range(lo, hi, 4):
+        d = dec.insn(v)
+        op = d.getOpcodeName()
+        if op == "addiu" and _reg(d.rt) == "sp" and _reg(d.rs) == "sp"                 and d.getProcessedImmediate() > 0:
+            return True
+        if op in ("lw", "ld") and _reg(d.rt) == "ra" and _reg(d.rs) == "sp":
+            return True
+    return False
+
+
+def padding_boundaries(dec: Decoder, lo: int, hi: int,
+                       known: set[int] | None = None) -> set[int]:
     """Function starts implied by alignment padding (catalog: text-alignment-padding-is-not-function-body).
 
     A run of zero words that begins right after a control transfer's delay
-    slot and ends on a 16-byte boundary, followed by a stack-frame prologue
-    (`addiu sp, sp, -N`), is the gap between two objects' .text. The prologue
-    guard is what keeps a load-delay `nop` inside a function from ever
-    splitting it; a leaf function after padding is left to spimdisasm.
+    slot and reaches a 16-byte boundary is the gap between two objects'
+    .text. The next function starts at the LAST boundary at or before its
+    first non-zero word: zeros past it are the function's own leading nops
+    (libkmc __muldi3 begins with `nop`); zeros before it are padding (SBK1's
+    entry segment fills 24 bytes). The boundary is accepted when either
+
+    * the code after the zeros opens a stack frame (`addiu sp, sp, -N`), or
+    * it walks as a complete leaf to a return AND no branch in the preceding
+      function (from the nearest `known` start) reaches it -- that guard is
+      what keeps an early return followed by an executed nop from splitting --
+      and it does not pop a frame (`_tears_down_frame`), which is what keeps
+      an infinite loop's dead epilogue from splitting.
+
+    Zeros after ordinary code (an IDO -mips1 load-delay nop) never qualify:
+    the run must start right after a control transfer's delay slot.
     """
+    known = known or set()
+    starts = sorted(known)
     out = set()
     v = lo + 4
     while v < hi:
-        if v % 16 or dec.word(v) == 0 or dec.word(v - 4) != 0:
+        if dec.word(v) == 0 or dec.word(v - 4) != 0:
             v += 4
             continue
-        z = v - 4
+        y = v                                   # first non-zero after the run
+        z = y - 4
         while z > lo and dec.word(z - 4) == 0:
             z -= 4
-        d = dec.insn(v)
+        v += 4
+        if z <= lo:
+            continue
+        # The run may begin with the transfer's own delay-slot nop (`jr ra; nop`).
+        body = _body_end(dec, max(lo, z - 8), y)
+        s = y // ALIGN * ALIGN                  # last boundary at/before the code
+        if body is None or body > s or body >= y:
+            continue    # not after a transfer, no boundary, or no padding at all
+                        # (a call's own delay-slot nop: SBK2 __umoddi3)
+        d = dec.insn(y)
         prologue = (d.getOpcodeName() == "addiu" and _reg(d.rt) == "sp"
                     and _reg(d.rs) == "sp" and d.getProcessedImmediate() < 0)
-        if prologue and z > lo and _body_end(dec, max(lo, z - 8), z) == z:
-            out.add(v)
-        v += 4
+        if not prologue:
+            i = bisect.bisect_right(starts, z - 4) - 1
+            prev = starts[i] if i >= 0 else lo
+            w = dec.walk(s)
+            if w.end is None or _branch_reaches(dec, prev, z, s)                     or _tears_down_frame(dec, s, w.end):
+                continue
+        out.add(s)
     return out
 
 
@@ -109,7 +172,7 @@ def find(rom: bytes, extent: CodeExtent, seeds: set[int] | None = None) -> list[
     dec = Decoder(rom, seg)
     if seeds is None:
         seeds = set(extent.functions) | padding_boundaries(
-            dec, seg.vram, extent.text_end)
+            dec, seg.vram, extent.text_end, set(extent.functions))
     for v in seeds:
         # isAutogenerated: binary-derived, exactly like spimdisasm's own jal
         # symbols. A plain addFunction() symbol is neither user-declared nor

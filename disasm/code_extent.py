@@ -10,10 +10,13 @@ one boundary, bracketed from both sides by observation:
 * Data reaches it from above. Every lui-paired load or store into the segment
   is an access to data; the lowest such address is where data starts.
 
-What lies between the two is neither executed by the CPU nor accessed as data
-by it -- SBK1 keeps its RSP microcode there, entered only through pointers
-handed to the RSP. It is reported as its own region with the address-taken
-entry points inside it, not folded into either side.
+What lies between the two is not CPU code, and is not yet resolved: RSP
+microcode (entered only through pointers handed to the RSP) and data reached
+only through pointers both live there. SBK1 has only microcode in it; SBK2
+also has 0x1638 bytes of pointer-only .data, so the lowest direct access is
+a BOUND on where data starts, not the start. The region is reported as
+`non_cpu_or_data` with its address-taken entry points, never folded into
+either side.
 
 An address-taken target is admitted as code only below the data bound (a
 pointer to data is the common case) and only if it walks as a function. The
@@ -43,7 +46,9 @@ class Walk:
 class CodeExtent:
     segment: Segment
     text_end: int                    # vram, exclusive
-    data_start: int | None           # vram of the lowest CPU data access
+    data_bound: int | None           # vram of the lowest CPU data access: data
+                                     # begins AT OR BEFORE here (SBK1: at; SBK2:
+                                     # 0x1638 bytes before, pointer-only data)
     functions: dict[int, int]        # start -> end, every function reached
     via_call: set[int]
     via_pointer: set[int]
@@ -58,8 +63,8 @@ class CodeExtent:
         return {
             "text_end_vram": h(self.text_end),
             "text_end_rom": h(self.rom(self.text_end)),
-            "data_start_vram": h(self.data_start),
-            "data_start_rom": h(self.rom(self.data_start)) if self.data_start else None,
+            "data_bound_vram": h(self.data_bound),
+            "data_bound_rom": h(self.rom(self.data_bound)) if self.data_bound else None,
             "functions_reached": len(self.functions),
             "via_call": len(self.via_call),
             "via_pointer": len(self.via_pointer),
