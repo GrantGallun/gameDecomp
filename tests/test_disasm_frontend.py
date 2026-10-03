@@ -232,3 +232,56 @@ def test_known_cic_with_inconsistent_entry_refuses():
 def test_sbk1_ledger_has_no_text_gaps(sbk1):
     led = sbk1[1]["ledger"]
     assert led["text_gap_bytes"] == 0 and led["overlapping_regions"] == 0
+
+
+# ------------------------------------------------------------------ overlays
+
+from disasm import overlays
+
+
+def _jal(target):
+    return 0x0C000000 | ((target >> 2) & 0x3FFFFFF)
+
+
+def _overlay_rom(v):
+    # f0 calls f1 and f2; f1, f2 are leaves. Image at ROM 0x100.
+    words = [PROLOGUE, _jal(v + 0x20), NOP, _jal(v + 0x2C), NOP, JR_RA, NOP, NOP,
+             ADDIU_V0, JR_RA, NOP,
+             ADDU_V0, JR_RA, NOP, NOP, NOP]
+    return b"\0" * 0x100 + b"".join(w.to_bytes(4, "big") for w in words)
+
+
+def test_overlay_split_finds_every_function():
+    rom_ = _overlay_rom(0x80400000)
+    code, starts, size = overlays.split(rom_, 0x100, len(rom_))
+    assert (code, starts) == (0x100, [0, 0x20, 0x2C])
+
+
+def test_overlay_vote_recovers_load_address():
+    v = 0x80400000
+    rom_ = _overlay_rom(v)
+    code, starts, size = overlays.split(rom_, 0x100, len(rom_))
+    boot = Segment("boot", 0x1000, 0x2000, 0x80000400)
+    got, s1, s2, why = overlays.vote(rom_, code, starts, size, len(rom_) - code, boot)
+    assert got == v and why["calls"] == 2 and why["contradictions"] == 0
+
+
+def test_overlay_vote_declines_without_evidence():
+    # One function, no calls, no references: the load address is UNKNOWN.
+    rom_ = b"\0" * 0x100 + b"".join(w.to_bytes(4, "big") for w in [PROLOGUE, JR_RA, NOP])
+    code, starts, size = overlays.split(rom_, 0x100, len(rom_))
+    boot = Segment("boot", 0x1000, 0x2000, 0x80000400)
+    assert overlays.vote(rom_, code, starts, size, len(rom_) - code, boot)[0] is None
+
+
+@pytest.mark.grounded
+def test_sbk2_overlays_discovered_from_rom():
+    if not os.path.exists(ROM2):
+        pytest.skip("SBK2 ROM not present")
+    from disasm import run
+    fe = run.front_end(ROM2)
+    g = run.receipt(fe, SBK2)["grade"]["overlays"]["summary"]
+    assert g["reference_overlays"] == 20
+    assert (g["placed"], g["range_exact"], g["vram_exact"]) == (20, 20, 20)
+    assert g["vram_wrong"] == 0 and g["extra"] == 0
+    assert g["function_disagreements"] == 0 and g["functions_exact"] >= 720

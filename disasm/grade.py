@@ -298,3 +298,89 @@ def load_known(rom_sha1: str) -> dict[int, str]:
         return {}
     entries = json.loads(KNOWN.read_text(encoding="utf-8")).get(rom_sha1, {})
     return {int(a, 16): e["reason"] for a, e in entries.get("functions", {}).items()}
+
+
+# ------------------------------------------------------------------ overlays
+
+
+def reference_code_segments(repo: Path) -> list[dict]:
+    """Code segments with a ROM start, from the reference splat yaml."""
+    import yaml
+    repo = Path(repo)
+    ymls = [p for p in repo.glob("*.yaml") if "segments:" in p.read_text(errors="replace")]
+    if not ymls:
+        return []
+    segs = yaml.safe_load(ymls[0].read_text())["segments"]
+
+    def start_of(s):
+        return s.get("start") if isinstance(s, dict) else (s[0] if isinstance(s, list) else None)
+    out = []
+    for i, s in enumerate(segs):
+        if isinstance(s, dict) and s.get("type") == "code" and s.get("start") is not None:
+            nxt = next((start_of(t) for t in segs[i + 1:] if start_of(t) is not None), None)
+            out.append({"name": s["name"], "start": s["start"], "end": nxt, "vram": s.get("vram")})
+    return out
+
+
+def section_functions(elf: Path, section: str) -> dict[int, RefFunc]:
+    funcs: dict[int, RefFunc] = {}
+    for t in _symtab(elf):
+        if len(t) >= 6 and "F" in t[1:-3] and t[-3] == section:
+            addr, size = int(t[0], 16), int(t[-2], 16)
+            if size:
+                funcs.setdefault(addr, RefFunc(addr, t[-1], size, "global"))
+    return funcs
+
+
+def grade_overlays(repo: Path, fe: dict, known: dict[int, str]) -> dict:
+    """Overlay discovery (range, load address) and per-overlay functions."""
+    from disasm import code_extent
+    repo = Path(repo)
+    elf = next(repo.glob("build/*.elf"))
+    boot = fe["segment"]
+    ref = [s for s in reference_code_segments(repo)
+           if not boot.rom_start <= s["start"] < boot.rom_end]
+    by_start = {s["start"]: s for s in ref}
+    rows, totals = [], {"exact": 0, "reference": 0, "disagreements": 0}
+    found_starts = set()
+    for o in fe["overlays"]:
+        ov, seg, ext = o["overlay"], o["segment"], o["extent"]
+        found_starts.add(ov.rom_start)
+        r = by_start.get(ov.rom_start)
+        row = {"rom_start": f"{ov.rom_start:#x}", "reference": r and r["name"]}
+        if r is None:
+            row["verdict"] = "extra_overlay"
+            rows.append(row)
+            continue
+        row["range_exact"] = r["end"] == ov.rom_end
+        row["vram_exact"] = r["vram"] == seg.vram
+        sec = "." + r["name"].replace("/", "_")
+        funcs = section_functions(elf, sec)
+        dec = code_extent.Decoder(fe["data"], seg)
+        ours = {f.vram: f.size for f in o["functions"]}
+        cmp_ = compare(ours, Reference(funcs=funcs), seg.vram, ext.text_end, dec.word, {})
+        row["functions"] = {k: v for k, v in cmp_["summary"].items() if v}
+        row["disagreements"] = {k: [{**x, "addr": f"{x['addr']:#010x}"} for x in v]
+                                for k, v in cmp_["buckets"].items()
+                                if k != "exact" and v and isinstance(v[0], dict)}
+        totals["exact"] += cmp_["summary"]["exact"]
+        totals["reference"] += cmp_["summary"]["reference"]
+        totals["disagreements"] += sum(cmp_["summary"][k] for k in (
+            "size_padding", "size_other", "missed_start", "extra_start"))
+        rows.append(row)
+    unplaced = {o.rom_start for o in fe["unplaced_overlays"]}
+    missed = [s["name"] for s in ref if s["start"] not in found_starts | unplaced]
+    summary = {
+        "reference_overlays": len(ref),
+        "placed": len(fe["overlays"]),
+        "unplaced": len(unplaced),
+        "missed": len(missed),
+        "extra": sum(1 for r in rows if r.get("verdict") == "extra_overlay"),
+        "range_exact": sum(1 for r in rows if r.get("range_exact")),
+        "vram_exact": sum(1 for r in rows if r.get("vram_exact")),
+        "vram_wrong": sum(1 for r in rows if r.get("vram_exact") is False),
+        "functions_exact": totals["exact"],
+        "functions_reference": totals["reference"],
+        "function_disagreements": totals["disagreements"],
+    }
+    return {"summary": summary, "missed": missed, "rows": rows}

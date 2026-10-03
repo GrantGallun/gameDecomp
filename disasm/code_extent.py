@@ -109,11 +109,13 @@ class Decoder:
             self._cache[vram] = d
         return d
 
-    def walk(self, start: int) -> Walk:
+    def walk(self, start: int, relative_only: bool = False) -> Walk:
         """Linear body to a return or eret past every forward branch.
 
         An invalid instruction before that end means `start` is not a
         function, and the walk says so (end=None) rather than guessing.
+        `relative_only` ignores absolute `j` targets: in code whose load
+        address is not yet known they point nowhere meaningful.
         """
         w = Walk(start, None)
         far = start
@@ -125,7 +127,8 @@ class Decoder:
                 return w
             if d.isFunctionCall() and d.isJumpWithAddress():
                 w.calls.add(d.getInstrIndexAsVram())
-            elif d.isBranch() or (d.isJump() and d.isJumpWithAddress()):
+            elif d.isBranch() or (d.isJump() and d.isJumpWithAddress()
+                                  and not relative_only):
                 try:
                     far = max(far, d.getBranchVramGeneric())
                 except (RuntimeError, ValueError):
