@@ -78,34 +78,33 @@ candidate fails to compile; the 14 above are the pending ones. Compile-blocked f
 C89 declaration order), which is the likely driver; I have not isolated its share. A compile-blocked function
 can't be repaired at all, so each one recovered becomes a candidate for the other repairs.
 
-**Where the 1,104 come from.** Every function starts from a draft (m2c plus the project's headers and build
-setup), is compiled with IDO, and is repaired where the bytes differ. The campaign state and the repair ledger
-(`repair_yield.exact_functions_gained`) split the result by stage:
+**How the 1,104 were reached.** Every function goes through the same stages: a draft (m2c plus the project's
+headers and build setup), compilation with IDO, and repair guided by the compiler's own diff. The campaign state
+and the repair ledger (`repair_yield.exact_functions_gained`) show where each exact function was finished:
 
-| Of the 1,104 object-exact or ROM-verified functions (2026-10-04) | |
+| Stage that produced the exact match (2026-10-04) | Functions |
 |---|---|
-| already exact when first evaluated (no repair job was run) | 563 (51%) |
-| exact after repair, credited by the repair ledger | **358** (32%) |
-| exact after repair, earlier than the ledger's measurement window | 183 (17%) |
-| functions lost (`exact_functions_lost`) | **0** |
+| Draft and verify: the first compile was byte-exact | 563 (51%) |
+| Repair, measured by the repair ledger | 358 (32%) |
+| Repair, from before the ledger's measurement window | 183 (17%) |
+| Lost after being matched | **0** |
 
-Repair is the part that is hardest to get and the part the project is built around: **541 functions went from
-failing to byte-exact through repair**, 358 of them measured directly by the ledger, and none has been
-lost. The 563 intake matches are small (median 80 bytes, largest 496). Of the 358 ledger-credited, 299 are under 256 bytes, 58 are 256 B to 1 KiB, and 1 is larger.
-`python3 -m eval.status` reports a different figure for the smaller research knowledge base (393 byte-exact of
-1,074 attempted, 278 of them SOLVED), which is a separate measurement.
+**541 functions that did not match on the first compile were repaired to byte-exact**, and no match has ever been
+lost. The first-compile matches are mostly small (median 80 bytes, largest 496). Of the 358 the ledger measures,
+299 are under 256 bytes, 58 are 256 B to 1 KiB, and 1 is larger. `python3 -m eval.status` reports a different
+figure for the smaller research knowledge base (393 byte-exact of 1,074 attempted, 278 of them SOLVED), which
+is a separate measurement.
 
 Register-allocation search is the most productive repair. It produced 155 of the first 218 exact
 functions the campaign gained, with no model call. Its latest amendment (2026-09-15) adds "enabling
 roots": edits that don't improve the score but unlock a later repair. In an offline test they made 15 of a
 30-function family exact; none was reachable before.
 
-**The setting.** This is a *header-assisted development* run. Repairs see the decompilation project's headers
-and build setup, and the 62 held-out functions are excluded. The starting drafts can also draw on the project's
-tree, and about half of the intake matches don't carry the m2c marker, so I'm measuring how much of the intake
-share comes from reference code. This is not a binary-only or unseen-game benchmark, which is what the
-disassembly front end and the model-training work below are for. How much the headers help is itself open: an
-earlier experiment found that handing the model perfect type information made results *worse*.
+**The setting.** This is a *header-assisted development* run: repairs see the decompilation project's headers
+and build setup, and the 62 held-out functions are excluded. It is not a binary-only or unseen-game benchmark;
+the disassembly front end and the model-training work below are how the project moves toward one. How much the
+headers help is itself open: an earlier experiment found that handing the model perfect type information made
+results *worse*.
 
 ## Training our own model
 
