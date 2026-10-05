@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Protocol
 
 from kb import attempts as attempt_receipts
-from solver import compilefix, llm, repair, residual, workspace
+from solver import compilefix, diff_annotate, llm, repair, residual, workspace
 
 
 KINDS = {
@@ -63,6 +63,14 @@ EDIT_SCHEMA = {
                                            "slot": {"type": "string", "pattern": "^([a-f0-9]{12}:)?(L[0-9]+|DECLARATIONS)$"},
                                            "new": {"type": "string"}}}}}}
 
+# 2026-09-15 switches (default on); the offline A/B turns them off to reproduce the previous prompts.
+COMPILE_FIX_PROMPT = True
+PROMPT_COMPACTION = True
+# Stuck drafts repeat one construct on 6-16 lines; four edits cannot remove a whole error class.
+COMPILE_FIX_MAX_EDITS = 16
+COMPILE_FIX_SCHEMA = json.loads(json.dumps(EDIT_SCHEMA))
+COMPILE_FIX_SCHEMA['properties']['edits']['maxItems'] = COMPILE_FIX_MAX_EDITS
+
 PROMPT = """\
 You are correcting one C candidate so the configured IDO compiler emits the target
 MIPS instructions byte-for-byte. Make ONE {scope} source-level hypothesis.
@@ -82,6 +90,7 @@ Rules:
 - If a compiler error is present, fix that blocker before optimizing assembly.
 - Assembly, instruction diffs and headers are READ-ONLY evidence, not editable source.
 - The diff uses `-` for target instructions and `+` for compiled candidate instructions.
+  A trailing `; T<n>` / `; C<n>` is the row's line in the target / candidate dump; `L<m>` on a `+` row is the C line the compiler attributes it to. Annotations are not part of the instruction.
 - Never put an instruction such as `addiu sp,sp,-0x30` in `old` or `new`.
   Stack/register changes must be induced by a C edit, not by editing compiler output.
 - A high similarity score is not proof. Fix the diagnosed source shape.
@@ -219,7 +228,7 @@ def _objects(text: str):
 def parse_proposal(text: str, *, truncate_hypothesis: bool = False,
                    normalize_kind: bool = False,
                    default_hypothesis: bool = False, source: str | None = None,
-                   type_transaction: bool = False) -> Proposal:
+                   type_transaction: bool = False, max_edits: int | None = None) -> Proposal:
     """Parse and bound one structured edit; raise ValueError on ambiguity.
 
     ``truncate_hypothesis`` is for controllers that separately retain a full
@@ -246,7 +255,7 @@ def parse_proposal(text: str, *, truncate_hypothesis: bool = False,
             raise ValueError("hypothesis too long")
         hypothesis = hypothesis[:397].rstrip() + "..."
     from solver import type_transaction as transaction
-    max_edits = transaction.MAX_EDITS if type_transaction else MAX_EDITS
+    max_edits = max_edits or (transaction.MAX_EDITS if type_transaction else MAX_EDITS)
     if not isinstance(raw_edits, list) or not 1 <= len(raw_edits) <= max_edits:
         raise ValueError(f"edits must contain 1 to {max_edits} replacements")
 
@@ -373,7 +382,9 @@ def apply_proposal(source: str, proposal: Proposal, *,
 def build_prompt(asm: str, source: str, attempt: workspace.Attempt, *,
                  packet: residual.ResidualPacket | None = None,
                  diagnosis: str = "", history: tuple[str, ...] = (),
-                 rejected: list[str] | None = None, type_transaction: bool = False) -> str:
+                 rejected: list[str] | None = None, type_transaction: bool = False,
+                 function: str | None = None, focused_diagnostics: bool = True,
+                 observations=(), localization=None) -> str:
     history_lines = list(history[-6:]) + list((rejected or [])[-8:])
     history_block = ""
     if history_lines:
@@ -390,8 +401,15 @@ def build_prompt(asm: str, source: str, attempt: workspace.Attempt, *,
                             + json.dumps({key: attempt.compiler_recipe.get(key) for key in
                                 ("settings", "source_origin", "authority")}, sort_keys=True) + "\n")
     packet = packet or residual.build(attempt, target_asm=asm)
+    if localization:
+        from solver import compiler_localization as localization_adapter
+        diagnosis_block += localization_adapter.render(localization, source, attempt.diff or '')
     from solver import edit_slots, inline_regions, type_transaction as transaction
     diagnosis_block += inline_regions.prompt(asm)
+    if focused_diagnostics:
+        from solver import repair_diagnostic
+        diagnosis_block += repair_diagnostic.render(source, function, attempt.diff or '',
+            attribution=attempt.source_attribution, history=observations)
     return PROMPT.format(
         kinds=", ".join(sorted(KINDS)), max_edits=transaction.MAX_EDITS if type_transaction else MAX_EDITS, asm=asm,
         scope='coordinated type-reconstruction' if type_transaction else 'narrow',
@@ -399,7 +417,8 @@ def build_prompt(asm: str, source: str, attempt: workspace.Attempt, *,
             else '{"old":"exact unique substring from CURRENT C","new":"replacement"}',
         edit_rule='Use ONLY source slot/new pairs from the table below. No old-substring edits.' if type_transaction
             else 'Use a source slot ID from the table below, OR an old substring that occurs exactly once in CURRENT C; never supply both.',
-        score=attempt.score, code=source, diff=(attempt.diff or "")[:12000],
+        score=attempt.score, code=source, diff=diff_annotate.annotate(
+            attempt.diff or "", attempt.source_attribution)[:12000],
         compiler_error=(attempt.compiler_stderr or "")[:6000],
         residual=packet.render(), diagnosis=diagnosis_block,
         history=history_block) + edit_slots.render(source)
@@ -616,7 +635,8 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
            retry_invalid: bool = False, include_header_context: bool = False,
            compile_only: bool = False, type_transaction: bool = False,
            resilient: bool = False, semantic_evaluator=None,
-           early_patch_guidance: bool = False) -> Result:
+           early_patch_guidance: bool = False, focused_diagnostics: bool = True,
+           compiler_localization: bool = False) -> Result:
     """Search a small model-proposed edit tree and retain a diverse frontier."""
     provider = provider or OllamaProvider()
     from solver import type_transaction as transaction, repair_context, type_plan
@@ -638,6 +658,8 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
         "type_transaction": type_transaction,
         "resilient": resilient,
         "early_patch_guidance": early_patch_guidance,
+        "focused_diagnostics": focused_diagnostics,
+        "compiler_localization": compiler_localization,
         "normalization_round_limit": 8,
         "semantic_stride_candidate_limit": 4,
         "type_transaction_policy": {'max_edits':transaction.MAX_EDITS, 'max_chars':transaction.MAX_CHARS,
@@ -664,6 +686,7 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
     result = Result(
         name, base, source, best_object_path=base_object_path,
         run_id=run_id, exact=workspace.repair_complete(base))
+    diagnostic_observations = []
     def evaluate(state):
         if semantic_evaluator and state.attempt.compiled:
             try:
@@ -695,6 +718,46 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
         prototype_report = None
         frontend_diagnostics = (state.attempt.frontend or {}).get('diagnostics', '')
         from solver import frontend_repair
+        # Intake and campaign use the same proposal owners. Refresh source-bound
+        # excerpts: the attempt summary may truncate the exact sites they need.
+        frontend_owner_reports = {}
+        target = (state.attempt.compiler_recipe or {}).get('target', '')
+        if target and (state.attempt.frontend or {}).get('passed') is not True:
+            from solver import frontend_diagnostics as frontend
+            fresh = frontend.analyse(state.source, repo=repo, target=target, full_diagnostics=True)
+            if fresh['status'] != 'unavailable':
+                frontend_diagnostics = fresh.get('diagnostics') or ''
+                if frontend_repair.big_endian_o32(ws/'target.o'):
+                    from solver import (global_scalar_view, global_field_view, stack_scalar_arrays,
+                                        header_signature_view, call_arity_repair)
+                    for label, owner, kwargs in (
+                        ('global-scalar-view', global_scalar_view, {}),
+                        ('global-field-view', global_field_view, {}),
+                        ('stack-scalar-arrays', stack_scalar_arrays, {}),
+                        ('header-signature-view', header_signature_view, {'big_endian_o32': True}),
+                        ('call-arity', call_arity_repair, {'big_endian_o32': True}),
+                    ):
+                        args = (repo, state.source, name, frontend_diagnostics)
+                        if owner is not header_signature_view:
+                            args += (workspace.target_asm(ws,name),)
+                        proposal = owner.propose(*args, **kwargs)
+                        if proposal['changes']:
+                            variants.append((label, proposal['source']))
+                            frontend_owner_reports[label] = proposal
+                if any(gate in frontend_diagnostics for gate in (
+                        'incompatible pointer', 'incompatible integer', 'incomplete type')):
+                    from solver import frontend_fixits
+                    try:
+                        recipe = frontend.recipe(repo, target)
+                        code, trace = frontend_fixits.propose(repo, state.source, recipe['command'], ws,
+                            rounds=4, allow_partial=True)
+                        if code is not None:
+                            variants.append(('frontend-casts', code))
+                            frontend_owner_reports['frontend-casts'] = {'trace': trace,
+                                'source_sha256': _digest(state.source),
+                                'scope': 'diagnosed expression casts; compiler and object verifier adjudicate'}
+                    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+                        result.log.append('frontend casts unavailable: '+str(exc))
         from solver import address_units
         pointer_report = address_units.parameter_call_views(state.source, name,
             workspace.target_asm(ws, name), o32=frontend_repair.big_endian_o32(ws/'target.o'))
@@ -896,6 +959,14 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
                 result.log.append('wide-return reconstruction unavailable: '+str(exc))
         if not state.attempt.compiled:
             variants += repair_context.normalize(state.source,state.attempt.compiler_stderr,name)
+            # The admission choke point's context rung (solver/compile_fallback): the pipeline, not
+            # the model, owns the compile context -- re-attach the includes the search's starting
+            # source compiled with, let headers own duplicate declarations. On the redraft pilot it
+            # rescued more uncompiled model output than any other rung.
+            from solver import compile_fallback
+            variants.append(('admission-context', compile_fallback.with_context(
+                compile_fallback.c89_repair(state.source, name),
+                compile_fallback.includes_of(source), repo)))
         normalized = []
         for label,code in variants:
             if code == state.source or code in normalization_seen:
@@ -905,7 +976,8 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
             att = workspace.score(ws,repo,new_tag,code,conn=conn,func=name,
                 strategy='modelrepair-normalize:'+label, model='zero-model',run_id=run_id,
                 parent_attempt_id=state.attempt.receipt_id,relation='compiler-normalization',
-                extra=({'parameter_call_byte_units':pointer_report} if label=='parameter-call-byte-units' else
+                extra=({'frontend_owner_hypotheses':frontend_owner_reports[label]} if label in frontend_owner_reports else
+                       {'parameter_call_byte_units':pointer_report} if label=='parameter-call-byte-units' else
                        {'stack_buffer_hypotheses':stack_report} if label.startswith('stack-buffer-') else
                        {'header_context_hypotheses':header_report} if label=='frontend-header-context' else
                        {'header_prototype_hypotheses':prototype_report} if label=='frontend-scalar-prototypes' else
@@ -947,7 +1019,12 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
                 if state.source in visited:
                     continue
                 visited.add(state.source)
-                children += normalize(state, f'{tag}_r{round_index}_{index}')
+                # A child that no longer parses (a model edit that removed a brace) is a declined
+                # normalization, not a job failure: the ValueError used to park whole functions.
+                try:
+                    children += normalize(state, f'{tag}_r{round_index}_{index}')
+                except ValueError as exc:
+                    result.log.append(f'normalization declined for {_digest(state.source)[:12]}: {exc}')
             if not children:
                 break
             all_states += children
@@ -992,6 +1069,7 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
     budget_exhausted = False
     followup, grace = None, 0
     stalled_depths = 0
+    localization_cache = {}
     failed_plans = {}
     restart = _frontier(initial,1)[0]
 
@@ -1015,16 +1093,36 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
             grace -= 1
             result.log.append(f'depth {depth}: type-transaction lookahead from attempt {followup.attempt.receipt_id}')
         for parent_index, parent in enumerate(parents):
+            localization_packet = None
+            if compiler_localization and parent.attempt.compiled and result.calls_attempted < max_calls:
+                from solver import compiler_localization as localization_adapter
+                key = (_digest(parent.source), _digest(parent.attempt.diff or ''), str(parent.object_path))
+                if key not in localization_cache:
+                    localization_packet, certified = localization_adapter.measure(
+                        repo, ws, name, parent, conn=conn, run_id=run_id, run_config=config)
+                    localization_cache[key] = localization_packet
+                    result.log.append('compiler-localization: ' + json.dumps(localization_packet, sort_keys=True))
+                    for state in certified:
+                        evaluate(state)
+                        children.append(state)
+                        if workspace.repair_complete(state.attempt):
+                            result.best_attempt, result.best_source = state.attempt, state.source
+                            result.best_object_path, result.exact = state.object_path, True
+                            result.frontier = _frontier(frontier + children, beam_width)
+                            return result
+                localization_packet = localization_cache[key]
             pending_completion = ""
             pending_correction = ""
             if include_header_context or resilient:
                 from solver import compile_obligations, project_headers
-                header_context = project_headers.repair_context(repo, parent.source)
+                header_declarations = project_headers.repair_context(repo, parent.source)
+                header_context = header_declarations
+                storage_packet = ''
                 if not parent.attempt.compiled:
-                    header_context += '\nSTORAGE/TYPE RECONSTRUCTION INPUT (READ-ONLY):\n' + json.dumps(
-                        compile_obligations.packet(repo, name, parent.source, asm), indent=2)
+                    storage_packet = json.dumps(compile_obligations.packet(repo, name, parent.source, asm), indent=2)
+                    header_context += '\nSTORAGE/TYPE RECONSTRUCTION INPUT (READ-ONLY):\n' + storage_packet
             else:
-                header_context = ""
+                header_context = header_declarations = storage_packet = ""
             for draw in range(draws + 1):
                 if draw >= draws and not (pending_completion or pending_correction):
                     break
@@ -1036,11 +1134,29 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
                     parent.attempt, target_asm=asm,
                     target_object=ws / "target.o",
                     candidate_object=parent.object_path)
-                prompt = build_prompt(
-                    asm, parent.source, parent.attempt, packet=packet,
-                    diagnosis=diagnosis if parent.attempt is base else "",
-                    history=parent.labels, rejected=rejected, type_transaction=type_transaction)
-                prompt += header_context
+                compile_fix = bool(COMPILE_FIX_PROMPT and resilient and not parent.attempt.compiled and not type_transaction)
+                if compile_fix:
+                    # Error-focused prompt: the byte-repair context is empty or unused before anything compiles,
+                    # and it pushed half the stuck nodes' model calls past the context window.
+                    from solver import compile_fix_prompt, prompt_budget
+                    schema_bytes = len(json.dumps(response_schema).encode()) if response_schema else 0
+                    prompt, compile_fix_report = compile_fix_prompt.build(
+                        parent.source, function=name, compiler_stderr=parent.attempt.compiler_stderr,
+                        diagnostics=(parent.attempt.frontend or {}).get('diagnostics', ''), kinds=KINDS,
+                        max_edits=COMPILE_FIX_MAX_EDITS, header_declarations=header_declarations, history=parent.labels,
+                        rejected=rejected, assembly=asm, storage_packet=storage_packet,
+                        budget_bytes=(32768 - num_predict - 1024) * 2 - schema_bytes - 6000)
+                    result.log.append(f"depth {depth}: compile-fix prompt {compile_fix_report['bytes']} bytes, "
+                                      f"{compile_fix_report['error_lines']} error lines, sections {compile_fix_report['sections']}, "
+                                      f"omitted {compile_fix_report['omitted']}")
+                else:
+                    prompt = build_prompt(
+                        asm, parent.source, parent.attempt, packet=packet,
+                        diagnosis=diagnosis if parent.attempt is base else "",
+                        history=parent.labels, rejected=rejected, type_transaction=type_transaction,
+                        function=name, focused_diagnostics=focused_diagnostics,
+                        observations=diagnostic_observations, localization=localization_packet)
+                    prompt += header_context
                 planning = bool(resilient and not parent.attempt.compiled and type_plan.inventory(parent.source)
                                 and re.search(r'\bvoid\s*\*',parent.source)
                                 and failed_plans.get(_digest(parent.source),0) < 2 and not restarting)
@@ -1048,6 +1164,7 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
                     prompt += '\nCOORDINATED TYPE REPAIR:\n' + json.dumps(
                         transaction.packet(parent.source, asm, name, abi), indent=2)
                 if planning:
+                    compile_fix = False          # the type plan has its own prompt and schema
                     prompt = type_plan.prompt(parent.source,header_context,abi,'\n'.join(rejected[-4:]))
                     prompt += '\nREAD-ONLY TARGET INSTRUCTIONS:\n'+asm
                 semantic_repair = resilient and (parent.semantic or {}).get('status')=='observed_failure'
@@ -1090,6 +1207,9 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
                 if early_patch_guidance and not planning:
                     from solver import patch_guidance
                     prompt = patch_guidance.prepend(prompt, slots_only=type_transaction)
+                if PROMPT_COMPACTION:
+                    from solver import prompt_compaction
+                    prompt = prompt_compaction.compact(prompt)
                 workspace.assert_uncontaminated(prompt, repo, name)
                 call_seed = (
                     call_seeds[result.calls_attempted]
@@ -1106,7 +1226,7 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
                         temperature=temperature, num_predict=min(num_predict, 4096) if completing or correcting else num_predict,
                         seed=call_seed, cache_dir=cache_dir,
                         cache_namespace=cache_namespace,
-                        response_schema=type_plan.SCHEMA if planning else response_schema if type_transaction or completing or correcting or structured_output else None))
+                        response_schema=type_plan.SCHEMA if planning else (COMPILE_FIX_SCHEMA if compile_fix else response_schema) if type_transaction or completing or correcting or structured_output else None))
                 except Exception as exc:
                     wall_ms = int((time.time() - started) * 1000)
                     transport = getattr(exc,'transport_events',[])
@@ -1163,7 +1283,8 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
                             proposal = Proposal('declarations',str(plan['hypothesis'])[:1200],(),_digest(parent.source))
                         else:
                             proposal = parse_proposal(text, source=parent.source, type_transaction=type_transaction,
-                                truncate_hypothesis=bool(resilient and conn is not None))
+                                truncate_hypothesis=bool(resilient and conn is not None),
+                                max_edits=COMPILE_FIX_MAX_EDITS if compile_fix else None)
                             candidate = apply_proposal(parent.source, proposal, type_transaction=type_transaction)
                         stack_result_evidence.validate_candidate(parent.source,candidate,stack_results)
                         if type_transaction or (semantic_repair and proposal.kind != 'control-flow'):
@@ -1241,6 +1362,12 @@ def search(repo: Path, name: str, source: str, ws: Path, *,
                     relation="model-repair", action=action,
                     feedback=packet.render(), run_kind="model-repair",
                     run_config=config)
+                diagnostic_observations.append({
+                    'parent_source_sha256': _digest(parent.source),
+                    'parent_diff_sha256': _digest(parent.attempt.diff or ''),
+                    'child_source_sha256': _digest(candidate), 'child_diff_sha256': _digest(att.diff or ''),
+                    'label': action, 'compiled': att.compiled, 'exact': workspace.repair_complete(att),
+                    'weighted_score_before': parent.attempt.score, 'weighted_score_after': att.score})
                 if conn is not None and proposal_id is not None and att.receipt_id:
                     attempt_receipts.link_model_proposal(
                         conn, proposal_id, att.receipt_id)

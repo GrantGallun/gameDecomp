@@ -56,6 +56,100 @@ HELPERS = (
     (SIGNED_RSHIFT, 's64', 'signed-word-pair-right-shift', '>>'),
 )
 
+# Whole-stream reconstruction recipes only. These do not extend recognize()/infer()
+# or admit new callee/runtime behavior. Both were independently compiled against
+# their motivating binary streams; names are not part of recognition.
+DIVREMI = '''lh t7,18(sp)
+sw a2,8(sp)
+sw a3,12(sp)
+ld t6,8(sp)
+or t8,t7,zero
+or t9,t8,zero
+ddivu zero,t6,t9
+bnez t9,.quotient
+nop
+break 7
+.quotient:
+mflo t0
+sd t0,0(a0)
+lh t2,18(sp)
+ld t1,8(sp)
+or t3,t2,zero
+or t4,t3,zero
+ddivu zero,t1,t4
+bnez t4,.remainder
+nop
+break 7
+.remainder:
+mfhi t5
+sd t5,0(a1)
+jr ra
+nop
+'''
+SIGNED_MODULO = '''addiu sp,sp,-8
+sw a0,8(sp)
+sw a1,12(sp)
+sw a2,16(sp)
+sw a3,20(sp)
+ld t7,16(sp)
+ld t6,8(sp)
+ddiv zero,t6,t7
+nop
+bnez t7,.nonzero
+nop
+break 7
+.nonzero:
+daddiu at,zero,-1
+bne t7,at,.result
+daddiu at,zero,1
+dsll32 at,at,31
+bne t6,at,.result
+nop
+break 6
+.result:
+mfhi t8
+sd t8,0(sp)
+bgez t8,.positive
+nop
+bgtz t7,.adjust
+nop
+.positive:
+ld t9,0(sp)
+blez t9,.return
+nop
+ld t0,16(sp)
+bgez t0,.return
+nop
+.adjust:
+ld t1,0(sp)
+ld t2,16(sp)
+daddu t3,t1,t2
+sd t3,0(sp)
+.return:
+lw v0,0(sp)
+lw v1,4(sp)
+jr ra
+addiu sp,sp,8
+'''
+
+
+def _compound_candidate(function, assembly):
+    key = instruction_key(assembly)
+    if key == instruction_key(DIVREMI):
+        return ('wide-quotient-remainder-halfword',
+            f'void {function}(u64 *quotient, u64 *remainder, u64 value, u16 divisor) {{\n'
+            '    *quotient = value / divisor;\n'
+            '    *remainder = value % divisor;\n}')
+    if key == instruction_key(SIGNED_MODULO):
+        return ('signed-modulo-divisor-sign',
+            f's64 {function}(s64 dividend, s64 divisor) {{\n'
+            '    s64 remainder;\n'
+            '    remainder = dividend % divisor;\n'
+            '    if (((remainder < 0) && (divisor > 0)) || ((remainder > 0) && (divisor < 0))) {\n'
+            '        remainder += divisor;\n'
+            '    }\n    return remainder;\n}')
+    return None
+
 
 def instruction_key(assembly):
     assembly=re.sub(r'(?m)^\s*(?:nonmatching\s+\w+(?:,\s*(?:0x[0-9a-fA-F]+|\d+))?|endlabel\s+\w+)\s*$', '',assembly)
@@ -90,17 +184,22 @@ def reconstruct_helper(source, function, assembly, *, big_endian_o32=False, comp
     if not big_endian_o32 or compiler_mips != '-mips3 -32':
         return source, report
     interface = recognize(assembly)
-    if interface is None:
+    compound = _compound_candidate(function, assembly) if interface is None else None
+    if interface is None and compound is None:
         return source, report
-    operators = {operation: operator for _, _, operation, operator in HELPERS}
     definition, end = repair_context.definition(source, function)
-    typ = interface['return_type']
-    candidate = (f'{typ} {function}({typ} wide_lhs, {typ} wide_rhs) {{\n'
-                 f'    return wide_lhs {operators[interface["operation"]]} wide_rhs;\n}}')
+    if compound:
+        operation, candidate = compound
+    else:
+        operators = {operation: operator for _, _, operation, operator in HELPERS}
+        typ = interface['return_type']
+        operation = interface['operation']
+        candidate = (f'{typ} {function}({typ} wide_lhs, {typ} wide_rhs) {{\n'
+                     f'    return wide_lhs {operators[operation]} wide_rhs;\n}}')
     result = source[:definition.start()] + candidate + source[end:]
     if result != source:
         report.update(interface=interface, candidate_sha256=hashlib.sha256(result.encode()).hexdigest())
-        report['changes'] = [{'function': function, 'operation': interface['operation'],
+        report['changes'] = [{'function': function, 'operation': operation,
                               'replacement': candidate}]
     return result, report
 

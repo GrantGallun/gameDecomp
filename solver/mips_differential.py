@@ -1240,6 +1240,9 @@ class Runner:
             return
         if op == "cvt.w.s" and len(operands) == 2:
             value = _float32_from_bits(self.get(operands[1]))
+            if not math.isfinite(value):
+                raise UnsupportedInstruction(
+                    "cvt.w.s nonfinite input requires unmodeled FCSR exception behavior")
             rounding = self.get("c1_fcsr") & 3
             if rounding == 1:
                 converted = math.trunc(value)
@@ -1249,6 +1252,9 @@ class Runner:
                 converted = math.floor(value)
             else:
                 converted = round(value)
+            if not -0x80000000 <= converted <= 0x7FFFFFFF:
+                raise UnsupportedInstruction(
+                    "cvt.w.s out-of-range result requires unmodeled FCSR exception behavior")
             self.set(operands[0], u32(converted), self._compact_origin(
                 f"i{instruction.index} cvt.w.s({self.origin(operands[1])}, "
                 f"rounding={rounding}) -> {u32(converted):#010x}"))

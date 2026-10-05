@@ -8,6 +8,27 @@ import re
 from solver import dataflow, project_headers, repair_context
 
 
+def _possible_local_declaration(body, name):
+    """Conservatively recognize a name in a declaration-shaped statement.
+
+    No type table is available here, so unknown type names and complex
+    declarators must decline too. False positives only withhold a hypothesis.
+    """
+    # Splitting statements would discard the declarator after a braced local
+    # aggregate. Such bodies are outside this deliberately narrow alias rule.
+    if re.search(r'\b(?:struct|union|enum)\b[^;{}]*\{',body):
+        return True
+    controls={'return','goto','if','else','while','do','switch','case','break','continue'}
+    for statement in re.split(r'[;{}]',body):
+        statement=re.sub(r'^\s*(?:[A-Za-z_]\w*\s*:\s*)+','',statement)
+        tokens=re.findall(r'[A-Za-z_]\w*|\S',statement)
+        if name not in tokens or len(tokens)<2:continue
+        if tokens[0] in controls or not re.fullmatch(r'[A-Za-z_]\w*',tokens[0]):continue
+        if tokens[1] in {'*','('} or re.fullmatch(r'[A-Za-z_]\w*',tokens[1]):
+            return True
+    return False
+
+
 def propose(source, function, assembly, diagnostics):
     report={'source':source,'changes':[],
             'source_sha256':hashlib.sha256(source.encode()).hexdigest(),
@@ -31,6 +52,38 @@ def propose(source, function, assembly, diagnostics):
             break
         known_words+=1
     flow=dataflow.analyse(assembly,stack_parameter_words=max(0,known_words-4))
+    # A copied global pointer has a stronger binary identity than an arbitrary
+    # local at the same displacement. Keep this separate from parameter aliases:
+    # load(gCursor)+4 is not the address of gCursor+4.
+    global_pointers={}
+    for access in flow.accesses.values():
+        address=access.address
+        if (address and address.kind=='load' and address.width==4 and address.inner
+                and address.inner.kind=='address' and address.inner.offset==0
+                and address.inner.name not in {'stack','gp'}
+                and not re.fullmatch(r'param\d+',address.inner.name)):
+            global_pointers.setdefault(address.inner.name,[]).append(address)
+    global_aliases={}
+    for name in re.findall(r'(?m)^[ \t]*void\s*\*\s*(\w+)\s*;',body):
+        assignments=list(re.finditer(r'\b'+re.escape(name)+r'\s*=(?!=)\s*([^;]+);',body))
+        if len(assignments)!=1:continue
+        assignment=assignments[0]
+        symbol=assignment[1].strip()
+        if symbol not in global_pointers:continue
+        # Only a plain statement assigning the symbol, with no address escape
+        # or subsequent cursor mutation. Other local alias forms still decline.
+        line_start=body.rfind('\n',0,assignment.start())+1
+        if body[line_start:assignment.start()].strip():continue
+        if re.search(r'\b'+re.escape(name)+r'\s*(?:[+\-*/%&|^]=|<<=|>>=|\+\+|--)',body):continue
+        if re.search(r'(?:\+\+|--|&)\s*'+re.escape(name)+r'\b',body):continue
+        # Parenthesized lvalues can hide assignment, increment or & from the
+        # simple guards above. This narrow alias rule does not interpret them.
+        if re.search(r'\(\s*'+re.escape(name)+r'\s*\)',body):continue
+        if re.search(r'\b'+re.escape(symbol)+r'\b',definition[2]):continue
+        if _possible_local_declaration(body,symbol):continue
+        remaining=re.sub(r'(?m)^[ \t]*void\s*\*\s*'+re.escape(name)+r'\s*;','',body)
+        if _possible_local_declaration(remaining,name):continue
+        global_aliases[name]=(symbol,assignment.end())
     # Closed single-assignment byte-address chains keep parameter identity even
     # when the target folds a cursor's offset into a zero-displacement store.
     aliases={p.strip().split()[-1].lstrip('*'):(f'param{i}',0,0)
@@ -62,7 +115,11 @@ def propose(source, function, assembly, diagnostics):
         observations.setdefault(int(mem[1],0),[]).append({'instruction':insn.index,
             'opcode':insn.opcode,'type':types[insn.opcode],'width':widths[types[insn.opcode]],
             'root':address.name if address and address.kind=='address' else None,
-            'root_offset':address.offset if address and address.kind=='address' else None})
+            'root_offset':address.offset if address and address.kind=='address' else None,
+            'global_pointer':address.inner.name if address and address.kind=='load'
+                and address.width==4 and address.inner and address.inner.kind=='address'
+                and address.inner.offset==0 else None,
+            'global_pointer_offset':address.offset if address and address.kind=='load' else None})
     lines=source.splitlines(keepends=True); offsets=[0]
     for line in lines:offsets.append(offsets[-1]+len(line))
     edits={}
@@ -78,9 +135,15 @@ def propose(source, function, assembly, diagnostics):
             base,hexoffset=use.groups();offset=int(hexoffset,16)
             locals_=re.findall(r'(?m)^[ \t]*void\s*\*\s*'+re.escape(base)+r'\s*;',body)
             parameters=[p for p in definition[2].split(',') if re.fullmatch(r'\s*void\s*\*\s*'+re.escape(base)+r'\s*',p)]
-            declarations=re.findall(r'(?m)^[ \t]*\w+\s+\**\s*'+re.escape(base)+r'\s*[;=]',body)
+            # A returned local is an expression, not a second declaration.
+            declarations=re.findall(r'(?m)^[ \t]*(?!return\b)\w+\s+\**\s*'+re.escape(base)+r'\s*[;=]',body)
             if len(locals_)+len(parameters)!=1 or len(declarations)!=len(locals_):continue
             peers=observations.get(offset,[])
+            if locals_ and base in global_aliases:
+                symbol,at=global_aliases[base]
+                if offsets[number-1]+use.start()-definition.end()<at:continue
+                peers=[p for group in observations.values() for p in group
+                       if p['global_pointer']==symbol and p['global_pointer_offset']==offset]
             if locals_ and base in aliases:
                 root,base_offset,at=aliases[base]
                 if offsets[number-1]+use.start()-definition.end()<at:continue

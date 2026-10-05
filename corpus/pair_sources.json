@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "kind": "training-pair-recipes",
+  "policy": {
+    "allowlist": "every id must also appear in corpus/n64_sources.json; that file stays the single list of admissible repositories",
+    "evaluation_repositories_blocked": ["snowboardkids-decomp", "snowboardkids2-decomp"],
+    "executes_repository_code": false,
+    "recipe_authority": "flags transcribed from the pinned Makefile; the Makefile sha256 is checked before every run so drift refuses instead of silently compiling with stale flags",
+    "rom_required": false,
+    "verification": "upstream-matched C compiled with the repository's recorded recipe; NOT verified against a ROM locally",
+    "use": "training data only; never evaluation, never prompt context for held-out functions"
+  },
+  "repositories": [
+    {
+      "id": "dkr",
+      "commit": "84f0ea569b07903ba8a4f9f252e8dc8e4ba54bdc",
+      "makefile_sha256": "f34f8cf755c16fcf8f86a62e4ca65dac6ca3b92cae2586800c9ef64d05ef8267",
+      "compiler": "ido-5.3",
+      "source_roots": ["src"],
+      "exclude_path_patterns": ["libultra/", "/hasm/"],
+      "per_file_flags": [
+        {
+          "path": "src/get_stack_pointer.c",
+          "flags": ["-dollar"],
+          "why": "Makefile:293 `$(BUILD_DIR)/$(SRC_DIR)/get_stack_pointer.c.o: OPT_FLAGS += -dollar`. The file returns `(StackInfo *) __$sp`, and without -dollar cfe reports `Unknown character $ ignored` and then fails the source. This is the ONLY per-file C override in game code; the other two are the assembly file src/hasm/ido/math_util.s (-O2, -mips3 -32), which no C recipe compiles."
+        }
+      ],
+      "default_variant": "us.v77",
+      "variants": {
+        "us.v77": {
+          "flags": [
+            "-G", "0", "-non_shared", "-verbose", "-Xcpluscomm", "-nostdinc", "-Wab,-r4300_mul",
+            "-D_FINALROM", "-DNDEBUG", "-DTARGET_N64", "-DF3DDKR_GBI", "-DVERSION_us_v77",
+            "-DANTI_TAMPER=1", "-DBUILD_VERSION=VERSION_G", "-DBUILD_VERSION_STRING=\"2.0G\"",
+            "-D_MIPS_SZLONG=32", "-DCIC_ID=6103",
+            "-I", ".", "-I", "include", "-I", "include/libc", "-I", "include/PR", "-I", "include/sys",
+            "-I", "assets", "-I", "src", "-I", "libultra",
+            "-I", "libultra/src/gu", "-I", "libultra/src/libc", "-I", "libultra/src/io", "-I", "libultra/src/sc",
+            "-I", "libultra/src/audio", "-I", "libultra/src/os", "-I", "src/hasm", "-I", "src/hasm/ido",
+            "-fullwarn", "-Xfullwarn", "-woff", "838,649,624,835,516",
+            "-O2", "-mips1"
+          ],
+          "rom": {
+            "pinned_sha1": "0cb115d8716dbbc2922fda38e533b9fe63bb9670",
+            "pinned_by": "ver/verification/dkr.us.v77.sha1",
+            "sha1_verified_here": false,
+            "note": "Read from the repository's own verification file at the pinned commit. No US v77 ROM is held locally, so it is unverified against a dump."
+          },
+          "extraction_note": "Not declared: no US v77 dump is held, so this variant yields only the files that compile without asset_enums.h."
+        },
+        "pal.v80": {
+          "flags": [
+            "-G", "0", "-non_shared", "-verbose", "-Xcpluscomm", "-nostdinc", "-Wab,-r4300_mul",
+            "-D_FINALROM", "-DNDEBUG", "-DTARGET_N64", "-DF3DDKR_GBI", "-DVERSION_pal_v80",
+            "-DANTI_TAMPER=1", "-DBUILD_VERSION=VERSION_G", "-DBUILD_VERSION_STRING=\"2.0G\"",
+            "-D_MIPS_SZLONG=32", "-DCIC_ID=6103",
+            "-I", ".", "-I", "include", "-I", "include/libc", "-I", "include/PR", "-I", "include/sys",
+            "-I", "assets", "-I", "src", "-I", "libultra",
+            "-I", "libultra/src/gu", "-I", "libultra/src/libc", "-I", "libultra/src/io", "-I", "libultra/src/sc",
+            "-I", "libultra/src/audio", "-I", "libultra/src/os", "-I", "src/hasm", "-I", "src/hasm/ido",
+            "-fullwarn", "-Xfullwarn", "-woff", "838,649,624,835,516",
+            "-O2", "-mips1"
+          ],
+          "rom": {
+            "pinned_sha1": "b7f628073237b3d211d40406aa0884ff8fdd70d5",
+            "pinned_by": "ver/verification/dkr.pal.v80.sha1",
+            "sha1_verified_here": true,
+            "note": "Matches roms/Diddy Kong Racing (Europe) (En,Fr,De) (Rev 1).z64 in this workspace."
+          },
+          "extraction": {
+            "why": "include/enums.h includes asset_enums.h, which the repository generates from the ROM. Without it 39 of 47 source files fail to compile. The Makefile cannot be used: it downloads binutils from GNU.org while make is still PARSING, so even `make -n` reaches the network. These three commands are what `make extract` and `make build_assets` do, and they run under tools/sandbox_extract.py with the network denied.",
+            "rom_file": "roms/Diddy Kong Racing (Europe) (En,Fr,De) (Rev 1).z64",
+            "rom_destination": "baseroms/baserom.pal.v80.z64",
+            "python_requirements": "requirements.txt",
+            "apt_dev_packages": ["libpcre2-dev"],
+            "build": [
+              {
+                "name": "dkr_assets_tool",
+                "cwd": "tools",
+                "timeout": 1800,
+                "command": [
+                  "make", "dkr_assets_tool",
+                  "CXXFLAGS=-I . -I dkr_assets_tool_src/ -Wno-sfinae-incomplete -std=c++17 -O2 -I{dev_include}",
+                  "LDFLAGS=-lm -lpcre2-8 -L{dev_lib}"
+                ]
+              }
+            ],
+            "commands": [
+              ["{python}", "-m", "splat", "split", "ver/splat/dkr.pal.v80.yaml"],
+              ["./tools/dkr_assets_tool", "extract", "-dkrv", "pal.v80"],
+              ["./tools/dkr_assets_tool", "build", "-o", "assets/assets.bin", "-dkrv", "pal.v80"]
+            ],
+            "outputs": ["include/asset_enums.h"],
+            "timeout": 3600
+          }
+        }
+      },
+      "notes": "Game code under src/ has exactly one per-file C override (see per_file_flags); the earlier note claiming there were none was wrong and cost one file. Rule: $(CC) -c $(CFLAGS) $(CC_WARNINGS) $(OPT_FLAGS) $(MIPSISET). GLOBAL_ASM is an empty macro in include/macros.h; files using it are skipped because their assembly comes from ROM extraction. The only difference between the two variants is -DVERSION_$(REGION)_$(VERSION): Makefile:153 builds it from REGION and VERSION, Makefile:152 lists the rest, Makefile:190 pins BOOT_CIC to 6103 for both regions on a matching build, and OPT_FLAGS/MIPSISET (Makefile:148-150) are region-independent. Version-gated functions are excluded anyway by conditional_free, so the two variants differ in which functions are eligible, not in how an eligible one compiles."
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+ "gates": [
+  {
+   "family": "commutative",
+   "feature": "state",
+   "value": "frontend_rejected",
+   "applications": 323,
+   "improving": 1,
+   "exact": 0,
+   "functions": 64
+  },
+  {
+   "family": "frontend_type",
+   "feature": "axis",
+   "value": "regalloc",
+   "applications": 179,
+   "improving": 1,
+   "exact": 0,
+   "functions": 43
+  },
+  {
+   "family": "local_type",
+   "feature": "axis",
+   "value": "ordering",
+   "applications": 74,
+   "improving": 0,
+   "exact": 0,
+   "functions": 7
+  }
+ ],
+ "provenance": {
+  "learned_by": "eval.mechanism_roadmap on eval/results/promoted-population-20260923 worlds",
+  "proposal_sha256": "b585e7e7c956a90856b4e35f358977b114185127ba242138598ed2c3481995b4",
+  "validated_by": "eval/results/gated-population-20260923 (224 functions, paired vs promoted)",
+  "validation": {
+   "promoted_exact": 12,
+   "gated_exact": 13,
+   "gains": [
+    "releaseRelocatableHeapBlockMetadata"
+   ],
+   "losses": [],
+   "open_improved": 8,
+   "open_worse": 0,
+   "compiles": {
+    "promoted": 6207,
+    "gated": 6127
+   }
+  },
+  "installed": "2026-09-23"
+ }
+}

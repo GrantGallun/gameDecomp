@@ -26,13 +26,52 @@ def scalar_header_prototypes(repo, source, diagnostics):
         'prototypes':[], 'declines':[], 'omitted':names[4:],
         'authority':'header declaration projection; compiler adjudicates, not runtime ABI/effect proof'}
     additions = []
-    primitive = {'void','char','short','int','long','signed','unsigned'}
+    # THE PROJECT'S OWN SPELLING OF A PRIMITIVE SCALAR COUNTS AS ONE.
+    #
+    # This set held raw C keywords only, and the game is written in `s16`/`u8`/`f32` throughout -- so
+    # `void enqueueSoundEffect(s16, s16);` canonicalises to `(('void',), (('s16',), ('s16',)))`, `s16`
+    # is not in the set, and the pass declined. Measured on the frozen frame: it fired on 13 states,
+    # converted 0, and every decline read `requires one primitive scalar header signature`. A pass
+    # declining on the entire class it was written for looks exactly like a pass with nothing to do.
+    #
+    # Each name below is a verified `typedef` of a primitive scalar in the project's own headers
+    # (`include/PR/**`: `typedef short s16;`, `typedef unsigned char u8;`, `typedef float f32;`, ...),
+    # so this widens the SPELLING and not the class of accepted types. The guard's intent is intact:
+    # `signature()` emits `*` as its own token, so `(('Actor','*'),)` and `(('void','*'),)` still
+    # decline, as do structs, unions and any name this set does not list.
+    primitive = {'void','char','short','int','long','signed','unsigned',
+                 's8','u8','s16','u16','s32','u32','s64','u64','f32','f64'}
     for name in names[:4]:
         declarations = project_headers.declarations(repo,name,all_variants=True,max_results=13)
         shapes = [type_transaction.signature(d.prototype,name) for d in declarations]
-        if (not shapes or len(declarations)>=13 or any(s is None for s in shapes) or len(set(shapes)) != 1
-                or any(t not in primitive for part in (shapes[0][0], *shapes[0][1]) for t in part)):
-            report['declines'].append({'name':name,'reason':'requires one primitive scalar header signature'})
+        # ONE MESSAGE FOR FIVE CAUSES IS A MESSAGE FOR NONE OF THEM.
+        #
+        # Every branch below used to report `requires one primitive scalar header signature`, and the
+        # cause that matters most is the one that sentence describes LEAST: no header declares the name
+        # at all. Measured on the frozen frame, `enqueueSoundEffect` and `drawMenuFillRectangle` return
+        # ZERO declarations, and the receipt said "requires one primitive scalar header signature" --
+        # which reads as "the signature was unsuitable" and sent a whole iteration at the primitive set
+        # instead of at the absent declaration. The widened set was a real fix and it could never have
+        # moved these states. The accept/reject decision below is UNCHANGED; only the reason is.
+        unsuitable = None
+        if not declarations:
+            unsuitable = ('no header declares this name, so no header projection can supply it; a '
+                          'prototype would have to be derived from evidence instead')
+        elif len(declarations) >= 13:
+            unsuitable = f'{len(declarations)} candidate declarations is too many to be unambiguous'
+        elif any(s is None for s in shapes):
+            unsuitable = 'a declaration is a complex declarator or an unspecified argument list'
+        elif len(set(shapes)) != 1:
+            unsuitable = f'{len(set(shapes))} conflicting signatures across headers'
+        else:
+            foreign = sorted({t for part in (shapes[0][0], *shapes[0][1]) for t in part
+                              if t not in primitive})
+            if foreign:
+                unsuitable = ('the signature is not all primitive scalars: '
+                              + ', '.join(repr(t) for t in foreign))
+        if unsuitable:
+            report['declines'].append({'name': name, 'reason': unsuitable,
+                                       'declarations': len(declarations)})
             continue
         prototype = declarations[0].prototype.rstrip(';')+';'
         additions.append(prototype)
@@ -43,6 +82,13 @@ def scalar_header_prototypes(repo, source, diagnostics):
 
 
 def header_variant(repo: Path, function: str, asm: str, source: str, target: str):
+    from solver import repair_context, type_transaction
+
+    try:
+        definition, _ = repair_context.definition(source, function)
+        target_shape = type_transaction.signature(definition[0], function)
+    except ValueError:
+        target_shape = None
     sdk = target.startswith('build/src/ultra/')
     original = INCLUDES.findall(source)
     retained = [inc for inc in original if not (sdk and inc.startswith('game/'))]
@@ -54,6 +100,14 @@ def header_variant(repo: Path, function: str, asm: str, source: str, target: str
         known.update(buildtypes.type_names(repo, 'include/' + inc))
     used = set(re.findall(r'\b([A-Za-z_]\w*)\s*\*', clean))
     used |= set(re.findall(r'\b(?:g[A-Z]\w*|__\w+)\b', clean))
+    from solver.typedecl import PRIMITIVE_TYPES
+    target_types_known = target_shape is not None and all(
+        not re.fullmatch(r'[A-Za-z_]\w*', token)
+        or token in known | PRIMITIVE_TYPES | {'struct', 'union', 'enum', 'const', 'volatile', 'static'}
+        for part in (target_shape[0], *target_shape[1]) for token in part)
+    # Preserve the existing recovery path for unresolved aliases: a target's
+    # header may be the only place declaring its return/parameter types, and
+    # signature() compares spelling rather than C type equivalence.
     functions = [function, *project_headers.called_functions(asm)]
     used.update(functions)
     headers = sorted((repo / 'include').rglob('*.h'))
@@ -63,7 +117,14 @@ def header_variant(repo: Path, function: str, asm: str, source: str, target: str
     for name in sorted(used - provided - known):
         if name in functions:
             choices = [d.include for d in project_headers.declarations(repo, name)
-                       if not sdk or not d.include.startswith('game/')]
+                       if (not sdk or not d.include.startswith('game/'))
+                       # A definition needs no extra prototype. Adding a header
+                       # solely for a different target signature creates a new
+                       # compile failure on assembly-only drafts. The same header
+                       # remains eligible for a used type, global, or callee, and
+                       # explicitly included headers are retained above.
+                       and (name != function or not target_types_known
+                            or type_transaction.signature(d.prototype, name) == target_shape)]
         else:
             choices = []
             for h in headers:
@@ -88,8 +149,17 @@ def header_variant(repo: Path, function: str, asm: str, source: str, target: str
         'reconciled': removed, 'authority': 'header-assisted candidate, compiler adjudicates'}
 
 
-def globals_variant(conn, repo, function, source, diagnostics):
+def globals_variant(conn, repo, function, source, diagnostics, extra_names=frozenset()):
+    """`extra_names` are the names the caller learned from a checker that reports EVERY blocker.
+
+    `diagnostics` here is cfe's output, and cfe stops at the first error. So this function's `wanted` set
+    was empty on almost every state whose first error was a placeholder or a syntax error -- measured: 211
+    of the frozen frame's 374 unresolved names are this action's business and it changed the source on 5 of
+    200 states. The names from the clang frontend arrive here instead of being rediscovered from a
+    truncated list.
+    """
     wanted = set(re.findall(r"undeclared identifier '([A-Za-z_]\w*)'", diagnostics))
+    wanted.update(str(name) for name in extra_names)
     unknown_extern = re.compile(r'(?m)^[ \t]*extern\s+(?:\?|M2C_UNK)\s+([A-Za-z_]\w*)\s*;[^\n]*(?:\n|$)')
     wanted.update(unknown_extern.findall(source))
     provided = set(project_headers._included_declarations(repo, source))
@@ -524,9 +594,33 @@ def variants(conn, repo, function, ws, source, attempt):
             reports.append({'stage':'encoded-register-views','reconstruction':registers})
             register_children.append((label+'+register-views',registers['source']))
     rows=register_children+rows
+    # m2c placeholders stop IDO on the first line, and every fresh redraft reintroduces them:
+    # resolve them on the seed and on each child. Evidence-specific stages keep their rank (the
+    # absolute-symbol adapter resolves `extern ? D_1234` exactly); each child is followed by its
+    # resolution, and the seed's resolutions follow the first child.
+    # Restored 2026-09-25 (lost in amend-20260919-185725; see revisions/20260925-census-restore).
+    from solver import placeholder_declarations
+    from solver import void_pointer_units
+    if (placeholder_declarations.signals(source) or void_pointer_units.signals(source, function)
+            or any(placeholder_declarations.signals(c) for _l, c in rows)):
+        headers = placeholder_declarations.header_names(repo, source)
+
+        def placeholder_children(label, candidate):
+            # Placeholders first, then m2c void-cursor byte units (void_pointer_units.lowered_candidates).
+            fixed = void_pointer_units.lowered_candidates(candidate, function, headers, asm)
+            if fixed:
+                reports.append({'stage': 'draft-lowering', 'parent': label, 'candidates': [fix for fix, _code in fixed]})
+            return [(label + '+' + fix, code) for fix, code in fixed]
+        ordered = []
+        for index, (label, candidate) in enumerate(rows):
+            ordered.append((label, candidate))
+            if index == 0:
+                ordered += placeholder_children('seed', source)
+            ordered += placeholder_children(label, candidate)
+        rows = ordered or placeholder_children('seed', source)
     unique, seen = [], {source}
     for label, code in rows:
         if code not in seen:
             unique.append((label, code))
             seen.add(code)
-    return unique[:8], reports
+    return unique[:12], reports

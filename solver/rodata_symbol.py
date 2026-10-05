@@ -215,3 +215,229 @@ def variants(source: str, function: str, diff: str, attribution: dict | None, *,
         if combined != source:
             yield "rodata_symbol:all", combined
     yield from singles
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Address-taken rodata: a string (or any datum) whose ADDRESS the function passes on (`lui`/`addiu`), not a value it
+# loads. The branch above only covers loads, and it reads the diff; this one reads the two objects, because the
+# normalized diff is exactly where this residual hides (eval/results/hidden-object-20260930: .text byte-identical,
+# score 99.9-100). Schema 3 refuses candidate-owned address-taken rodata ("needs its named symbol for integration")
+# after drawRaceSplitscreenSelectEntryFee's own literal failed the whole-ROM checksum (2026-09-14), and admits a
+# candidate extern named like the target's rodata label -- so the edit names the target's label at each site.
+# The label comes from the target object at the same instruction offset: binary evidence, never a guess.
+
+ADDIU = 0x09
+_CSTR = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
+_ESC = {"n": 10, "t": 9, "r": 13, "0": 0, "a": 7, "b": 8, "f": 12, "v": 11, "\\": 92, '"': 34, "'": 39, "?": 63}
+
+
+def c_string(body: str) -> bytes | None:
+    """Bytes of a C string literal body (escapes decoded), or None for escapes this does not model."""
+    out, i = bytearray(), 0
+    while i < len(body):
+        ch = body[i]
+        if ch != "\\":
+            out += ch.encode("latin-1")
+            i += 1
+            continue
+        nxt = body[i + 1]
+        octal = re.match(r"[0-7]{1,3}", body[i + 1:])
+        if octal:
+            out.append(int(octal.group(0), 8) & 0xFF)
+            i += 1 + len(octal.group(0))
+        elif nxt == "x":
+            hexa = re.match(r"[0-9a-fA-F]+", body[i + 2:])
+            if not hexa:
+                return None
+            out.append(int(hexa.group(0), 16) & 0xFF)
+            i += 2 + len(hexa.group(0))
+        elif nxt in _ESC:
+            out.append(_ESC[nxt])
+            i += 2
+        else:
+            return None
+    return bytes(out)
+
+
+def address_facts(target_obj: bytes, candidate_obj: bytes) -> dict:
+    """The object evidence the rewrite needs, as plain data (so it can be logged and replayed in tests).
+
+    sites: one row per candidate HI16/LO16 `addiu` pair whose target counterpart, at the SAME instruction offsets,
+    addresses a target rodata label exactly: {at, target_label, candidate: ["external", name] | ["section", offset]}.
+    candidate_symbols: named candidate rodata data {name: offset}; candidate_rodata: hex of the candidate's .rodata."""
+    from solver import byte_certificate as bc, function_boundary as fb
+    tsec, csec = bc.object_image(target_obj)["sections"], bc.object_image(candidate_obj)["sections"]
+    if ".text" not in tsec or ".text" not in csec or tsec[".text"]["size"] != csec[".text"]["size"]:
+        return {"sites": [], "declined": "text sizes differ"}
+    ttext, ctext = bc.section_contents(target_obj)[".text"], bc.section_contents(candidate_obj)[".text"]
+    size = len(ctext)
+    # Symbol renames are confirmed only where the instructions already match; elsewhere an offset is not a site.
+    same_text = ttext == ctext
+    labels: dict[tuple, list] = {}
+    for section, rows in fb._data_symbols(target_obj).items():
+        for value, name in rows:
+            if "." not in name:
+                labels.setdefault((section, value), []).append(name)
+
+    def pairs(rows):
+        out, rows = {}, [(at, kind, tuple(identity)) for at, kind, identity in rows]
+        for index, (at, kind, identity) in enumerate(rows):
+            if kind == 5 and index + 1 < len(rows) and rows[index + 1][1] == 6 and rows[index + 1][2] == identity:
+                out[at] = ((at, kind, identity), rows[index + 1])
+        return out
+    tpairs, cpairs = pairs(tsec[".text"]["relocations"]), pairs(csec[".text"]["relocations"])
+    sites = []
+    for at, cgroup in sorted(cpairs.items()):
+        tgroup = tpairs.get(at)
+        if tgroup is None or tgroup[1][0] != cgroup[1][0] or not 0 <= cgroup[1][0] < size:
+            continue
+        tid, cid = tgroup[0][2], cgroup[0][2]
+        if tid[0] == "external" and cid[0] == "external" and tid[1] != cid[1] and same_text:
+            # A different external at the same instruction offsets: the target's name is the evidence, whatever the
+            # instruction does with it. drawCharacterSelectCourseExitPreviewPanel (2026-09-30): the candidate's
+            # gCharacterSelectCourseExitPreviewCornerTile, which the ROM does not define, renamed to the target's
+            # gCharacterSelectCourseExitPreviewData -> object exact.
+            sites.append({"at": at, "target_label": tid[1], "candidate": ["external", cid[1]], "symbol": True})
+            continue
+        if tid[0] != "section" or tid[1] not in fb.DATA_SECTIONS:
+            continue
+        low = cgroup[1][0]
+        if int.from_bytes(ctext[low:low + 4], "big") >> 26 != ADDIU or \
+                int.from_bytes(ttext[low:low + 4], "big") >> 26 != ADDIU:
+            continue                                      # loads belong to `variants` above
+        datum = tid[2] + fb._addend(ttext, tgroup)
+        names = labels.get((tid[1], datum), [])
+        if len(names) != 1:
+            continue                                      # no exact label, or an ambiguous one: never guess
+        if cid[0] == "external":
+            candidate = ["external", cid[1]]
+        elif cid[0] == "section" and cid[1] in fb.DATA_SECTIONS:
+            candidate = ["section", cid[2] + fb._addend(ctext, cgroup)]
+        else:
+            continue
+        sites.append({"at": at, "target_label": names[0], "candidate": candidate})
+    symbols = {name: value for value, name in fb._data_symbols(candidate_obj).get(".rodata", []) if "." not in name}
+    rodata = bc.section_contents(candidate_obj).get(".rodata", b"")
+    return {"sites": sites, "candidate_symbols": symbols, "candidate_rodata": rodata.hex()}
+
+
+def _definition(source: str, name: str):
+    """The one file-scope `const char NAME[..] = "...";` statement, as a match, or None."""
+    found = list(re.finditer(rf'^[ \t]*(?:static[ \t]+)?const[ \t]+(?:char|u8|s8)[ \t]+{re.escape(name)}[ \t]*'
+                             rf'\[[^\]\n]*\][ \t]*=[ \t]*"(?:[^"\\\n]|\\.)*"[ \t]*;[ \t]*\n', source, re.M))
+    return found[0] if len(found) == 1 else None
+
+
+def _rename(source: str, old: str, new: str) -> str:
+    return re.sub(rf"\b{re.escape(old)}\b", new, source)
+
+
+def address_rewrite(source: str, function: str, facts: dict) -> tuple[str | None, dict]:
+    """Name every address-taken rodata site after the target's label. Returns (source or None, receipt)."""
+    receipt: dict = {"renamed": {}, "definitions": {}, "literals": [], "dropped_unread": [], "declined": []}
+    sites = facts.get("sites") or []
+    if not sites:
+        receipt["declined"].append(facts.get("declined") or "no address-taken rodata site with an exact target label")
+        return None, receipt
+    rodata = bytes.fromhex(facts.get("candidate_rodata") or "")
+    by_offset = {v: n for n, v in (facts.get("candidate_symbols") or {}).items()}
+    out, labels, read = source, set(), set()
+    anonymous = []                                           # (candidate offset, label) for unnamed literals
+    for site in sites:
+        label, (kind, what) = site["target_label"], site["candidate"]
+        if not site.get("symbol"):
+            labels.add(label)                  # a renamed data symbol keeps its own declaration's type
+        if kind == "external":
+            if what != label:
+                if receipt["renamed"].get(what, label) != label:
+                    receipt["declined"].append(f"{what} names two labels")
+                    return None, receipt
+                receipt["renamed"][what] = label
+            continue
+        read.add(what)
+        name = by_offset.get(what)
+        if name is None:
+            anonymous.append((what, label))
+        elif receipt["definitions"].get(name, label) != label:
+            receipt["declined"].append(f"{name} names two labels")
+            return None, receipt
+        else:
+            receipt["definitions"][name] = label
+    for name, label in receipt["definitions"].items():
+        m = _definition(out, name)
+        if m is None:
+            receipt["declined"].append(f"no single-line definition of {name}")
+            return None, receipt
+        out = out[:m.start()] + f"extern const char {label}[];\n" + out[m.end():]
+        out = _rename(out, name, label)
+    for old, label in receipt["renamed"].items():
+        out = _rename(out, old, label)
+    if anonymous:
+        # Pair each unnamed datum with its literal by reproducing the layout, never by searching for the value: the
+        # source's string literals, in order and 4-aligned, must rebuild the candidate's .rodata byte for byte (only
+        # zero padding after). Anything else in .rodata -- named data, floats, tables -- and this declines.
+        if by_offset:
+            receipt["declined"].append("anonymous literal beside named rodata: layout not modelled")
+            return None, receipt
+        literals = [m for m in _CSTR.finditer(out)
+                    if not out[max(0, out.rfind("\n", 0, m.start()) + 1):m.start()].lstrip().startswith("#")]
+        layout, at = {}, 0
+        for m in literals:
+            value = c_string(m.group(1))
+            if value is None:
+                receipt["declined"].append("string escape not modelled")
+                return None, receipt
+            if rodata[at:at + len(value) + 1] != value + b"\0":
+                receipt["declined"].append(f"source literals do not reproduce .rodata at +{at}")
+                return None, receipt
+            layout[at] = m
+            at = (at + len(value) + 1 + 3) & ~3
+        if any(rodata[at:]):
+            receipt["declined"].append("source literals do not account for all of .rodata")
+            return None, receipt
+        edits = []
+        for offset, label in sorted(anonymous):
+            m = layout.get(offset)
+            if m is None:
+                receipt["declined"].append(f"no literal starts at .rodata+{offset}")
+                return None, receipt
+            edits.append((m.start(), m.end(), label))
+            receipt["literals"].append({"offset": offset, "value": c_string(m.group(1)).decode("latin-1"),
+                                        "label": label})
+        for start, end, label in sorted(edits, reverse=True):
+            out = out[:start] + label + out[end:]
+    # Named candidate data the function never addresses still lands in its .rodata ("candidate rodata the function
+    # does not read"). Drop the definition only where every other mention follows a `#define NAME` that redirects it.
+    for name, offset in (facts.get("candidate_symbols") or {}).items():
+        if offset in read or name in receipt["definitions"]:
+            continue
+        m = _definition(out, name)
+        if m is None:
+            continue
+        rest = out[:m.start()] + out[m.end():]
+        define = re.search(rf"^[ \t]*#[ \t]*define[ \t]+{re.escape(name)}\b", rest, re.M)
+        mentions = [x.start() for x in re.finditer(rf"\b{re.escape(name)}\b", rest)]
+        if define and all(pos >= define.start() for pos in mentions):
+            out = rest
+            receipt["dropped_unread"].append(name)
+    for label in sorted(labels):
+        if not re.search(rf"\bextern\b[^;\n]*\b{re.escape(label)}\b", out):
+            at = re.search(rf"^[^\n;{{}}]*\b{re.escape(function)}\s*\(", out, re.M)
+            at = at.start() if at else 0
+            out = out[:at] + f"extern const char {label}[];\n" + out[at:]
+    if out == source:
+        receipt["declined"].append("nothing to change")
+        return None, receipt
+    return out, receipt
+
+
+def address_variants(source: str, function: str, *, target_obj: Path, candidate_obj: Path):
+    """`(label, candidate)` for the address-taken branch; nothing unless both objects exist and a site pairs."""
+    try:
+        facts = address_facts(Path(target_obj).read_bytes(), Path(candidate_obj).read_bytes())
+    except (OSError, ValueError, KeyError, IndexError, struct.error):
+        return
+    changed, receipt = address_rewrite(source, function, facts)
+    if changed:
+        labels = sorted({s["target_label"] for s in facts["sites"]})
+        yield f"rodata_address:{labels[0]}" + (f"+{len(labels) - 1}" if len(labels) > 1 else ""), changed

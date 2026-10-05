@@ -337,7 +337,18 @@ def context_headers(repo: Path, function: str, asm: str) -> list[str]:
 
 
 def _typedef_definition(text: str, name: str) -> str | None:
-    """Return a complete braced typedef definition for ``name`` when present."""
+    """Return a complete typedef definition for ``name`` when present.
+
+    Two shapes, because the project writes both. A BRACED one
+    (``typedef struct Name { ... } Name;``) carries the layout, which is why this used to look only
+    for that. A PLAIN one (``typedef s16 Mat3x3[9];``) carries no braces at all and was therefore
+    invisible -- measured 2026-09-17: `include/game/math/geometry.h:23` declares `Mat3x3` exactly that
+    way, `drawRacePlayerModel-2`'s draft uses `Mat3x3 rotation;`, and this function returned None, so
+    the definition was never offered to the draft that needed it.
+
+    The plain form demands the name be the last identifier before the `;` (an array suffix is
+    allowed), so ``typedef s32 (*Fn)(SomeType *);`` is not read as declaring ``SomeType``.
+    """
     masked = _mask_comments(text)
     starts = re.finditer(
         r"\btypedef\s+(?:struct|union)\s*([A-Za-z_]\w*)?\s*\{", masked)
@@ -363,6 +374,14 @@ def _typedef_definition(text: str, name: str) -> str | None:
         if tag == name or re.search(rf"\b{re.escape(name)}\b", aliases):
             line_start = text.rfind("\n", 0, match.start()) + 1
             return text[line_start:semicolon + 1].strip()
+    plain = re.search(
+        rf"\btypedef\b[^;{{}}]*?\b{re.escape(name)}\b\s*(?:\[[^\];{{}}]*\])?\s*;", masked)
+    if plain:
+        # Start at the statement, not the match: `typedef s16 Mat3x3[9];` must come back whole.
+        begin = max(masked.rfind(";", 0, plain.start()),
+                    masked.rfind("}", 0, plain.start()),
+                    masked.rfind("\n", 0, plain.start())) + 1
+        return text[begin:plain.end()].strip()
     return None
 
 
@@ -501,9 +520,16 @@ def dependency_headers(repo: Path, draft: str,
             if (kind, name) in satisfied or name not in text:
                 continue
             if kind == "type":
+                # Braced struct/union tag, OR a plain typedef. The second arm was missing, so a header
+                # declaring `typedef s16 Mat3x3[9];` was not counted as a dependency of a draft that
+                # uses `Mat3x3` -- the same blind spot as `_typedef_definition`. The name must be the
+                # last identifier before the `;` (array suffix allowed) so a parameter use such as
+                # `typedef s32 (*Fn)(SomeType *);` is not mistaken for a declaration of `SomeType`.
                 defines = re.search(
                     rf"\b(?:typedef\s+)?(?:struct|union)\s+"
-                    rf"{re.escape(name)}\s*\{{", masked)
+                    rf"{re.escape(name)}\s*\{{", masked) or re.search(
+                    rf"\btypedef\b[^;{{}}]*?\b{re.escape(name)}\b\s*"
+                    rf"(?:\[[^\];{{}}]*\])?\s*;", masked)
             elif kind == "global":
                 defines = re.search(
                     rf"(?ms)^\s*extern\b[^;]*\b{re.escape(name)}\b[^;]*;",

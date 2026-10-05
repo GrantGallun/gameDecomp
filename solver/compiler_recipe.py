@@ -151,11 +151,14 @@ def prepare(repo: Path, ws: Path, conn, function: str) -> tuple[Path, dict] | No
         return None
     identity_path = ws / ".compiler-target.json"
     if conn is not None and function:
-        row = conn.execute("SELECT t.name FROM functions f JOIN tus t ON t.id=f.tu_id WHERE f.name=?",
+        row = conn.execute("SELECT t.name,t.object_path FROM functions f JOIN tus t ON t.id=f.tu_id WHERE f.name=?",
                            (function,)).fetchone()
         if row is None:
             raise ValueError("missing function-to-TU compiler identity")
-        identity = {"function": function, "target": row[0]}
+        # TU names may identify source files; the explicit object path is the
+        # build identity. Legacy ledgers used the object path as the TU name.
+        # An explicit invalid path must still fail resolve's existing guards.
+        identity = {"function": function, "target": row[1] if row[1] is not None else row[0]}
         if identity_path.exists() and json.loads(identity_path.read_text()) != identity:
             raise ValueError("workspace compiler target identity changed")
     elif identity_path.exists():

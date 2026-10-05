@@ -19,7 +19,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from kb import attempts as attempt_receipts
-from solver import llm, modelrepair, residual, signals, workspace
+from solver import diff_annotate, llm, modelrepair, residual, signals, workspace
 
 
 MAX_QUERY = 120
@@ -33,6 +33,8 @@ ACTIONS = {
     "inspect_history", "select_candidate", "patch", "finish",
     "search_repo", "read_path", "replace_source",
     "inspect_evidence", "compiler_probe", "record_hypothesis",
+    "inspect_compiler", "execution_case", "request_capability",
+    "inspect_capabilities",
 }
 ACTION_ALIASES = {
     "inspect_header": "read_header",
@@ -42,7 +44,10 @@ INSPECTION_ACTIONS = {
     "inspect_definition", "read_header", "inspect_diff", "inspect_history",
     "search_repo", "read_path",
     "inspect_evidence", "compiler_probe",
+    "inspect_compiler", "execution_case",
+    "inspect_capabilities",
 }
+CONTEXT_ACTIONS = {"inspect_compiler", "execution_case", "request_capability"}
 OPEN_BOOK_ACTIONS = {"search_repo", "read_path", "replace_source"}
 DIFF_VIEWS = {"first", "full", "layout", "relocation", "register", "bytes"}
 MEMORY_OP = re.compile(r"\b(?:lb|lbu|lh|lhu|lw|ld|sb|sh|sw|sd|lwc1|swc1)\b")
@@ -175,6 +180,7 @@ class Action:
     proposal: modelrepair.Proposal | None = None
     alternatives: tuple[str, ...] = ()
     evidence_ids: tuple[str, ...] = ()
+    payload: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -216,6 +222,14 @@ def parse_action(text: str) -> Action:
     name = ACTION_ALIASES.get(value.get("action"), value.get("action"))
     if name not in ACTIONS:
         raise ValueError("unknown action")
+    if name in CONTEXT_ACTIONS:
+        hypothesis = value.get('hypothesis', '')
+        if not isinstance(hypothesis, str) or not hypothesis.strip() or len(hypothesis) > 1000:
+            raise ValueError('a bounded testable hypothesis is required')
+        payload = value.get('inputs' if name == 'execution_case' else 'task', {})
+        if not isinstance(payload, dict) or len(json.dumps(payload)) > 16000:
+            raise ValueError('invalid bounded action payload')
+        return Action(name, hypothesis=hypothesis.strip(), payload=payload)
     if name == 'record_hypothesis':
         subject, alternatives, support = value.get('subject'), value.get('alternatives'), value.get('support')
         if not isinstance(subject, str) or not 1 <= len(subject) <= 120:
@@ -227,7 +241,7 @@ def parse_action(text: str) -> Action:
                 not isinstance(s, str) or not re.fullmatch('[0-9a-f]{64}', s) for s in support):
             raise ValueError('hypothesis needs observation receipt IDs')
         return Action(name, query=subject, alternatives=tuple(alternatives), evidence_ids=tuple(support))
-    if name in {"inspect_definition", "inspect_evidence"}:
+    if name in {"inspect_definition", "inspect_evidence", "inspect_capabilities"}:
         query = value.get("query")
         if not isinstance(query, str) or not query.strip() \
                 or len(query) > MAX_QUERY:
@@ -510,7 +524,8 @@ def search_repo(repo: Path, workbench: Path, name: str, root_name: str,
 
 def inspect_diff(candidate: Candidate, packet: residual.ResidualPacket,
                  view: str) -> str:
-    diff = candidate.attempt.diff or ""
+    diff = diff_annotate.annotate(candidate.attempt.diff or "",
+                                  candidate.attempt.source_attribution)
     changed = [line for line in diff.splitlines()
                if line[:1] in {"+", "-"}
                and not line.startswith(("+++", "---"))]
@@ -576,9 +591,10 @@ def build_prompt(asm: str, active: Candidate, candidates: list[Candidate],
                  packets: dict[str, residual.ResidualPacket],
                  events: list[dict], diagnosis: str = "",
                  open_book: bool = False, policy: str = "",
-                 principles: tuple[str, ...] = ()) -> str:
-    history = "\n".join(
-        json.dumps(event, sort_keys=True) for event in events[-10:]) or "(none)"
+                 principles: tuple[str, ...] = (),
+                 history_override: str | None = None) -> str:
+    history = (history_override if history_override is not None else
+               "\n".join(json.dumps(event, sort_keys=True) for event in events[-10:]) or "(none)")
     summaries = "\n".join(
         _summary(candidate, packets[candidate.candidate_id],
                  candidate.candidate_id == active.candidate_id)
@@ -596,6 +612,33 @@ def build_prompt(asm: str, active: Candidate, candidates: list[Candidate],
 
 def _digest(source: str) -> str:
     return hashlib.sha256(source.encode()).hexdigest()
+
+
+def _validate_reconstruction(old: str, new: str) -> None:
+    """Keep preprocessing harness-owned when replacing the complete C body.
+
+    Normalize splices/comments before checking directives. Otherwise a source
+    include can bypass the ordinary patch guard through ``#/**/include`` or a
+    split directive. Alternative preprocessing token spellings are declined.
+    """
+    token = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|/\*.*?\*/|//[^\n]*', re.S)
+
+    def normalized(source):
+        source = source.replace('\r\n', '\n').replace('\r', '\n')
+        source = re.sub(r'\\\n', '', source)
+        return token.sub(lambda m: (' ' + '\n' * m[0].count('\n'))
+                         if m[0].startswith(('/*', '//')) else m[0], source)
+
+    before, after = normalized(old), normalized(new)
+    if '??' in after or '%:' in after:
+        raise ValueError('replacement uses unsupported preprocessing token spellings')
+    directives = lambda text: tuple(line.strip() for line in
+                                    re.findall(r'(?m)^[ \t\v\f]*#[^\n]*', text))
+    if directives(before) != directives(after):
+        raise ValueError('replacement changes harness-owned preprocessing context')
+    code = re.sub(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'', ' ', after)
+    if re.search(r'\b(?:asm|__asm|__asm__|GLOBAL_ASM|INCLUDE_ASM)\b|\.incbin\b', code):
+        raise ValueError('replacement introduces a forbidden source escape')
 
 
 def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
@@ -619,9 +662,14 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
            min_compiles_before_finish: int = 0,
            min_tool_actions_before_finish: int = 0,
            principles: tuple[str, ...] = (),
-           investigation_tools: dict | None = None, semantic_evaluator=None) -> Result:
+           investigation_tools: dict | None = None, semantic_evaluator=None,
+           allow_reconstruction: bool = False, notebook=None,
+           max_seconds: float | None = None) -> Result:
     """Run an allowlisted observation/action loop over saved candidates."""
     provider = provider or modelrepair.OllamaProvider()
+    if max_seconds is not None and max_seconds <= 0:
+        raise ValueError('investigation wall budget must be positive')
+    deadline = time.monotonic() + max_seconds if max_seconds is not None else None
     run_id = run_id or f"toolagent-{time.time_ns()}-{name}"
     config = {
         "max_calls": max_calls, "max_compiles": max_compiles,
@@ -636,6 +684,7 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
         "min_compiles_before_finish": min_compiles_before_finish,
         "min_tool_actions_before_finish": min_tool_actions_before_finish,
         "principles": list(principles),
+        "allow_reconstruction": allow_reconstruction, "max_seconds": max_seconds,
     }
     if investigation_tools:
         config["investigation_tools"] = sorted(investigation_tools)
@@ -649,6 +698,32 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
             '"support":["observation receipt id"]}. '
             'Inspect target binary evidence or its diff before finishing. A missing header alone is not a reason to stop. '
             'Explain competing causes and a distinguishing observation before patching.')
+        if 'inspect_compiler' in investigation_tools:
+            diagnosis += ('\nInspect ACTIVE C with {"action":"inspect_compiler",'
+                '"hypothesis":"what pre-as1 versus final output would distinguish"}. '
+                'This reserves two compile units. Only comparable=true phase output may '
+                'explain this candidate; target internal compiler phases are unknown.')
+        if 'execution_case' in investigation_tools:
+            from solver.execution_experiment import CASE_BRIEF
+            diagnosis += ('\nPropose target-first execution with {"action":"execution_case",'
+                '"hypothesis":"path or boundary to exercise","inputs":{...}}. ' + CASE_BRIEF)
+        if 'request_capability' in investigation_tools:
+            diagnosis += ('\nRequest isolated solver engineering with {"action":"request_capability",'
+                '"hypothesis":"shared tool defect","task":{"issue_key":"known shared issue",'
+                '"modules":["solver/module.py"],"reproduce":["tests/test_x.py::test_reproduction"],'
+                '"regression":["tests/test_x.py"],"transfer":["tests/test_y.py::test_transfer"]}}. '
+                'Only existing tests and scoped implementation modules are allowed. '
+                'A request cannot deploy code or change a verifier.')
+        if 'inspect_capabilities' in investigation_tools:
+            diagnosis += ('\nDiscover existing implementation APIs and test names with '
+                '{"action":"inspect_capabilities","query":"parser or capability keyword"}. '
+                'This reads declaration names only, never source bodies or test literals.')
+    if allow_reconstruction:
+        diagnosis += ('\nYou may construct a different complete candidate using '
+            '{"action":"replace_source","hypothesis":"structural cause and expected change",'
+            '"source":"complete generated C"}. Preserve required declarations and interfaces. '
+            'This grants no access to reference C or repository source files. '
+            'Use a new representation when local edits have exhausted their hypothesis.')
     if conn is not None:
         attempt_receipts.start_run(
             conn, run_id, kind="tool-agent-repair", model=model, config=config)
@@ -690,26 +765,98 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
                 min_tool_actions_before_finish))
         else "You may finish whenever the evidence justifies it.")
 
+    def record(event, parent, child=None):
+        if notebook is not None:
+            def measured(candidate):
+                packet = packets[candidate.candidate_id]
+                return {'score': candidate.attempt.score, 'compiled': candidate.attempt.compiled,
+                        'exact': workspace.repair_complete(candidate.attempt),
+                        'faults': packet.to_dict().get('faults'),
+                        'diff': candidate.attempt.diff[:3000],
+                        'semantic_status': (candidate.semantic or {}).get('status')}
+            notebook.append({'action': event.get('action', 'generation'),
+                'hypothesis': event.get('hypothesis', ''), 'status': event['status'],
+                'parent_source_sha256': _digest(parent.source),
+                'child_source_sha256': _digest(child.source) if child else None,
+                'before': measured(parent), 'after': measured(child) if child else None,
+                'metadata': {'observation': event.get('observation', '')[:6000],
+                             'error': event.get('error', ''), 'run_id': run_id,
+                             'context_budget': event.get('context_budget')}})
+        result.events.append(event)
+
     for step in range(1, max_calls + 1):
-        prompt = build_prompt(
-            asm, active, candidates, packets, result.events,
-            diagnosis=diagnosis, open_book=open_book, policy=policy,
-            principles=principles)
+        remaining = deadline - time.monotonic() if deadline is not None else None
+        if remaining is not None and remaining <= 0:
+            record({'step': step, 'status': 'wall-budget-exhausted'}, active)
+            break
+        advanced = allow_reconstruction and not open_book
+        remembered = notebook.format_context(_digest(active.source), max_chars=10000) if notebook else ''
+        available = None
+        response_schema = None
+        if advanced:
+            from solver import investigation_prompt
+            available = investigation_prompt.choices(result.events, active.candidate_id,
+                investigation_tools, max_compiles - result.compiles)
+            response_schema = investigation_prompt.schema(available)
+        def make_prompt(memory_view, history_view=None):
+            candidate_prompt = build_prompt(
+                asm, active, candidates, packets, result.events,
+                diagnosis=diagnosis + '\n' + memory_view, open_book=open_book,
+                policy=policy, principles=principles, history_override=history_view)
+            if advanced:
+                candidate_prompt = candidate_prompt.replace(
+                    'No inline assembly, includes, complete-file replacement, or comment-only edits.',
+                    'No inline assembly or comment-only edits. Complete replacements must '
+                    'preserve all existing preprocessing directives, including includes; '
+                    'the harness owns that context.')
+                candidate_prompt = investigation_prompt.expose(
+                    candidate_prompt, available, max_calls - step + 1,
+                    max_compiles - result.compiles, name)
+                from solver import prompt_compaction
+                candidate_prompt = prompt_compaction.compact(candidate_prompt)
+            return candidate_prompt
+        prompt = make_prompt(remembered)
+        if advanced:
+            from solver import prompt_budget
+            budget_error = None
+            for history_chars, memory_chars in ((None, 10000), (12000, 6000),
+                                                (8000, 4000), (4000, 2000),
+                                                (2000, 0), (0, 0)):
+                if history_chars is not None:
+                    projected = investigation_prompt.history_view(result.events, history_chars)
+                    memory_view = (notebook.format_context(_digest(active.source), max_chars=memory_chars)
+                                   if notebook and memory_chars else '')
+                    prompt = make_prompt(memory_view, projected)
+                try:
+                    prompt_budget.context_budget(prompt, num_predict,
+                        prefill='', response_schema=response_schema)
+                    budget_error = None
+                    break
+                except prompt_budget.ContextBudgetError as exc:
+                    budget_error = exc
+            if budget_error is not None:
+                record({'step': step, 'status': 'context-budget-exhausted',
+                        'error': str(budget_error),
+                        'context_budget': budget_error.context_budget}, active)
+                break
         workspace.assert_uncontaminated(prompt, repo, name)
         call_seed = (
             call_seeds[step - 1]
             if call_seeds is not None and step - 1 < len(call_seeds)
             else (None if seed is None else seed + step))
         request = modelrepair.GenerationRequest(
-            prompt=prompt, model=model, endpoint=endpoint, timeout=timeout,
+            prompt=prompt, model=model, endpoint=endpoint,
+            timeout=min(timeout, max(1, int(remaining))) if remaining is not None else timeout,
             think=think, num_thread=num_thread, temperature=temperature,
             num_predict=num_predict, seed=call_seed, cache_dir=cache_dir,
-            cache_namespace=cache_namespace, prefill='{"action":"')
+            cache_namespace=cache_namespace, prefill='' if response_schema else '{"action":"',
+            response_schema=response_schema)
         started = time.time()
         result.calls_attempted += 1
         try:
             text, meta = provider.generate(request)
         except Exception as exc:
+            from solver.prompt_budget import ContextBudgetError
             wall_ms = int((time.time() - started) * 1000)
             if conn is not None:
                 attempt_receipts.record_model_proposal(
@@ -720,9 +867,15 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
                     sampling={"seed": call_seed,
                               "provider": provider.provider_id},
                     wall_ms=wall_ms)
-            result.events.append({
-                "step": step, "status": "generation-error",
-                "error": type(exc).__name__})
+            record({
+                "step": step,
+                "status": ("context-budget-exhausted" if isinstance(exc, ContextBudgetError)
+                           else "generation-error"),
+                "error": str(exc) if isinstance(exc, ContextBudgetError) else type(exc).__name__,
+                **({"context_budget": exc.context_budget}
+                   if isinstance(exc, ContextBudgetError) else {})}, active)
+            if isinstance(exc, ContextBudgetError):
+                break
             continue
 
         wall_ms = int((time.time() - started) * 1000)
@@ -743,14 +896,21 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
 
         observation = ""
         child: Candidate | None = None
+        parent = active
+        if deadline is not None and time.monotonic() >= deadline:
+            status, error = 'wall-budget-exhausted', 'model returned after investigation deadline; no action executed'
         if action is not None and status == "valid":
-            if action.name in OPEN_BOOK_ACTIONS and not open_book:
+            if available is not None and action.name not in available:
+                status, error = 'unavailable-tool', 'action disabled after repeated attempts or exhausted budget'
+            if action.name in OPEN_BOOK_ACTIONS and not open_book and not (
+                    action.name == 'replace_source' and allow_reconstruction):
                 status, error = "unavailable-tool", \
                     "open-book action is unavailable in bounded mode"
             tool_key = (action.name, action.query, action.path, action.start,
                         action.end, action.view, action.candidate_id,
                         action.root, _digest(action.source) if action.source else '',
-                        _digest(active.source) if action.name == 'inspect_diff' else '')
+                        _digest(active.source) if action.name in {'inspect_diff', *CONTEXT_ACTIONS} else '',
+                        json.dumps(action.payload, sort_keys=True))
             if (not open_book
                     and action.name in INSPECTION_ACTIONS | {"select_candidate"}) \
                     and tool_key in seen_tool_requests:
@@ -762,18 +922,22 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
 
             if status != "valid":
                 pass
-            elif action.name in {"inspect_evidence", "compiler_probe", "record_hypothesis"}:
+            elif action.name in {"inspect_evidence", "compiler_probe", "record_hypothesis", "inspect_capabilities", *CONTEXT_ACTIONS}:
+                cost = {'compiler_probe': 1, 'inspect_compiler': 2}.get(action.name, 0)
                 if not investigation_tools or action.name not in investigation_tools:
                     status, error = "unavailable", "investigation tool not configured"
-                elif action.name == "compiler_probe" and result.compiles >= max_compiles:
+                elif result.compiles + cost > max_compiles:
                     status, error = "compile-budget-exhausted", "probe compilation budget exhausted"
                 else:
-                    if action.name == "compiler_probe":
-                        result.compiles += 1
+                    result.compiles += cost
                     try:
-                        observation = investigation_tools[action.name](action)
-                    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+                        handler = investigation_tools[action.name]
+                        observation = handler(action, active) if action.name in CONTEXT_ACTIONS else handler(action)
+                    except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as exc:
                         status, error = "tool-failed", str(exc)
+                    if action.name == 'execution_case' and status == 'valid' and semantic_evaluator:
+                        active.semantic = semantic_evaluator(modelrepair.CandidateState(
+                            active.source, active.attempt, active.object_path))
             elif action.name == "inspect_definition":
                 observation = inspect_definition(repo, action.query)
             elif action.name == "read_header":
@@ -793,6 +957,8 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
                 observation = ("\n".join(json.dumps(event, sort_keys=True)
                                            for event in result.events[-10:])
                                or "no prior actions")
+                if notebook:
+                    observation = notebook.format_context(_digest(active.source), max_chars=6000) + '\n' + observation
             elif action.name == "select_candidate":
                 selected = next((candidate for candidate in candidates
                                  if candidate.candidate_id == action.candidate_id),
@@ -804,7 +970,8 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
                     observation = f"active candidate is now {active.candidate_id}"
             elif action.name == "finish":
                 unmet = []
-                if investigation_tools and not any(e.get('action') in {'inspect_evidence', 'inspect_diff', 'compiler_probe'}
+                if investigation_tools and not any(e.get('action') in {'inspect_evidence', 'inspect_diff', 'compiler_probe',
+                                                                       'inspect_compiler', 'execution_case'}
                                                    and e.get('status') == 'valid' for e in result.events):
                     unmet.append('target evidence or diff inspection before finish')
                 if step < min_calls_before_finish:
@@ -855,7 +1022,10 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
                             None, active.candidate_id, proposal_label)
             elif action.name == "replace_source":
                 try:
+                    _validate_reconstruction(active.source, action.source)
                     workspace.assert_uncontaminated(action.source, repo, name)
+                except ValueError as exc:
+                    status, error = "invalid", str(exc)
                 except RuntimeError as exc:
                     status, error = "contamination", str(exc)
                 else:
@@ -895,12 +1065,18 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
                         MAX_OPENBOOK_OBSERVATION if open_book
                         else MAX_OBSERVATION)],
                     "cache_hit": bool(meta.get("_cache_hit")),
+                    'response_schema_sha256': _digest(json.dumps(response_schema, sort_keys=True)) if response_schema else None,
+                    'done_reason': meta.get('done_reason'),
+                    'fell_back_to_thinking': bool(meta.get('_fell_back_to_thinking')),
+                    'context_budget': meta.get('_context_budget'),
                 },
                 wall_ms=wall_ms, token_cost=meta.get("eval_count", 0))
 
         event = {
             "step": step, "action": action.name if action else "invalid",
             "status": status, "active_candidate": active.candidate_id,
+            'hypothesis': (action.proposal.hypothesis if action and action.proposal else
+                           action.hypothesis if action else ''),
         }
         if error:
             event["error"] = error
@@ -954,14 +1130,14 @@ def search(repo: Path, name: str, source: str, ws: Path, *, model: str,
             result.best = best
             if workspace.repair_complete(attempt):
                 result.exact = True
-                result.events.append(event)
+                record(event, parent, child)
                 return result
 
-        result.events.append(event)
+        record(event, parent, child)
         if verbose:
             print(f"      tool step {step}: {event}", flush=True)
         if action and action.name == "finish" and status == "valid":
             break
 
-    result.exact = result.best.attempt.exact
+    result.exact = workspace.repair_complete(result.best.attempt)
     return result

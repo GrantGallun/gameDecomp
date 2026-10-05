@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "kind": "local-rom-inventory",
+  "policy": {
+    "storage": "roms/ is gitignored (.gitignore:2) and no dump is ever committed; this file records only identity, revision and role",
+    "provenance": "the operator supplies each dump; the pipeline never downloads a ROM and never runs repository code that reads one",
+    "role": "a ROM fixes WHICH revision a decomp repository pins, so a recipe can name the exact bytes later verification compares against. A ROM is never model input and never a training example.",
+    "verification": "sha1/md5 of the local dump against the hash the project itself publishes (its verification file, its decomp.yaml, or its README)"
+  },
+  "roms": [
+    {
+      "file": "roms/Snowboard Kids (USA).z64",
+      "sha1": "1583bacc9046a360df8ea4d536942155247e154c",
+      "size_bytes": 8388608,
+      "decomp": { "repository": "snowboardkids-decomp", "revision": "us", "pinned_as": "build/snowboardkids.z64" },
+      "evidence": "sha1 matches the sha1 file in ~/decomp/sbk1 (checked 2026-09-16)",
+      "role": "evaluation target: IDO 5.3, -O2 -mips1",
+      "usable": true
+    },
+    {
+      "file": "roms/Snowboard Kids 2 (USA).z64",
+      "sha1": "5ce896fd64276948bc2b8cccd8cd51c25a9f32aa",
+      "size_bytes": 16777216,
+      "decomp": { "repository": "snowboardkids2-decomp", "revision": "us", "pinned_as": "build/snowboardkids2.z64" },
+      "evidence": "sha1 matches snowboardkids2.sha1 in ~/decomp/sbk2, whole build verifies (checked 2026-09-16)",
+      "role": "second-compiler evaluation target: KMC GCC. Also the corpus_grabber evaluation block for both SBK trees.",
+      "usable": true
+    },
+    {
+      "file": "roms/Diddy Kong Racing (Europe) (En,Fr,De) (Rev 1).z64",
+      "sha1": "b7f628073237b3d211d40406aa0884ff8fdd70d5",
+      "size_bytes": 12582912,
+      "decomp": { "repository": "davidsm64/diddy-kong-racing", "revision": "pal.v80", "pinned_as": "build/dkr.pal.v80.z64" },
+      "evidence": "sha1 matches ver/verification/dkr.pal.v80.sha1 at commit 84f0ea5; recipe variant dkr@pal.v80 in corpus/pair_sources.json records the same pin",
+      "role": "training environment: IDO 5.3, -O2 -mips1 (same compiler and ISA as SBK1)",
+      "usable": true,
+      "yield_today": "983 pairs from 46 of 47 source files. The extraction step (tools/sandbox_extract.py) builds DKR's own asset tool inside a no-network sandbox and takes back only include/asset_enums.h; without it the same grab yields 20 pairs from 6 files. The 47th file, src/get_stack_pointer.c, needs the repository's per-file -dollar flag, which the recipe now carries. 143 exact and 20 near duplicates of Snowboard Kids code were rejected by the contamination guard."
+    },
+    {
+      "file": "roms/F-Zero X (Europe).z64",
+      "sha1": "af9038bcb543a2b4faaab876dbdab4663859e092",
+      "size_bytes": 16777216,
+      "decomp": { "repository": "inspectredc/fzerox", "revision": "pal", "pinned_as": "baserom.pal.rev0.z64" },
+      "evidence": "decomp.yaml lists name: pal with this sha1; config.yml names it 'F-ZERO X PAL REV 0 (v1.0)'",
+      "role": "training environment: 385 C files, IDO 5.3 and 7.1 mixed, per-file recipes",
+      "usable": true,
+      "needs": "a recipe in corpus/pair_sources.json before it yields pairs"
+    },
+    {
+      "file": "roms/Mario Kart 64 (Europe) (Rev 1).z64",
+      "sha1": "f6b5f519dd57ea59e9f013cc64816e9d273b2329",
+      "size_bytes": 12582912,
+      "decomp": { "repository": "n64decomp/mk64", "revision": "eu.v11", "pinned_as": "mk64.eu.v11.sha1" },
+      "evidence": "hash file mk64.eu.v11.sha1 in the local clone carries this value; README documents it",
+      "role": "training environment only: IDO, -O2. Famous game, so it must never be an evaluation target.",
+      "usable": true,
+      "needs": "a recipe in corpus/pair_sources.json before it yields pairs"
+    },
+    {
+      "file": "roms/Super Mario 64 (Europe) (En,Fr,De).z64",
+      "sha1": "4ac5721683d0e0b6bbb561b58a71740845dceea9",
+      "size_bytes": 8388608,
+      "decomp": { "repository": "n64decomp/sm64", "revision": "eu", "pinned_as": "sm64.eu.sha1" },
+      "evidence": "hash file sm64.eu.sha1 in the local clone carries this value; README documents it",
+      "role": "training environment only: IDO 5.3 / EGCS mixed. Famous game, so it must never be an evaluation target.",
+      "usable": true,
+      "needs": "a recipe in corpus/pair_sources.json before it yields pairs; the Makefile default is -g, so real per-file flags must be read before use"
+    },
+    {
+      "file": "roms/Legend of Zelda, The - Ocarina of Time (Europe) (En,Fr,De) (Rev 1).z64",
+      "sha1": "cfbb98d392e4a9d39da8285d10cbef3974c2f012",
+      "md5": "d714580dd74c2c033f5e1b6dc0aeac77",
+      "size_bytes": 33554432,
+      "decomp": { "repository": "zeldaret/oot", "revision": "pal-1.1", "pinned_as": "README version table" },
+      "evidence": "README.md:36 lists pal-1.1 (PAL 1.1 Europe) with this md5; the project publishes md5, not sha1",
+      "role": "training environment only: IDO 5.3/7.1 plus EGCS. Famous game, so it must never be an evaluation target.",
+      "usable": true,
+      "needs": "a recipe in corpus/pair_sources.json before it yields pairs"
+    },
+    {
+      "file": "roms/Legend of Zelda, The - Majora's Mask (Europe) (En,Fr,De,Es) (Rev 1).z64",
+      "sha1": "bb4e4757d10727c7584c59c1f2e5f44196e9c293",
+      "md5": "beccfded43a2f159d03555027462a950",
+      "size_bytes": 33554432,
+      "decomp": { "repository": "zeldaret/mm", "revision": null, "pinned_as": null },
+      "evidence": "no hash file in the local mm clone matches this dump; Makefile:41 sets VERSION ?= n64-us and baseroms/ ships only n64-jp-1.1 and n64-us",
+      "role": "none",
+      "usable": false,
+      "note": "The Majora's Mask decomp supports the US and JP 1.1 releases only, so this European dump cannot be matched against it. Superseded by the US dump below."
+    },
+    {
+      "file": "roms/Legend of Zelda, The - Majora's Mask (USA).z64",
+      "sha1": "d6133ace5afaa0882cf214cf88daba39e266c078",
+      "md5": "2a0a8acb61538235bc1094d297fb6556",
+      "size_bytes": 33554432,
+      "decomp": { "repository": "zeldaret/mm", "revision": "n64-us", "pinned_as": "build/n64-us/mm-n64-us-compressed.z64" },
+      "evidence": "md5 matches baseroms/n64-us/checksum-compressed.md5 in the local clone, which the decomp labels build/n64-us/mm-n64-us-compressed.z64",
+      "role": "training environment only: famous game, never an evaluation target",
+      "usable": true,
+      "note": "Supplied compressed, which is the state the decomp expects: its own tools/decompress_baserom.py turns this into build/n64-us/mm-n64-us.z64 (md5 f46493eaa0628827dbd6ad3ecd8d65d6). That is repository code, so it belongs inside tools/sandbox_extract.py, and mm has no recipe there yet."
+    }
+  ]
+}

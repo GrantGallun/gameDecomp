@@ -134,7 +134,13 @@ def _proposal_tasks(frontier: list[_State], *, pointer_context=None) -> list[tup
         proposals = rewrites.propose(state.source, state.attempt.diff)
         if pointer_context:
             from solver import address_units
-            report = address_units.parameter_call_views(state.source, **pointer_context)
+            try:
+                report = address_units.parameter_call_views(state.source, **pointer_context)
+            except ValueError:
+                # It requires exactly one ordinary definition of the function; a candidate that
+                # also defines a helper made it raise and took the whole beam down. A generator
+                # that cannot apply declines -- found by the redraft pilot's rescue arm.
+                report = {'changes': []}
             if report['changes']:
                 original, candidate = state.source, report['source']
                 proposals.append(rewrites.Rewrite('target-call byte units', 'address-units',

@@ -46,8 +46,8 @@ from pathlib import Path
 from patterns.catalog import hints_for_asm
 from solver import context as kb_context
 from solver import diagnose
-from solver import (llm, modelrepair, refine, repair, shaped_flywheel, siblings,
-                    workspace)
+from solver import (llm, modelrepair, project_headers, refine, repair,
+                    shaped_flywheel, siblings, workspace)
 
 PERMUTE_FLOOR = 95.0   # legacy budget heuristic; not a capability boundary
 RETYPE_FLOOR = 80.0    # below this the shape itself is wrong
@@ -130,13 +130,23 @@ def build_prompt(repo: Path, conn, func: str, asm: str, draft: str,
                  route: str, use_siblings: bool,
                  historical_siblings: bool = False,
                  sibling_sources: dict[str, str] | None = None,
-                 sibling_library: dict[str, object] | None = None) -> str:
+                 sibling_library: dict[str, object] | None = None,
+                 declarations: bool = False) -> str:
     """Assemble context appropriate to the route.
 
     Everything here is derived from the binary or from other already-matched
     functions. The target's own source is never read.
+
+    `declarations=True` appends `solver.project_headers.prompt_context`, the project's existing
+    reconstructed-header mechanism. It is NOT binary-derived: on SBK1 those headers are the decomp
+    team's own reconstruction, which `CLAUDE.md` classes as the header-assisted tier and requires
+    to be reported separately from SOLVED. `eval/zero_token_harvest.py` excludes the same module on
+    purpose. So it is opt-in -- turning it on changes which tier a resulting match belongs to, and
+    nothing about the default path moves.
     """
     kb = kb_context.for_function(conn, func)
+    if declarations:
+        kb += project_headers.prompt_context(repo, func, asm, draft)
     hints = hints_for_asm(asm)          # includes decoded array strides
 
     sib = ""

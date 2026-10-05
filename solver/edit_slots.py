@@ -4,11 +4,19 @@ import re
 
 
 def slots(source: str) -> dict[str, tuple[int, int]]:
+    from solver import project_headers
     prefix = hashlib.sha256(source.encode()).hexdigest()[:12]
+    masked = project_headers._mask_noncode(source)
     out, offset = {}, 0
     for index, line in enumerate(source.splitlines(keepends=True), 1):
-        # Whole physical lines are unambiguous even if their text repeats.
-        if line.strip() and not line.lstrip().startswith(('#', '//', '/*', '*')):
+        # Whole physical lines are unambiguous even if their text repeats. A line is comment-only when
+        # masking comments leaves nothing; a leading `*` alone is not a comment: m2c's pointer stores
+        # (`*(s16 *)(p + 4) = x;`) start with one, and their slots were rejected as unknown (2026-09-15).
+        # Inside-comment lines such as `   therefore hypotheses. */` are not code either; a string-only
+        # continuation line masks blank too, so a quote keeps its slot.
+        code = masked[offset:offset + len(line)]
+        comment_only = not code.strip() and '"' not in line
+        if line.strip() and not comment_only and not line.lstrip().startswith('#'):
             out[f'{prefix}:L{index}'] = (offset, offset + len(line.rstrip('\r\n')))
         offset += len(line)
     includes = list(re.finditer(r'(?m)^[ \t]*#\s*include[^\n]*(?:\n|$)', source))

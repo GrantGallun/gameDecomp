@@ -296,6 +296,14 @@ def pointer_table_deref_rewrites(code: str, diff: str) -> list[Rewrite]:
         if any((match := RELOC_LOAD.match(line))
                and match.group(1) == symbol for line in plus):
             continue
+        # Removing `&` yields the slot's value, so the table must hold pointers. A visible declaration of an
+        # array of structs (`RacePlayer gRacePlayers[8]`) cannot type-check the dereference
+        # (tryStartRacePlayerCourseObjectMode, 2026-09-22); scalar-element tables compile through an implicit
+        # conversion but improved 0 of 8 recorded applications. An undeclared table stays the oracle's call.
+        decl = re.search(r"(?m)^[ \t]*(?!(?:return|case|goto|sizeof|else|do)\b)(?:[A-Za-z_]\w*[ \t*]+)+"
+                         + re.escape(symbol) + r"\s*\[[^\n;=]*;", masked)
+        if decl and not re.search(r"\*\s*" + re.escape(symbol) + r"\s*\[", masked[decl.start():decl.end()]):
+            continue
         pattern = re.compile(r"&\s*(?=" + re.escape(symbol) + r"\s*\[)")
         for match in pattern.finditer(masked):
             a, b = match.span()
@@ -400,9 +408,25 @@ def reloc_symbol_rewrites(code: str, diff: str) -> list[Rewrite]:
         old_decl = code[got_decl.start():got_decl.end()]
         new_decl = re.sub(r"\b" + re.escape(got) + r"\b", want,
                           old_decl, count=1)
-        want_declared = bool(re.search(
+        want_decl = re.search(
             r"(?m)^[ \t]*extern\b[^\n;]*\b" + re.escape(want)
-            + r"\b[^\n;]*;", masked))
+            + r"\b[^\n;]*;", masked)
+        want_declared = bool(want_decl)
+        if not want_decl and re.search(r"\b" + re.escape(want) + r"\b", masked):
+            # Declared in a form the one-line pattern cannot compare (`extern struct T {...} want[256];`
+            # spans lines). Cloning a second declaration is a redeclaration error (insertHuffmanQueueNode,
+            # 2026-09-22: 13 of the 39 refusals), and the type cannot be checked, so decline.
+            continue
+        if want_decl:
+            # An already-declared replacement keeps ITS type, so the expression's type changes. Scalar <-> array
+            # is the change that cannot type-check: `s32 max_channels` -> `s32 gSoundPriorityTable[]` put an
+            # array in a comparison (MusStartEffect, 2026-09-22). Measured on the recorded applications, exact
+            # type equality was too strict: s8 -> u8, u16 -> u32 * and struct-array -> struct-array substitutions
+            # compiled and improved, so only array-ness is required to agree.
+            def is_array(decl: str, sym: str) -> bool:
+                return bool(re.search(r"\b" + re.escape(sym) + r"\s*\[", decl))
+            if is_array(old_decl, got) != is_array(code[want_decl.start():want_decl.end()], want):
+                continue
 
         token = re.compile(r"\b" + re.escape(got) + r"\b")
         for match in token.finditer(masked):
@@ -1334,14 +1358,77 @@ def byte_pointer_step_rewrites(code: str, diff: str) -> list[Rewrite]:
     return out
 
 
+def byte_pointer_offset_rewrites(code: str, diff: str) -> list[Rewrite]:
+    """Test byte units where a parameter offset is multiplied in the object.
+
+    Matching argument registers and a whole-number scale constrain the proposal;
+    they are not an alias or original-type proof. Keep the parameter declaration
+    and all other accesses intact; the object certificate decides acceptance.
+    """
+    from solver import repair_context
+    instruction = re.compile(r'^addiu\s+\$?(a[0-3]),\s*\$?\1,\s*(0x[0-9a-fA-F]+|[0-9]+)$')
+    offsets = set()
+    for target, candidate in signals._pairs(diff)[0]:
+        left, right = instruction.fullmatch(target.strip()), instruction.fullmatch(candidate.strip())
+        if not left or not right or left[1] != right[1]:
+            continue
+        desired, actual = _num(left[2]), _num(right[2])
+        if desired and actual and 0 < desired < actual <= 32767 and actual % desired == 0:
+            offsets.add((int(left[1][1]), desired))
+    if not offsets:
+        return []
+    masked = c89._mask(code)
+    definitions = [m for m in re.finditer(r'\b(\w+)\s*\(([^;{}]*)\)\s*\{', masked)
+                   if m[1] not in {'if', 'for', 'while', 'switch'}]
+    if len(definitions) != 1:
+        return []
+    definition, end = repair_context.definition(code, definitions[0][1])
+    params = definition[2].split(',')
+    # Do not infer register slots through wide, floating, aggregate, callback,
+    # array, or unknown scalar parameter spellings.
+    ordinary = r'\s*(?:(?:struct\s+)?\w+\s*\*\s*|(?:s8|u8|s16|u16|s32|u32|int|unsigned|long)\s+)\w+\s*'
+    if len(params) > 4 or any(not re.fullmatch(ordinary, p) for p in params):
+        return []
+    body = masked[definition.end():end-1]
+    if re.search(r'(?m)^\s*#', body):
+        return []
+    out = []
+    for slot, offset in sorted(offsets):
+        if slot >= len(params):
+            continue
+        pointer = re.fullmatch(r'\s*((?:struct\s+)?\w+)\s*\*\s*(\w+)\s*', params[slot])
+        if not pointer or pointer[1] in {'void', 'char', 'u8', 's8'}:
+            continue
+        name = re.escape(pointer[2])
+        if (re.search(r'(?m)(?:^|[;{}])\s*(?:struct\s+)?\w+\s+[^;{}]*\b'+name+r'\s*[,;=\[]', body)
+                or re.search(r'\b'+name+r'\b(?:\s*\))*\s*(?:=(?!=)|(?:<<|>>|[+\-*/%&|^])=|\+\+|--)'
+                             r'|(?:\+\+|--|&)\s*(?:\(\s*)*\b'+name+r'\b', body)
+                or re.search(r'\*\s*(?:\(\s*)*\b'+name+r'\b', body)):
+            continue
+        for site in re.finditer(r'\(\s*'+name+r'\s*\+\s*(0x[0-9a-fA-F]+|[0-9]+)\s*\)', body):
+            if _num(site[1]) != offset:
+                continue
+            a, b = definition.end()+site.start(), definition.end()+site.end()
+            replacement = f'((unsigned char *){pointer[2]} + {site[1]})'
+            changed = code[:a]+replacement+code[b:]
+            out.append(Rewrite(f'test byte offset {pointer[2]} + {site[1]}', 'pointer-byte-offset',
+                lambda source, old=code, new=changed: new if source == old else source))
+            if len(out) == 8:
+                return out
+    return out
+
+
 def propose(code: str, diff: str) -> list[Rewrite]:
     """Every applicable rewrite for this residual, cheapest kind first."""
+    from solver import byte_view_order
     return (prototype_rewrites(code, diff)
+            + byte_view_order.propose(code, diff)
             + layout_rewrites(code, diff)
             + shared_layout_rewrites(code, diff)
             + per_object_layout_rewrites(code, diff)
             + pointer_table_deref_rewrites(code, diff)
             + byte_pointer_step_rewrites(code, diff)
+            + byte_pointer_offset_rewrites(code, diff)
             + pointer_element_width_rewrites(code, diff)
             + pointer_difference_scale_rewrites(code, diff)
             + global_load_signedness_rewrites(code, diff)

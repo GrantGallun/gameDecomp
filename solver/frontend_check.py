@@ -47,7 +47,20 @@ def recipe(repo_string: str, raw: str, target: str) -> dict:
         command += shlex.split(values[key])
     if "-fsyntax-only" not in command:
         raise ValueError("checker is not syntax-only")
-    command += ["-fno-color-diagnostics", "-iquote", str(Path(target[6:]).parent)]
+    # `-ferror-limit=0` BECAUSE THE DEFAULT IS 20 AND THE CLASS SET IS BUILT FROM THIS LIST.
+    #
+    # clang stops after 20 errors and emits `fatal error: too many errors emitted, stopping now`. Everything
+    # downstream -- `frontend_diagnostics.analyse`, `intake_probe._diagnostic_chain`, the fault histogram --
+    # builds a defect-CLASS SET from the errors this command reports, so a ceiling on the error list is a
+    # ceiling on the class set. The project already fixed this bug twice further out (the runner's six-line
+    # window, then `errors[:40]`); the compiler's own limit is the same bug one level deeper, and it was the
+    # only one still live.
+    #
+    # Measured, 30 `undeclared_N()` calls followed by one `p->no_such_member`: at the default the checker
+    # reports 19 errors and `undeclared-member` NEVER APPEARS; at `-ferror-limit=0` it reports 31 and the
+    # class is there. So a class was invisible because of where it sat in the file, and the histogram's
+    # `undeclared-member: visible at step 0 in 27, cleared in 0` is measured through that ceiling.
+    command += ["-ferror-limit=0", "-fno-color-diagnostics", "-iquote", str(Path(target[6:]).parent)]
     return {"command": command, "settings": values, "target": target,
             "makefile_sha256": compiler_recipe.sha(raw.encode()),
             "checker_sha256": compiler_recipe.sha(Path(binary).read_bytes()),

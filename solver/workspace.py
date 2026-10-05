@@ -12,6 +12,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import os
 import re
 import struct
 import subprocess
@@ -46,6 +47,8 @@ class Attempt:
     compiler_recipe: dict | None = None
     frontend: dict | None = None
     source_attribution: dict | None = None
+    # solver.object_discrepancy.summarize: what differs outside the text diff, and the route it implies.
+    object: dict | None = None
 
 
 def repair_complete(attempt: Attempt) -> bool:
@@ -396,9 +399,34 @@ def semantic_assembly(assembly: str, object_path: Path) -> str:
 
 
 def m2c_draft(ws: Path) -> str:
+    """The starting C for a workspace.
+
+    CONTAMINATION, measured 2026-09-21 and not yet the default. This PREFERS an existing `base.c` over
+    a fresh draft, and `nonmatchings/` belongs to the target repo: only 3 of its 2,125 workspaces carry
+    this project's own draft receipt (`target-resolution.json`, `"draft_context": "assembly only"`),
+    while 2,056 carry m2c's banner comment -- produced by the target repo's own tooling, evidently
+    with its real source as m2c context. On the frozen 200-state intake frame, 98 of those drafts use a
+    TYPE or FIELD name that exists only in the target's `src/*.c` -- in no header, SDK or reconstructed,
+    and not in the function's own assembly: `CourseGridEntry *var_v0;` and `var_v0->status` where
+    assembly-only m2c writes `s16 *var_v0;` and `*var_v0`. CLAUDE.md: ground truth is for CHECKING,
+    never feeding.
+
+    `GAMEDECOMP_ASSEMBLY_ONLY_DRAFTS=1` ignores any `base.c` and drafts from `target.s` alone, so the
+    clean number can be measured without changing what running campaigns see. See
+    `eval/results/intake-20260921/CONTAMINATION.md`.
+    """
     path = ws / "base.c"
-    source = path.read_text(errors="replace") if path.exists() else ""
     repo = ws.parent.parent
+    if os.environ.get("GAMEDECOMP_ASSEMBLY_ONLY_DRAFTS") == "1":
+        if (repo / ".venv/bin/m2c").is_file() and (ws / "target.s").is_file():
+            from solver import m2c_input
+            result, _ = m2c_input.draft(repo, ws / "target.s")
+            if result.returncode == 0:
+                return '#include "common.h"\n\n' + result.stdout
+        # No assembly-only draft is possible: report an empty draft rather than fall back to one that
+        # may carry reference names. A missing draft is visible; a contaminated one is not.
+        return ""
+    source = path.read_text(errors="replace") if path.exists() else ""
     if (not source.strip() or "Decompilation failure:" in source) and (
             (repo / ".venv/bin/m2c").is_file() and (ws / "target.s").is_file()):
         from solver import m2c_input
@@ -510,7 +538,8 @@ def record_attempt(conn, func: str, code: str, att: "Attempt", *,
                    relation: str = "", action: str = "", feedback: str = "",
                    run_kind: str = "", run_config: dict | None = None,
                    extra: dict | None = None, raw_response: str = "",
-                   extract_status: str = "", done_reason: str = ""
+                   extract_status: str = "", done_reason: str = "",
+                   generation=None
                    ) -> int | None:
     """Record one attempt and return its durable receipt id.
 
@@ -522,6 +551,14 @@ def record_attempt(conn, func: str, code: str, att: "Attempt", *,
     Parentage is explicit. Consecutive rows are not necessarily a trajectory:
     best-anchored refinement can branch from an older row, and best-of-N draws
     have no attempt parent at all.
+
+    `generation` carries the model interaction: a `solver.llm.GenerationReceipt`,
+    or any object with an `as_row()`, or a plain dict. It is folded into the
+    `sampling` JSON so no schema migration is needed and the payload survives
+    every existing reader. Passing a receipt whose status is not `ok` is
+    normal and expected: a refusal or a timeout is a logged outcome, and the
+    fields that must never be dropped are `model`, `model_digest`, sampling
+    parameters, token cost and stop reason.
     """
     if conn is None:
         return None
@@ -533,6 +570,24 @@ def record_attempt(conn, func: str, code: str, att: "Attempt", *,
     sampling = {"temperature": temperature, "run_id": run_id}
     if extra:
         sampling.update(extra)
+    if generation is not None:
+        gen_row = (generation.as_row() if hasattr(generation, "as_row")
+                   else dict(generation))
+        sampling["generation"] = gen_row
+        # Promote the fields a reader will look for without unpacking JSON, and
+        # never overwrite an explicitly supplied argument.
+        if not model and gen_row.get("model"):
+            model = gen_row["model"]
+        if not raw_response and gen_row.get("model_digest") is not None:
+            raw_response = getattr(generation, "raw_response", "") or raw_response
+        if not token_cost and gen_row.get("token_cost"):
+            token_cost = int(gen_row["token_cost"])
+        if not wall_ms and gen_row.get("wall_ms"):
+            wall_ms = int(gen_row["wall_ms"])
+        if not extract_status and gen_row.get("extract_status"):
+            extract_status = gen_row["extract_status"]
+        if not done_reason and gen_row.get("done_reason"):
+            done_reason = gen_row["done_reason"]
     if att.verification is not None:
         sampling["verification"] = att.verification
     attempt_receipts.start_run(
@@ -597,6 +652,37 @@ def operand_only_diff(diff_text: str) -> bool:
     return changed
 
 
+def _record_compiler_failure(conn, func: str, code: str, exc: Exception,
+                             stage: str, recipe: dict | None, log_kw: dict) -> None:
+    """Retain failed compiler infrastructure without changing its stop semantics."""
+    if conn is None or not func:
+        return
+    message = f"{type(exc).__name__}: {exc}"
+    partial = []
+    for value in (getattr(exc, 'output', None), getattr(exc, 'stderr', None)):
+        if isinstance(value, bytes):
+            value = value.decode('utf-8', errors='replace')
+        if value:
+            partial.append(str(value)[-16000:])
+    diagnostics = '\n'.join([message, *partial])
+    failure = {'status': 'infrastructure-unavailable', 'stage': stage,
+               'exception_type': type(exc).__name__, 'reason': message,
+               'source_sha256': hashlib.sha256(code.encode('utf-8')).hexdigest(),
+               'build_invoked': stage == 'build',
+               # A helper can stop before cc or launch several processes; a
+               # timeout does not establish how many compiler calls ran.
+               'compiler_invocations': None if stage == 'build' else 0}
+    if hasattr(exc, 'evidence'):
+        failure['evidence'] = exc.evidence
+    att = Attempt(False, 0.0, False, '', diagnostics, diagnostics,
+                  compiler_recipe=recipe)
+    extra = {**(log_kw.get('extra') or {}), 'compiler_failure': failure,
+             'training_eligible': False}
+    if recipe:
+        extra['compiler_recipe'] = recipe
+    record_attempt(conn, func, code, att, **{**log_kw, 'extra': extra})
+
+
 def score(ws: Path, repo: Path, name: str, code: str, conn=None,
           func: str = "", **log_kw) -> Attempt:
     """Compile one candidate and score it against the target object.
@@ -607,15 +693,30 @@ def score(ws: Path, repo: Path, name: str, code: str, conn=None,
     """
     with _workspace_lock(ws):
         from solver import compiler_recipe
-        prepared = compiler_recipe.prepare(repo, ws, conn, func)
-        build_script, recipe = prepared if prepared else (ws / "build.sh", None)
-        from solver import source_attribution
-        build_script = source_attribution.prepare(ws, name, build_script)
-        compile_source = _candidate_compile_source(repo, code)
-        (ws / f"{name}.c").write_text(compile_source)
-        import shlex
-        returncode, out = sh(f". {shlex.quote(str(repo / '.venv/bin/activate'))} && bash {shlex.quote(str(build_script))} {shlex.quote(name + '.c')}",
-                    cwd=ws, timeout=300)
+        recipe = None
+        stage = 'compiler-recipe'
+        try:
+            prepared = compiler_recipe.prepare(repo, ws, conn, func)
+            build_script, recipe = prepared if prepared else (ws / "build.sh", None)
+            from solver import source_attribution
+            stage = 'source-attribution'
+            build_script = source_attribution.prepare(ws, name, build_script)
+            stage = 'candidate-source'
+            compile_source = _candidate_compile_source(repo, code)
+            (ws / f"{name}.c").write_text(compile_source)
+            import shlex
+            stage = 'build'
+            returncode, out = sh(f". {shlex.quote(str(repo / '.venv/bin/activate'))} && bash {shlex.quote(str(build_script))} {shlex.quote(name + '.c')}",
+                        cwd=ws, timeout=300)
+        except Exception as exc:
+            # Preserve the controller's original stop even if its ledger is
+            # unavailable. The note makes the missing receipt explicit.
+            try:
+                _record_compiler_failure(conn, func, code, exc, stage, recipe, log_kw)
+            except Exception as logging_exc:
+                exc.add_note('Compiler failure receipt could not be recorded: '
+                             f'{type(logging_exc).__name__}: {logging_exc}')
+            raise
         m = SCORE_RE.search(out) if returncode == 0 else None
         frontend = None
         if recipe and recipe.get("target") and "CC_CHECK" in (repo / "Makefile").read_text():
@@ -699,6 +800,19 @@ def score(ws: Path, repo: Path, name: str, code: str, conn=None,
         att = Attempt(True, float(m.group(1)), exact, diff_text, "", out,
                       verification=verification)
 
+    # Every compiled attempt, not only certified ones: the normalized diff cannot show data sections,
+    # relocation spelling or trailing extent, and a residual it hides looks exactly like "nothing to do"
+    # (eval/results/hidden-object-20260930). Two small ELF parses; a failure here never fails the score.
+    if m and (ws / "target.o").is_file() and (ws / f"{name}.o").is_file():
+        try:
+            from solver import object_discrepancy
+            att.object = object_discrepancy.summarize((ws / "target.o").read_bytes(),
+                                                      (ws / f"{name}.o").read_bytes(), code, func)
+            if att.exact:                                         # the certificate's second stages outrank raw rows
+                att.object["route"] = "exact"
+            log_kw["extra"] = {**(log_kw.get("extra") or {}), "object": att.object}
+        except Exception as exc:                                  # diagnostic only, never a verdict
+            att.object = {"route": "error", "error": f"{type(exc).__name__}: {exc}"[:300]}
     # Failures are logged too: the non-compiling rows are exactly what made
     # today's extraction bugs findable.
     att.compiler_recipe = recipe

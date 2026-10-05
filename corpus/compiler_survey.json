@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "kind": "n64-decomp-compiler-survey",
+  "why": "Which public N64 decompilations share the benchmark's compiler, so a ROM can be ranked by what it would actually unlock. A corpus in a different compiler or ISA teaches codegen the benchmark does not use.",
+  "benchmark": {
+    "project": "snowboardkids-decomp (SBK1)",
+    "compiler": "IDO 5.3 via ido-static-recomp",
+    "game_code_recipe": { "opt": "-O2", "isa": "-mips1", "other": ["-G 0", "-non_shared", "-nostdinc", "-Wab,-r4300_mul"] },
+    "how_verified": "Read directly from external/snowboardkids-decomp/Makefile:117-122 (C_MIPS = -mips1, C_OPT = -O2, C_FLAGS = -c $(C_MIPS) ... $(C_DEFINES)), and re-measured through solver.compiler_recipe.resolve over every SBK1 translation unit: 1887 of 2082 functions resolve to -O2 -mips1, the rest are library units whose per-object rules override to -mips1/-mips2/-mips3 (Makefile:127-160).",
+    "notable": "SBK1's C_DEFINES (Makefile:88-89) applies -DCOMPILING_LIBULTRA to every C translation unit, game code included. That looks like a leak and is not one: it is how this repository is written. Any recipe claiming to reproduce SBK1 must carry it."
+  },
+  "correction": {
+    "claim_retracted": "A first pass of this survey assumed the benchmark used -mips2 and therefore ranked -mips2 repositories as flag-identical. That came from inference, not from reading this project, and it is wrong.",
+    "consequence": "ISA now leads the ranking. -mips1 is not cosmetic here: the previous session established that IDO under this recipe cannot emit ldc1, so float and double codegen differs from a -mips2 build, and instruction selection differs generally."
+  },
+  "priority": {
+    "tier_a_mips1_ido": "Same compiler AND same ISA as the benchmark. Highest value; shapes should transfer directly.",
+    "tier_b_mips2_ido": "Same compiler lineage, different ISA. Still IDO; expect near-miss codegen on float and on any instruction -mips1 forbids.",
+    "tier_c_other_compiler": "Different compiler. Useful as tagged variety at best, and only if an ablation shows it does not hurt IDO validation.",
+    "not_n64": "Excluded from an N64 corpus entirely."
+  },
+  "projects": [
+    {
+      "name": "Diddy Kong Racing", "repo": "https://github.com/davidsm64/diddy-kong-racing",
+      "compiler": "IDO 5.3", "isa": "-mips1", "opt": "-O2", "tier": "tier_a_mips1_ido",
+      "in_allowlist": true, "pairs_available": "983 pairs from 46 of 47 files, once tools/sandbox_extract.py has produced the ROM-generated header; 20 pairs from 6 files without it",
+      "evidence": "Read directly: Makefile:148-150 (OPT_FLAGS = -O2, MIPSISET = -mips1), Makefile:152-153 (define set), Makefile:190 (BOOT_CIC 6103)."
+    },
+    {
+      "name": "Mischief Makers", "repo": "https://github.com/Drahsid/mischief-makers",
+      "compiler": "IDO 5.3", "isa": "-mips1", "opt": "-O2", "tier": "tier_a_mips1_ido",
+      "in_allowlist": false, "progress": "53.52% matched",
+      "evidence": "configure.py: IDO_VER = \"5.3\"; IDO_CC = TOOLS_DIR / f\"ido{IDO_VER}\" / \"cc\"; OPT_FLAGS = \"-O2\"; MIPS_FLAGS = \"-mips1 -32\"."
+    },
+    {
+      "name": "Jet Force Gemini", "repo": "https://github.com/Ryan-Myers/Jet-Force-Gemini",
+      "compiler": "IDO 5.3", "isa": "-mips1", "opt": "-O2", "tier": "tier_a_mips1_ido",
+      "in_allowlist": false, "progress": "14.49% matched",
+      "evidence": "Makefile: CC = $(RECOMP_DIR)/cc; tools/Makefile fetches ido-5.3-recomp; OPT_FLAGS = -O2; MIPSISET = -mips1.",
+      "caveat": "Heavy per-file -O1/-g overrides, so a single recipe will not cover it."
+    },
+    {
+      "name": "Pilotwings 64", "repo": "https://github.com/gcsmith/Pilotwings64Decomp",
+      "compiler": "IDO 5.3", "isa": "-mips2", "opt": "-O2", "tier": "tier_b_mips2_ido",
+      "in_allowlist": false, "progress": "100.00% matched",
+      "evidence": "Makefile: CC := $(TOOLS_DIR)/ido-static-recomp/build/5.3/out/cc; OPT_FLAGS = -O2; MIPSISET = -mips2 -32.",
+      "why_it_matters": "The only fully matched IDO 5.3 game found. Completeness is worth more than the ISA mismatch for volume, but not for shape fidelity."
+    },
+    {
+      "name": "Banjo-Kazooie", "repo": "https://github.com/n64decomp/banjo-kazooie",
+      "compiler": "IDO 5.3", "isa": "-mips2", "opt": "-O2", "tier": "tier_b_mips2_ido",
+      "in_allowlist": false, "progress": null,
+      "evidence": "Makefile: RECOMP_FILE := ido-5.3-recomp-$(DETECTED_OS).tar.gz; CC := $(RECOMP_CC); MIPSBIT := -mips2.",
+      "caveat": "No progress figure available; it is absent from decomp.dev's N64 list. Do not quote a percentage."
+    },
+    {
+      "name": "Perfect Dark", "repo": "https://gitlab.com/ryandwyer/perfect-dark",
+      "compiler": "IDO 5.3", "isa": "-mips2", "opt": "-O2", "tier": "tier_b_mips2_ido",
+      "in_allowlist": false, "progress": null,
+      "evidence": "Makefile: MATCHING = 1 then COMPILER = ido; CC := build/recomp/5.3/cc; audio/naudio/mp3 objects override to 7.1.",
+      "caveat": "Hosted on GitLab, so the grabber's github-only host allowlist would have to admit gitlab.com deliberately. No progress figure available."
+    },
+    {
+      "name": "Donkey Kong 64", "repo": "https://gitlab.com/dk64_decomp/dk64",
+      "compiler": "IDO 5.3", "isa": "-mips2", "opt": "-O2", "tier": "tier_b_mips2_ido",
+      "in_allowlist": false, "progress": null,
+      "evidence": "Makefile (default branch main): CC := ido/ido5.3_recomp/cc; src/global_asm/audio overrides to 7.1; MIPSBIT := -mips2.",
+      "caveat": "GitLab, as above. No progress figure available."
+    },
+    {
+      "name": "Chameleon Twist", "repo": "https://github.com/chameleonTwistRet/chameleonTwistv1.0-JP",
+      "compiler": "IDO 5.3", "isa": "-mips2", "opt": "-O2", "tier": "tier_b_mips2_ido",
+      "in_allowlist": false, "progress": "48.99% matched",
+      "evidence": "configure.py: IDO_CC = f\"{TOOLS_DIR}/ido_5.3/usr/lib/cc\"; GAME_COMPILE_CMD = ... -mips2 -O2. The root Makefile is a stub with no compiler in it.",
+      "caveat": "Japan release only."
+    },
+    {
+      "name": "Wave Race 64", "repo": "https://github.com/LLONSIT/Wave-Race-64",
+      "compiler": "IDO 5.3", "isa": "-mips2", "opt": "-O2", "tier": "tier_b_mips2_ido",
+      "in_allowlist": false, "progress": "33.73% matched",
+      "evidence": "Makefile: IDO := $(TOOLS)/ido-static-recomp/build/5.3/out/cc; OPTFLAGS := -O2; MIPS_VERSION := -mips2 -32."
+    },
+    {
+      "name": "Super Smash Bros.", "repo": "https://github.com/VetriTheRetri/ssb-decomp-re",
+      "compiler": "IDO 7.1", "isa": "-mips2", "opt": "-O2", "tier": "tier_b_mips2_ido",
+      "in_allowlist": false, "progress": "100.00% matched",
+      "evidence": "Makefile: IDO7 := tools/ido-recomp/7.1/cc; IDO5 := tools/ido-recomp/5.3/cc; CC := $(ASM_PROC) ... $(IDO7) ...; OPTFLAGS := -O2 -mips2.",
+      "why_it_matters": "Largest fully matched 7.1 corpus. Useful for telling IDO 7.1 apart from 5.3; not for 5.3 shapes."
+    },
+    {
+      "name": "Pokemon Snap", "repo": "https://github.com/ethteck/pokemonsnap",
+      "compiler": "IDO 7.1", "isa": "-mips2", "opt": "-O2", "tier": "tier_b_mips2_ido",
+      "in_allowlist": true, "progress": "97.35% matched",
+      "evidence": "configure.py: IDO_72_CC = TOOLS_DIR / \"ido7.1\" / \"cc\" for src/**; IDO_53_CC for ultralib; -mips2.",
+      "caveat": "Already in corpus/n64_sources.json as dev_only, but with no recipe, so it yields no pairs yet."
+    },
+    {
+      "name": "1080 Snowboarding", "repo": "https://github.com/bigyoshi51/1080-decomp",
+      "compiler": "IDO 7.1", "isa": "-mips2", "opt": "-O2", "tier": "tier_b_mips2_ido",
+      "in_allowlist": false, "progress": "38.22% matched",
+      "evidence": "Makefile: IDO_DIR := $(TOOLS)/ido-static-recomp/build/7.1/out; IDO53_DIR for game_libs_ido53_* units; MIPSISET := -mips2 -32."
+    },
+    {
+      "name": "Beetle Adventure Racing", "repo": "https://github.com/synamaxmusic/bar-decomp",
+      "compiler": "IDO 7.1", "isa": "-mips2", "opt": "-O2", "tier": "tier_b_mips2_ido",
+      "in_allowlist": false, "progress": "27.21% matched",
+      "evidence": "Makefile: CC := $(TOOLS)/ido-static-recomp/$(DETECTED_OS)/7.1/cc; CC_OLD 5.3 for listed gu/libultra objects; MIPS_VERSION := -mips2 -32."
+    },
+    {
+      "name": "Animal Forest", "repo": "https://github.com/zeldaret/af",
+      "compiler": "IDO 7.1", "isa": "-mips2", "opt": "-O2 -g3", "tier": "tier_b_mips2_ido",
+      "in_allowlist": false, "progress": "18.52% matched",
+      "evidence": "Makefile: CC := tools/ido/$(DETECTED_OS)/7.1/cc; CC_OLD 5.3 for src/code/lbrtc and ultralib; OPTFLAGS := -O2 -g3."
+    },
+    {
+      "name": "Dr. Mario 64", "repo": "https://github.com/AngheloAlf/drmario64",
+      "compiler": "KMC GCC 2.7.2", "isa": null, "opt": null, "tier": "tier_c_other_compiler",
+      "in_allowlist": false,
+      "evidence": "Makefile: COMPILER_DIR := tools/gcc_kmc/$(DETECTED_OS)/2.7.2; CC := COMPILER_PATH=$(COMPILER_DIR) $(COMPILER_DIR)/gcc; the CN version uses EGCS 1.1.2-4.",
+      "why_it_matters": "Same compiler family as SBK2 (the second evaluation target), so it is a natural training source for that lane rather than for SBK1."
+    },
+    {
+      "name": "Pokemon Puzzle League", "repo": "https://github.com/AngheloAlf/puzzleleague64",
+      "compiler": "KMC GCC 2.7.2", "isa": null, "opt": null, "tier": "tier_c_other_compiler",
+      "in_allowlist": false,
+      "evidence": "Makefile: COMPILER_DIR := tools/gcc_kmc/$(DETECTED_OS)/2.7.2; src/flash/%.o overrides to IDO 5.3.",
+      "why_it_matters": "Mixed-compiler repository: usable for both lanes, which also makes it a good test of per-file recipe resolution."
+    },
+    {
+      "name": "Gex 64", "repo": "https://github.com/MatBourgon/Gex64Decomp",
+      "compiler": "KMC GCC", "isa": "-mips1 (plus -mips3 objects)", "opt": "-O2 / -O3 / -O1", "tier": "tier_c_other_compiler",
+      "in_allowlist": false,
+      "evidence": "Lowercase build file `makefile` (a Makefile fetch 404s): CC = tools/gcc; $(MIPS1OBJECTS) use -O2 -mips1; $(MIPS3OBJECTS) -O3 -mips3; $(LIBKMCOBJECTS) -O1 -mips3. gexenterthegecko.yaml: compiler: KMC."
+    },
+    {
+      "name": "Glover", "repo": "https://github.com/bigyoshi51/glover-decomp",
+      "compiler": "GCC 2.7.2", "isa": "-mips3 -mgp32 -mfp32", "opt": "-O2 -g2", "tier": "tier_c_other_compiler",
+      "in_allowlist": false,
+      "evidence": "Makefile: CC := tools/gcc_2.7.2/$(DETECTED_OS)/gcc; CFLAGS := -G0 -mips3 -mgp32 -mfp32 -Wa,--vr4300mul-off.",
+      "caveat": "The tree is tools/gcc_2.7.2, a different one from the gcc_kmc/2.7.2 used by Dr. Mario 64 and Puzzle League. Exact fork unconfirmed."
+    },
+    {
+      "name": "Paperboy", "repo": "https://github.com/marijnvdwerf/paperboy-n64",
+      "compiler": "SN Systems cc1n64 (PSY-Q)", "isa": null, "opt": "-O2", "tier": "tier_c_other_compiler",
+      "in_allowlist": false,
+      "evidence": "configure.py: CC1N64 = \"tools/bin/cc1n64.exe\"; the ninja cc rule runs wibo {CC1N64} {CC_FLAGS} ...; CC_FLAGS = \"-quiet -G0 -O2\".",
+      "caveat": "Runs a Windows compiler under wibo, so it is awkward to wire and least similar to anything else here."
+    },
+    {
+      "name": "Legoland", "repo": "https://github.com/marijnvdwerf/legoland",
+      "compiler": "MSVC 6.0", "isa": "x86", "opt": null, "tier": "not_n64",
+      "in_allowlist": false,
+      "evidence": "README.md: \"A matching decompilation of legoland.exe (x86 Windows, built with Microsoft Visual C++ 6.0)\"; built via cmake --preset msvc6 and cmake/msvc6-toolchain.cmake.",
+      "consequence": "It was on the candidate list as an N64 target. It is not one; drop it."
+    }
+  ],
+  "verification_standard": "Each row above was read from the named build file by a read-only survey, quoting the line it came from; the DKR row and the benchmark row were additionally read directly by hand in this workspace. Nothing here is stated from memory. Progress percentages come from decomp.dev and are absent where the project is not listed there."
+}

@@ -790,6 +790,11 @@ def typed_index_scales(source: str, function: str):
     pattern = re.compile(r"\((?P<index>\(\*\([^;=\n]+?\)\)|[A-Za-z_][\w>\-.\[\]]*)\s*\*\s*(?P<k>\d+)\)\s*\+\s*(?P<table>[A-Za-z_]\w*)\b(?!\s*[\[(])")
     count = 0
     for match in pattern.finditer(body):
+        # Only a sum that STARTS with the product: in `ptr + (I * K) + off` the pointer is `ptr` and `off` is an
+        # integer, so casting `off` to a table adds a pointer to a pointer (__osPfsRWInode, 2026-09-22: every
+        # candidate refused with "Unacceptable operand of '+'").
+        if body[:match.start()].rstrip().endswith(("+", "-")):
+            continue
         k = int(match.group("k"))
         for size, types in ELEMENT_TYPES.items():
             if k % size:
@@ -987,11 +992,145 @@ def single_use_local_inlines(source: str, function: str):
         if unmasked:
             values.append(("inline_unmasked", f"({unmasked.group(1).strip()})"))
         for form, replacement in values:
-            text = body
+            text, blanked = body, masked
             for start, end in sorted([(decl.start(), decl.end()), (assigns[0].start(), assigns[0].end())], reverse=True):
                 text = text[:start] + text[end:]
-            text = re.sub(rf"\b{name}\b", lambda _m: replacement, text, count=1)
+                blanked = blanked[:start] + blanked[end:]
+            # The read is located in the comment/string-blanked text, which is where it was counted. Substituting
+            # the first match of the raw text inlined into a comment instead (copyPackedMatrixTranslation,
+            # 2026-09-22: "Store the last column" rewritten, the real `last` left undeclared; 9 of 120 applications
+            # of this family failed to compile).
+            use = re.search(rf"\b{name}\b", blanked)
+            if not use:
+                continue
+            text = text[:use.start()] + replacement + text[use.end():]
             yield (f"single_use:{name}:{form}", "single_use", source[:begin] + text + source[stop:])
+
+
+PURE_DECL = re.compile(r"^[ \t]*(?!(?:return|goto|case|else|do|sizeof)\b)(?:(?:const|volatile|unsigned|signed|struct|union)[ \t]+)*[A-Za-z_]\w*[ \t*]+"
+                       r"(?P<name>[A-Za-z_]\w*)[ \t]*(?:=[ \t]*(?P<value>[^;\n]+))?;[ \t]*\n", re.M)
+SIDE_EFFECT = re.compile(r"(?<![=!<>])=(?!=)|\+\+|--")
+
+
+def _writes(masked: str, name: str, address: bool = True) -> int:
+    """Assignments, increments and (with `address`) address-taking of `name`."""
+    taken = rf"|&\s*{name}\b" if address else ""
+    return len(re.findall(rf"\b{name}\s*(?:[-+*/%&|^]|<<|>>)?=(?!=)|\+\+\s*{name}\b|\b{name}\s*\+\+|"
+                          rf"--\s*{name}\b|\b{name}\s*--{taken}", masked))
+
+
+def pure_local_inlines(source: str, function: str):
+    """Remove a local assigned once from a call-free, side-effect-free value by substituting the value at every read.
+
+    single_use handles primitive locals read once; m2c's pointer temporaries (`OSPfs *temp_a1 = &tbl[arg0];`) are
+    initialised in the declaration and read at several calls, so it declined on them. A declared local that lives
+    across a call gets its own stack home above the compiler's temporaries, which shows up as every spill slot 4
+    bytes low: probeControllerPak (2026-09-25) matched only once temp_a1 went (restored-holes-20260925).
+    The value's identifiers must never be written in the body, so every read sees the same value.
+    """
+    begin, stop = _body(source, function)
+    body = source[begin:stop]
+    masked = c89._mask(source)[begin:stop]
+    for decl in PURE_DECL.finditer(masked):
+        name = decl.group("name")
+        if decl.group("value") is not None:
+            assign, value_span = decl, decl.span("value")
+        else:
+            assigns = list(re.finditer(rf"^[ \t]*{name}[ \t]*=[ \t]*(?P<value>[^;\n]+);[ \t]*\n", masked, re.M))
+            if len(assigns) != 1:
+                continue
+            assign, value_span = assigns[0], assigns[0].span("value")
+        value_masked = masked[value_span[0]:value_span[1]]
+        if CALL.search(value_masked) or SIDE_EFFECT.search(value_masked) or _writes(masked, name) != 1:
+            continue
+        idents = set(re.findall(r"\b[A-Za-z_]\w*\b", value_masked)) - C_TYPES
+        if name in idents or any(_writes(masked, i, address=False) for i in idents):
+            continue
+        after = assign.end()
+        reads = [m for m in re.finditer(rf"\b{name}\b", masked) if m.start() >= after]
+        if not reads or len(re.findall(rf"\b{name}\b", masked)) != len(reads) + 1 + (assign is not decl):
+            continue                                   # a read before the assignment, or an unexpected mention
+        value = body[value_span[0]:value_span[1]].strip()
+        replacement = value if re.fullmatch(r"[A-Za-z_]\w*|-?(?:0x[0-9A-Fa-f]+|\d+)", value) else f"({value})"
+        edits = [(m.start(), m.end(), replacement) for m in reads]
+        edits.append((decl.start(), decl.end(), ""))
+        if assign is not decl:
+            edits.append((assign.start(), assign.end(), ""))
+        text = body
+        for start, end, new in sorted(edits, reverse=True):
+            text = text[:start] + new + text[end:]
+        yield (f"pure_inline:{name}", "pure_inline", source[:begin] + text + source[stop:])
+
+
+HOIST_STATEMENT = re.compile(r"^(?P<indent>[ \t]*)(?:return\b[^;{}]*|[^;{}()]*[^=!<>]=(?!=)[^;{}]*);[ \t]*$", re.M)
+HOIST_OPERATOR = re.compile(r"[-+*/%&|^]|<<|>>")
+
+
+def _paren_groups(text: str):
+    """(start, end) of every balanced parenthesised group in `text`, end exclusive."""
+    stack = []
+    for i, ch in enumerate(text):
+        if ch == "(":
+            stack.append(i)
+        elif ch == ")" and stack:
+            yield stack.pop(), i + 1
+
+
+def operand_locals(source: str, function: str, limit: int = 16):
+    """Hoist one parenthesised operand of a simple statement into a new named local, assigned just before it.
+
+    The inverse of pure_local_inlines. A named local is its own web, so IDO orders and allocates it differently
+    from an unnamed temporary: resolveAssetTableRelativePointer (2026-09-25) had `addu v0,a0,t6` against
+    `addu v0,t6,a0` and a commutative swap of the source did not flip it, but `s32 off = arg1 & 0xFFFFFF;
+    return arg0 + off;` matched. Only statement lines outside braceless if/else bodies; the operand must be
+    call-free, side-effect-free and not a cast or an argument list. Declared s32 after the leading declarations.
+    """
+    begin, stop = _body(source, function)
+    body = source[begin:stop]
+    masked = c89._mask(source)[begin:stop]
+    leading = 0
+    for decl in PURE_DECL.finditer(masked):
+        if masked[leading:decl.start()].strip():
+            break
+        leading = decl.end()
+    name = _fresh(source, "temp_h")
+    count = 0
+    for statement in HOIST_STATEMENT.finditer(masked):
+        if statement.start() < leading:
+            continue
+        before = masked[:statement.start()].rstrip()
+        if before.endswith(")") or re.search(r"\belse$", before):
+            continue                                   # body of a braceless if/else/while: hoisting would escape it
+        line = masked[statement.start():statement.end()]
+        for start, end in sorted(_paren_groups(line)):
+            inner = line[start + 1:end - 1].strip()
+            prefix = line[:start].rstrip()
+            if (not HOIST_OPERATOR.search(inner) or CALL.search(inner) or SIDE_EFFECT.search(inner)
+                    or re.search(r"[A-Za-z_0-9\]]$", prefix)            # argument list or call
+                    or re.match(r"(?:(?:const|volatile|unsigned|signed|struct|union)\s+)*[A-Za-z_]\w*\s*\**\s*$",
+                                inner) or inner.count("(") != inner.count(")")):
+                continue
+            text_line = body[statement.start():statement.end()]
+            value = text_line[start + 1:end - 1].strip()
+            indent = statement.group("indent")
+            new_line = text_line[:start] + name + text_line[end:]
+            text = (body[:leading] + f"\n    s32 {name};" + body[leading:statement.start()]
+                    + f"{indent}{name} = {value};\n" + new_line + body[statement.end():])
+            yield (f"operand_local:{statement.start()}:{start}", "operand_local", source[:begin] + text + source[stop:])
+            count += 1
+            if count >= limit:
+                return
+
+
+def _fresh(source: str, stem: str) -> str:
+    index = 0
+    while re.search(rf"\b{stem}{index}\b", source):
+        index += 1
+    return f"{stem}{index}"
+
+
+C_TYPES = {"s32", "u32", "s16", "u16", "s8", "u8", "int", "short", "char", "long", "unsigned", "signed", "void",
+           "f32", "f64", "float", "double", "sizeof", "struct", "union", "const", "volatile"}
 
 
 WORD_COPY = re.compile(
@@ -1209,13 +1348,55 @@ def existing(source: str, diff: str):
         yield (f"do_restore:{rewrite.label}", "do_restore", rewrite(source))
 
 
-def variants(source: str, function: str, diff: str = "", prefer: tuple[str, ...] = ()):
+def _kinded(kind: str, pairs):
+    """`(label, candidate)` -> `(label, kind, candidate)`; an exception declines this family only."""
+    try:
+        for label, candidate in pairs:
+            yield label, kind, candidate
+    except Exception as exc:                               # noqa: BLE001
+        raise Decline(f"{kind}: {type(exc).__name__}: {exc}") from exc
+
+
+def variants(source: str, function: str, diff: str = "", prefer: tuple[str, ...] = (),
+             evidence: dict | None = None, *, coalesce: bool = False, scoped_fields: bool = True,
+             narrow_updates: bool = False):
     """Every mutation of one source, de-duplicated, stable order, round-robin across families.
 
     `prefer` names family kinds (e.g. from `solver.uopt_diagnosis.preferred_families`) that go
     first, round-robin in that order, before the remaining families. Empty: the original order.
+
+    `evidence` is the parent's verdict (or any dict with its `source_attribution` and `frontend`).
+    Without it the stream is exactly as before; with it two derived families join: `frontend_type`
+    (the frontend gate's own diagnostic states a type fix) and `evidence_site` (the diff's stated value
+    at the compiler-attributed source line). See solver/frontend_type_repair.py, solver/evidence_site.py.
     """
-    families = [(("field_local",), field_local_eliminations(source, function)),
+    from solver import (branch_defaults, branch_shape, cursor_advance, evidence_site, frontend_type_repair, local_web_merge,
+                        scalar_coalesce, scoped_field,
+                        owner_rewrites, representation_repairs, storage_repairs, strength_inverse)
+
+    evidence = evidence or {}
+    # Evidence-keyed owners from solver/rewrites.py sit after the other diff-gated families and before
+    # the generic ones; see `solver.owner_rewrites` for the population measurement behind them.
+    owners = [((owner_rewrites.family(name),), owner_rewrites.candidates(name, source, diff))
+              for name in owner_rewrites.OWNERS]
+    families = [(("frontend_type",), _kinded("frontend_type",
+                    frontend_type_repair.variants(source, function, evidence.get("frontend")))),
+                (("register_storage",), storage_repairs.register_storage(source, function, diff)),
+                (("address_reuse",), storage_repairs.address_reuse(source, function, diff)),
+                (("parameter_reuse",), storage_repairs.parameter_reuse(source, function, diff)),
+                (("unsigned_float",), representation_repairs.unsigned_float(source, function)),
+                (("cursor_rebase",), representation_repairs.cursor_rebase(source, function, diff)),
+                (("residual_evidence",), representation_repairs.residual_evidence(source, function, diff)),
+                (("evidence_site",), _kinded("evidence_site",
+                    evidence_site.variants(source, function, diff, evidence.get("source_attribution")))),
+                *[((kind,), _kinded(kind, generator)) for kind, generator in branch_shape.families(
+                    source, function, diff, evidence.get("compiler_recipe"))],
+                (("branch_defaults",), branch_defaults.variants(source, function)),
+                (("index_form",), _kinded("index_form", strength_inverse.variants(source, function))),
+                (("counter_loop",), _kinded("counter_loop", strength_inverse.counter_loop_variants(source, function))),
+                (("cursor_advance",), cursor_advance.variants(source, function)),
+                *owners,
+                (("field_local",), field_local_eliminations(source, function)),
                 (("struct_copy",), struct_copy_merges(source, function)),
                 (("store_loop",), store_loops(source, function)),
                 (("guard_before_load",), guard_before_load(source, function)),
@@ -1230,19 +1411,39 @@ def variants(source: str, function: str, diff: str = "", prefer: tuple[str, ...]
                 (("negative_scale",), negative_scale_splits(source, function)),
                 (("result_local",), result_local_reuses(source, function)),
                 (("single_use",), single_use_local_inlines(source, function)),
+                (("pure_inline",), pure_local_inlines(source, function)),
+                (("operand_local",), operand_locals(source, function)),
                 (("typed_reread",), typed_field_rereads(source, function)),
                 (("truth_test",), narrow_truth_tests(source, function)),
+                (("local_web_merge",), local_web_merge.variants(source, function)),
                 (("local_type",), local_types(source, function)),
                 (("commutative",), commutative_swaps(source, function)),
                 (("const_inline",), constant_local_inlines(source, function)),
                 (("stmt_move",), statement_moves(source, function)),
                 (("decl_order",), declaration_swaps(source, function)),
                 (("inline_temp", "stmt_order"), existing(source, diff))]
+    if scoped_fields:
+        families.append((("scoped_field",), scoped_field.variants(source, function)))
+    # Opt-in ablation switch: the existing family order and campaign stay intact.
+    if coalesce:
+        families.append((("scalar_coalesce",), scalar_coalesce.variants(source, function)))
+    if narrow_updates:
+        from solver import narrow_update
+        families.insert(0, (("narrow_update",), narrow_update.variants(source, function)))
+    # Measured gates (solver/family_gates.py) skip families in contexts where they never paid; only
+    # with evidence, since the context is read from the parent's verdict.
+    from solver import family_gates
+    ctx = family_gates.context(diff, evidence or None)
+    families = [f for f in families if not family_gates.gated(f[0], ctx)]
     rank = {kind: index for index, kind in enumerate(prefer)}
     preferred = sorted((f for f in families if rank.keys() & set(f[0])),
                        key=lambda f: min(rank[k] for k in f[0] if k in rank))
     ordered = [preferred, [f for f in families if not rank.keys() & set(f[0])]]
     seen = {source}
+    # Map each candidate edit to the diff: blind statement edits that touch no line the residual is attributed to
+    # are skipped (solver/edit_locality.py). Needs the parent's source-bound attribution, else nothing is skipped.
+    from solver import edit_locality
+    faulty = edit_locality.residual_lines(source, diff, evidence.get("source_attribution"))
     for tier in ordered:
         tier = [generator for _kinds, generator in tier]
         while tier:
@@ -1257,4 +1458,6 @@ def variants(source: str, function: str, diff: str = "", prefer: tuple[str, ...]
                     continue
                 if variant not in seen:
                     seen.add(variant)
+                    if edit_locality.off_target(source, variant, (kind,), faulty):
+                        continue
                     yield label, kind, variant

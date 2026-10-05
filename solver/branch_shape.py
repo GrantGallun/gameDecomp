@@ -294,6 +294,11 @@ def at_inline(source: str, function: str):
         v = decl.group(1)
         assigns = list(re.finditer(rf"^[ \t]*{v}\s*=\s*(?P<e>[^;\n]+);[ \t]*\n", body, re.M))
         exprs = {re.sub(r"\s+", " ", a.group("e").strip()) for a in assigns}
+        if not exprs:
+            # Declared but never assigned as a statement (updateCourseSelectPlayerPanels): there is no condition to
+            # inline. This raised from max() and, since variants() is one generator chain, took the function's
+            # whole branch-shape pass down with it.
+            continue
         if len(exprs) != 1:
             # m2c constant-propagates the comparison on one path (`var_v0 = 4; var_at = 4 < -4;`): accept when every
             # other form is the general one with a variable replaced by the constant assigned to it just before.

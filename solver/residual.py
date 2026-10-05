@@ -35,6 +35,12 @@ class ResidualPacket:
     faults: dict[str, int]
     first_difference: tuple[str, ...]
     frontend: dict | None = None
+    # Two scores beside `weighted_progress_score` (signals.distances): instructions no register assignment
+    # could fix, and renames among otherwise-equal instructions. None when there is no diff to measure.
+    instruction_distance: int | None = None
+    register_distance: int | None = None
+    # Object rows the diff cannot show and their route (solver.object_discrepancy.classify).
+    object: dict | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -159,6 +165,7 @@ def build(attempt: workspace.Attempt, *, target_asm: str = "",
         byte_distance = overlap_diff + abs(length_delta)
         equal_bytes = overlap - overlap_diff
 
+    measured = (0, 0) if attempt.exact else (signals.distances(attempt.diff) if attempt.compiled and attempt.diff else None)
     faults = {
         "structural": sig.structural,
         "layout": sig.layout,
@@ -188,4 +195,7 @@ def build(attempt: workspace.Attempt, *, target_asm: str = "",
         faults=faults,
         first_difference=_changed_lines(attempt.diff),
         frontend=attempt.frontend,
+        instruction_distance=measured[0] if measured else None,
+        register_distance=measured[1] if measured else None,
+        object=getattr(attempt, "object", None),
     )

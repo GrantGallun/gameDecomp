@@ -15,6 +15,49 @@ import struct
 from solver import byte_certificate
 
 
+# Stored form. `collect()` returns `instructions` as a list, and every attempt's `sampling` JSON used to
+# carry it verbatim: ~30 KB per row, two thirds of the campaign DB (2026-09-22: 7.5 GB of `sampling` in
+# each of four copies). It is derived from the recorded compile and no reader takes it from the database,
+# so `eval.attempt_compact` stores it as `instructions_packed` under this codec. Read it with
+# `instructions_of`, which accepts both forms.
+INSTRUCTIONS_CODEC = 'zlib+base64+json/v1'
+
+
+def instructions_of(attribution: dict | None) -> list:
+    """The per-instruction rows of an attribution record, whether stored plain or packed."""
+    if not attribution:
+        return []
+    if 'instructions' in attribution:
+        return attribution['instructions']
+    if attribution.get('instructions_codec') == INSTRUCTIONS_CODEC:
+        import base64, json, zlib
+        return json.loads(zlib.decompress(base64.b64decode(attribution['instructions_packed'])))
+    if 'instructions_packed' in attribution:
+        raise ValueError(f"unknown attribution codec {attribution.get('instructions_codec')!r}")
+    return []
+
+
+def pack_instructions(attribution: dict) -> dict:
+    """The same record with `instructions` packed; unchanged if there is nothing to pack."""
+    if not isinstance(attribution.get('instructions'), list) or not attribution['instructions']:
+        return attribution
+    import base64, json, zlib
+    raw = json.dumps(attribution['instructions'], sort_keys=True, separators=(',', ':')).encode()
+    packed = {k: v for k, v in attribution.items() if k != 'instructions'}
+    packed['instructions_codec'] = INSTRUCTIONS_CODEC
+    packed['instructions_packed'] = base64.b64encode(zlib.compress(raw, 9)).decode('ascii')
+    return packed
+
+
+def unpack_instructions(attribution: dict) -> dict:
+    """Inverse of `pack_instructions`."""
+    if 'instructions_packed' not in attribution:
+        return attribution
+    plain = {k: v for k, v in attribution.items() if k not in ('instructions_codec', 'instructions_packed')}
+    plain['instructions'] = instructions_of(attribution)
+    return plain
+
+
 STRIP = '"$OBJCOPY" --remove-section .mdebug "$OBJECT_OUTPUT"'
 CAPTURE = '''# Preserve the original line-bearing object before the existing strip.
 {

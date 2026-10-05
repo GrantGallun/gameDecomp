@@ -144,6 +144,21 @@ def strip_attributes(code: str) -> str:
         i = k
 
 
+# A binding follows a declarator name (`p __asm__("v0")`); a statement `__asm__("nop");` follows
+# `;`, `{` or a newline, so the lookbehind keeps statements out.
+ASM_BINDING_RE = re.compile(r'(?<=[\w\]])\s+(?:__asm__|asm)\s*\(\s*"\$?\w+"\s*\)(?=\s*[;=,])')
+
+
+def strip_register_bindings(code: str) -> str:
+    """`register u8 *p __asm__("v0");` -> `register u8 *p;`.
+
+    A GCC explicit-register variable: IDO rejects the syntax, and the binding is only a
+    request about allocation, never meaning. Fires only on the binding inside a declaration
+    (followed by `;`, `=` or `,`); an inline-assembly STATEMENT is not touched -- that stays
+    forbidden, not repaired. Seen in the redraft pilot's uncompiled model output."""
+    return ASM_BINDING_RE.sub("", code)
+
+
 def strip_inline(code: str) -> str:
     """`static inline void f()` -> `static void f()`."""
     return INLINE_RE.sub("", code)
@@ -341,6 +356,7 @@ def to_c89(code: str) -> str:
     """
     code = fix_types(code)
     code = strip_attributes(code)
+    code = strip_register_bindings(code)
     code = strip_inline(code)
     code = hoist_declarations(code)
     return code

@@ -88,6 +88,100 @@ def declared_in(code: str, name: str) -> bool:
         or re.search(r"\}\s*\**\s*" + escaped + r"\s*;", code))
 
 
+# THE NARROWER QUESTION, WHICH `declared_in` CANNOT ANSWER. `declared_in` is true for a bare tag too
+# (`struct RacePlayer;`), and that is exactly the case the alias repair exists for: the header supplies only
+# a tag, m2c dropped the `struct` keyword, so `RacePlayer` alone is not a type name yet and
+# `typedef struct RacePlayer RacePlayer;` is a repair rather than a redeclaration. Deciding between those
+# two needs "is the name ALREADY AN ALIAS", and a regex cannot answer it: `[^;]*` cannot cross the
+# semicolons inside `typedef struct RacePlayer { ... } RacePlayer;`, which is how every real struct is
+# written. Measured cost of getting this wrong: `compile_obligations.opaque_variant` appended the alias
+# anyway on 3 of the 17 development states and cfe answered `redeclaration of 'RacePlayer'; previous
+# declaration at line 243 in race_player_input.h`, turning three compiling candidates into uncompilable
+# ones.
+_MASK = None
+
+
+def _masked(code: str) -> str:
+    """Comments and string literals blanked, length preserved, so indices stay meaningful."""
+    global _MASK
+    if _MASK is None:
+        from solver import project_headers
+        _MASK = project_headers._mask_noncode
+    return _MASK(code)
+
+
+def _statement_end(code: str, start: int) -> int:
+    """The `;` that ends the statement beginning at `start`, at brace depth zero."""
+    depth = 0
+    for index in range(start, len(code)):
+        char = code[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+        elif char == ";" and depth <= 0:
+            return index
+    return -1
+
+
+def _matching_brace(code: str, index: int) -> int:
+    depth = 0
+    for position in range(index, len(code)):
+        if code[position] == "{":
+            depth += 1
+        elif code[position] == "}":
+            depth -= 1
+            if depth == 0:
+                return position
+    return -1
+
+
+def _typedef_declarators(statement: str) -> set[str]:
+    """The names a typedef statement introduces, the TAG excluded.
+
+    `typedef struct RacePlayer { ... } Other;` names `Other` and not `RacePlayer`, and the difference is
+    the whole point: conflating them would suppress the repair for a tag-only header.
+    """
+    match = re.search(r"\b(?:struct|union|enum)\b", statement)
+    if match:
+        rest = statement[match.end():]
+        tag = re.match(r"\s*([A-Za-z_]\w*)", rest)
+        brace = rest.find("{")
+        if brace >= 0 and (tag is None or brace < tag.end()):
+            end = _matching_brace(rest, brace)
+            rest = rest[end + 1:] if end >= 0 else ""
+        elif tag is not None:
+            rest = rest[tag.end():]
+        brace = rest.find("{")
+        if brace >= 0:
+            end = _matching_brace(rest, brace)
+            rest = rest[end + 1:] if end >= 0 else ""
+    else:
+        rest = re.sub(r"^(?:\s*(?:const|volatile|signed|unsigned|short|long|int|char|float|double|"
+                      r"void|_Bool))*", "", statement)
+    return {name for name in re.findall(r"[A-Za-z_]\w*", rest) if name not in C_KEYWORDS}
+
+
+def typedefs(code: str) -> dict:
+    """Every `alias -> tag` a `typedef` introduces in `code`, including the forms with a body.
+
+    The tag is None for a typedef of a primitive or of another typedef name (`typedef unsigned int u32;`).
+    Trailing declarators of one statement are all collected: `typedef struct X X, *PX;` gives both.
+    """
+    masked = _masked(code)
+    found: dict = {}
+    for match in re.finditer(r"\btypedef\b", masked):
+        end = _statement_end(masked, match.end())
+        if end < 0:
+            continue
+        statement = masked[match.end():end]
+        specifier = re.search(r"\b(?:struct|union|enum)\s+([A-Za-z_]\w*)", statement)
+        tag = specifier.group(1) if specifier else None
+        for name in _typedef_declarators(statement):
+            found.setdefault(name, tag)
+    return found
+
+
 def definition_params(code: str, func: str) -> list[str] | None:
     """The parameter list of `func`'s definition, or None if not found."""
     match = re.search(r"^[A-Za-z_][^;\n]*?\b" + re.escape(func) +
@@ -166,7 +260,12 @@ def plan(code: str, func: str, layout: dict[str, list[tuple[int, int, str]]],
     """
     by_type: dict[str, list[tuple[int | None, str]]] = {}
     for index, type_name, var in pointer_parameters(code, func):
-        if (type_name in known_types or type_name in PRIMITIVE_TYPES
+        # `void` IS NOT A SKIP. m2c writes EVERY untyped parameter as `void *` -- `s32 f(void *arg0)` with
+        # `arg0->unkC` in the body -- so `void` is the single most common untyped base there is, and
+        # skipping it meant the layout evidence for those parameters was never assembled. `void` can never
+        # BE a struct, which is a different statement from having nothing to plan: the caller renames the
+        # generated type (`opaque_variant`), because the parameter's declared type cannot be its name.
+        if (type_name in known_types or type_name in PRIMITIVE_TYPES - {"void"}
                 or declared_in(code, type_name)):
             continue
         by_type.setdefault(type_name, []).append((index, var))

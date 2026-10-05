@@ -78,7 +78,8 @@ def source_map(source: str, function: str, diff: str, direct: dict | None = None
     direct_valid = bool(direct and direct.get('status') == 'verified' and
                         direct.get('source_sha256') == digest(source) and
                         direct.get('diff_sha256') == digest(diff))
-    direct_rows = {r['normalized_line']: r for r in direct['instructions']} if direct_valid else {}
+    from solver.source_attribution import instructions_of       # plain or packed (eval.attempt_compact)
+    direct_rows = {r['normalized_line']: r for r in instructions_of(direct)} if direct_valid else {}
     source_lines = source.splitlines(keepends=True)
     offsets = [0]
     for line in source_lines:

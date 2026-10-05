@@ -90,6 +90,172 @@ def packet(repo: Path, function: str, source: str, assembly: str):
         'read_only_header_types': header_types(repo, source, function)}
 
 
+def missing_alias_declarations(source: str, function: str, header_text: str) -> list:
+    """`typedef struct X X;` for every tag the headers forward-declare but never alias.
+
+    THE GUARD IS `typedecl.typedefs`, NOT A REGEX, and this function exists so it can be tested without an
+    assembly. It used to be an inline
+    `re.search(r'\\btypedef\\b[^;]*\\bNAME\\s*;', header_text)`, which cannot cross a `;` and therefore
+    cannot see `typedef struct RacePlayer { ... } RacePlayer;` -- the way every real struct is written. The
+    alias was appended anyway and cfe answered `redeclaration of 'RacePlayer'; previous declaration at line
+    243 in race_player_input.h`: measured on the development panel, 3 of 17 compiling candidates became
+    uncompilable, and the action was the only one of the catalog that could still fire on a finished
+    candidate.
+
+    The tag-only case still repairs, and that is the difference between an ALIAS and a TAG: `struct X;`
+    makes `struct X` usable and leaves `X` unusable, which is exactly when m2c's dropped `struct` keyword
+    needs this declaration.
+    """
+    from solver import typedecl
+
+    aliases = set(typedecl.typedefs(header_text))
+    declared_tags = set(re.findall(r'\bstruct\s+(\w+)\s*;', header_text))
+    out = []
+    for _, name, _ in typedecl.pointer_parameters(source, function):
+        if (name in declared_tags and name not in aliases
+                and not typedecl.declared_in(source, name)):
+            out.append({'type': name, 'text': f'typedef struct {name} {name};'})
+            aliases.add(name)
+    return out
+
+
+def redeclarations(added: list, source: str, header_text: str) -> list:
+    """One entry per declaration that cannot be added, each naming what it would collide with.
+
+    PER DECLARATION, NOT ALL-OR-NOTHING. The first version returned a single reason for the whole set and
+    the caller abandoned every declaration because of it. Measured cost: one state that compiled only
+    because of its `void *` layout (`osEPiRawReadIo`, 79.15) stopped compiling entirely when an unrelated
+    plan for a base type (`s32`) tripped the guard. A bad declaration should cost its own declaration.
+    """
+    from solver import typedecl
+
+    existing_aliases = set(typedecl.typedefs(source)) | set(typedecl.typedefs(header_text))
+    existing_tags = set(re.findall(r'\bstruct\s+(\w+)\s*\{', source + header_text))
+    out = []
+    for entry in added:
+        text = entry.get("text") or ""
+        for alias in typedecl.typedefs(text):
+            if alias in existing_aliases:
+                out.append({"type": entry.get("type") or alias, "text": text[:200],
+                            "reason": f"the declaration would redeclare the type name {alias!r}"})
+                break
+        else:
+            for tag in re.findall(r'\bstruct\s+(\w+)\s*\{', text):
+                if tag in existing_tags:
+                    out.append({"type": entry.get("type") or tag, "text": text[:200],
+                                "reason": f"the declaration would redefine the struct tag {tag!r}"})
+                    break
+    return out
+
+
+def _redeclaration(added: list, source: str, header_text: str) -> str:
+    """The first collision as a sentence, for callers written against the old single-answer shape."""
+    found = redeclarations(added, source, header_text)
+    return found[0]["reason"] if found else ""
+
+
+def _primitive_type_names() -> frozenset:
+    """Every name that is already a type before any declaration: the C keywords plus the build's own
+    scalar typedefs (`s32`, `u8`, ...). A plan whose type is one of these is not a missing declaration."""
+    from solver import typedecl
+
+    names = set(typedecl.PRIMITIVE_TYPES)
+    names |= {"s8", "u8", "s16", "u16", "s32", "u32", "s64", "u64", "f32", "f64", "size_t", "uintptr_t"}
+    return frozenset(names)
+
+
+_PRIMITIVE_TYPE_NAMES = None
+
+
+def _is_primitive_type(name: str) -> bool:
+    global _PRIMITIVE_TYPE_NAMES
+    if _PRIMITIVE_TYPE_NAMES is None:
+        _PRIMITIVE_TYPE_NAMES = _primitive_type_names()
+    return name in _PRIMITIVE_TYPE_NAMES
+
+
+def plan_declarations(source: str, function: str, plans: list, layout: dict, header_text: str,
+                      forward: dict, bare_tags: set, existing_aliases: set = frozenset()) -> tuple:
+    """Which recovered layouts may be inserted, which may not, and WHY NOT for every one that may not.
+
+    Four outcomes, and the difference between the first two is the whole point:
+
+    * DERIVED (`void *` parameter) -- the type has no name at all, so a tag is manufactured from the
+      parameter position and the parameter is respelled to point at it. Both halves or neither: a struct
+      with no parameter pointing at it resolves nothing.
+    * ACCEPTED as an ORPHAN (type named, no header supplies it) -- the planner's anonymous typedef already
+      names exactly the type the source uses, so it is inserted unchanged. This used to be DISCARDED,
+      silently, because the code asked the headers for a tag, found none and moved on. Reproduced: with
+      `UnseenActor *arg0` dereferenced at 0xC the planner returns
+      `typedef struct { char pad00[0xc]; s32 unkC; } UnseenActor;` -- valid C, correct offsets, naming the
+      type the source already spells -- and the action threw it away while repairing the equivalent
+      `void *` case. The header lookup is for COMPLETING A TAG THE HEADERS DECLARED, not a precondition for
+      declaring anything at all.
+    * ACCEPTED with a header tag -- the header declares the tag and not its body, so the anonymous typedef
+      is rewritten to define that tag, keeping the header's spelling.
+    * DECLINED, with a named reason. Ambiguous field names, overlapping access views, and a type the header
+      already completes all produce a receipt entry that says so; none of them returns silently.
+    """
+    derived: list[tuple[str, str, str]] = []          # (tag, parameter variable, struct text)
+    for index, var in ((i, v) for i, _t, v in typedecl.pointer_parameters(source, function)):
+        tag = f"{function}_arg{index}"
+        for p in plans:
+            if p["type"] == "void" and index in p["params"] and var not in {v for _t, v, _x in derived}:
+                text = re.sub(r"\}\s*void\s*;$", "};", p["text"])
+                text = text.replace("typedef struct {", f"struct {tag} {{", 1)
+                derived.append((tag, var, text))
+    accepted, declined = [], []
+    for p in plans:
+        if p["type"] == "void":
+            continue                               # handled above, by tag rather than by lookup
+        tag = forward.get(p['type'])
+        if tag and re.search(r'\bstruct\s+' + re.escape(tag) + r'\s*\{', header_text):
+            declined.append({'type': p['type'], 'tag': tag,
+                             'reason': 'the header already defines this type',
+                             'limitation': 'nothing to add: the members are visible in the translation unit '
+                                           'already, so a second definition would be a redefinition'})
+            continue
+        names = list(p['named'].values())
+        if len(names) != 1 and not all(re.fullmatch(r'(?:unk|field)_?[0-9a-fA-F]+', n) for n in names):
+            declined.append({'type': p['type'], 'reason': 'ambiguous field-name mapping',
+                'source_members': names,
+                'observed_parameter_slots': {str(i): [list(slot) for slot in layout.get('param'+str(i), [])]
+                                             for i in p['params']},
+                'limitation': 'Textual member order does not establish correspondence to binary offsets.'})
+            continue
+        fields = [f for index in p['params'] for f in layout.get('param'+str(index), [])]
+        fields = sorted(set(fields))
+        if any(a[0]+a[1] > b[0] for a,b in zip(fields, fields[1:])):
+            declined.append({'type': p['type'], 'reason': 'overlapping access views',
+                             'observed': [list(slot) for slot in fields],
+                             'limitation': 'Two accesses overlap, so no single field layout explains both; '
+                                           'one of them is a wider or differently typed view.'})
+            continue
+        if not tag:
+            # THE ORPHAN. No header supplies this name, so there is no tag to complete and nothing to
+            # rename: the planner's anonymous typedef is already the declaration the source needs.
+            #
+            # UNLESS THE NAME IS ALREADY A TYPE. `typedecl.plan` will happily plan for a parameter written
+            # `s32 *arg0` and dereferenced, and `typedef struct { ... } s32;` is not a repair, it is a
+            # redeclaration of a base type. Measured: letting it through cost a state that used to compile
+            # (`osEPiRawReadIo`, 79.15 -> 0.0) because the collision guard below then abandoned the WHOLE
+            # action, including the `void *` declaration that had made it compile. The plan is refused here,
+            # by name, and the rest of the action proceeds.
+            if p["type"] in existing_aliases or _is_primitive_type(p["type"]):
+                declined.append({'type': p['type'],
+                                 'reason': 'the name is already a type in this translation unit',
+                                 'limitation': 'declaring a struct with this name would redeclare the type '
+                                               'rather than repair a missing one'})
+                continue
+            accepted.append({**p, "orphan": True})
+            continue
+        p = {**p}
+        p['text'] = p['text'].replace('typedef struct {', 'struct ' + tag + ' {', 1)
+        p['text'] = re.sub(r'\}\s*' + re.escape(p['type']) + r';$', '};', p['text'])
+        accepted.append(p)
+    return accepted, derived, declined
+
+
 def opaque_variant(repo: Path, function: str, source: str, assembly: str):
     analysis, accesses = analyse(assembly)
     layout = {}
@@ -110,25 +276,26 @@ def opaque_variant(repo: Path, function: str, source: str, assembly: str):
     for inc in re.findall(r'(?m)^\s*#\s*include\s*[<"]([^>"\n]+)[>"]', source):
         for path in sorted(buildtypes.closure(repo, 'include/'+inc)):
             header_text += path.read_text(errors='replace') + '\n'
-    forward = dict((alias, tag) for tag, alias in re.findall(
-        r'\btypedef\s+struct\s+(\w+)\s+(\w+)\s*;', header_text))
-    existing_aliases = set(forward)
+    forward = dict((alias, tag) for alias, tag in typedecl.typedefs(header_text).items() if tag)
+    existing_aliases = set(typedecl.typedefs(header_text))
     bare_tags = set(re.findall(r'\bstruct\s+(\w+)\s*;', header_text))
-    aliases = []
     # m2c may drop the struct keyword even though a public header supplies only
     # a tag. Supply the missing alias independently of layout recovery; never
     # make field-name ambiguity silently suppress this spelling repair.
-    for _, name, _ in typedecl.pointer_parameters(source, function):
-        if (name in bare_tags and name not in existing_aliases
-                and not typedecl.declared_in(source, name)
-                and not re.search(r'\btypedef\b[^;]*\b'+re.escape(name)+r'\s*;', header_text)):
-            aliases.append({'type': name, 'text': f'typedef struct {name} {name};'})
-            existing_aliases.add(name)
+    aliases = missing_alias_declarations(source, function, header_text)
+    existing_aliases |= {entry["type"] for entry in aliases}
     # The shared planner consumes typedef-shaped names. Project bare, publicly
     # forward-declared struct pointers only in its private input; insertion is
     # applied to the original source, leaving the public ABI spelling intact.
+    #
+    # SOURCE-LEVEL BARE TAGS TOO, not only the headers'. `struct Unseen *arg0` where nothing forward-declares
+    # `struct Unseen` leaves the planner with nothing to key on -- measured above: `plan()` returns zero
+    # plans for that spelling while returning a complete, valid one for `UnseenActor *arg0`. The projection
+    # is the same mechanism and stays confined to the planner's private input: the emitted text defines
+    # `struct Unseen { ... };`, which is exactly what the source's spelling needs.
+    planning_tags = set(bare_tags) | set(re.findall(r'\bstruct\s+(\w+)\s*\*', source))
     planning_source = source
-    for tag in bare_tags:
+    for tag in planning_tags:
         if re.search(r'\bstruct\s+'+re.escape(tag)+r'\s*\{', header_text+source):
             continue
         forward.setdefault(tag,tag)
@@ -136,30 +303,38 @@ def opaque_variant(repo: Path, function: str, source: str, assembly: str):
         planning_source = re.sub(r'\btypedef\s+struct\s+'+re.escape(tag)+r'\s+'
                                  +re.escape(tag)+r'\s*;', '', planning_source)
     plans = typedecl.plan(planning_source, function, layout, set())
-    accepted, declined = [], []
-    for p in plans:
-        tag = forward.get(p['type'])
-        if not tag or re.search(r'\bstruct\s+'+re.escape(tag)+r'\s*\{', header_text):
-            continue
-        names = list(p['named'].values())
-        if len(names) != 1 and not all(re.fullmatch(r'(?:unk|field)_?[0-9a-fA-F]+', n) for n in names):
-            declined.append({'type': p['type'], 'reason': 'ambiguous field-name mapping',
-                'source_members': names,
-                'observed_parameter_slots': {str(i): [list(slot) for slot in layout.get('param'+str(i), [])]
-                                             for i in p['params']},
-                'limitation': 'Textual member order does not establish correspondence to binary offsets.'})
-            continue
-        fields = [f for index in p['params'] for f in layout.get('param'+str(index), [])]
-        fields = sorted(set(fields))
-        if any(a[0]+a[1] > b[0] for a,b in zip(fields, fields[1:])):
-            declined.append({'type': p['type'], 'reason': 'overlapping access views'})
-            continue
-        p['text'] = p['text'].replace('typedef struct {', 'struct '+tag+' {', 1)
-        p['text'] = re.sub(r'\}\s*'+re.escape(p['type'])+r';$', '};', p['text'])
-        accepted.append(p)
-    return typedecl.apply(source, aliases + accepted), {'stage': 'opaque-parameter-layout',
+    accepted, derived, declined = plan_declarations(planning_source, function, plans, layout,
+                                                    header_text, forward, planning_tags,
+                                                    existing_aliases=existing_aliases)
+    # The derived `void *` blocks and the parameter respelling both go in, or neither does: a struct with
+    # no parameter pointing at it cannot resolve a member access.
+    added = aliases + accepted + [{"text": text} for _tag, _var, text in derived]
+    # AN ACTION THAT EMITS INVALID C IS NOT A HYPOTHESIS, IT IS A REGRESSION. Every caller ranks the
+    # candidate against the incumbent, so an uncompilable proposal is normally dropped -- but dropping it
+    # costs a compile, and any caller that applies actions without ranking gets a broken candidate. The
+    # check is decidable without a compiler: the declarations this action is about to ADD must not
+    # redeclare a name the translation unit already has. Measured: forgetting it turned 3 of 17 compiling
+    # development candidates into uncompilable ones with `redeclaration of 'RacePlayer'`.
+    #
+    # AND IT COSTS ONLY ITS OWN DECLARATION. The first version abandoned the whole action on the first
+    # collision, which took a compiling state down with it (`osEPiRawReadIo`, 79.15 -> 0.0, because an
+    # unrelated plan collided while the `void *` declaration that state needed was fine).
+    blocked = redeclarations(added, source, header_text)
+    if blocked:
+        dropped = {entry["text"] for entry in blocked}
+        declined.extend(blocked)
+        added = [entry for entry in added if (entry.get("text") or "") not in dropped]
+        accepted = [entry for entry in accepted if (entry.get("text") or "") not in dropped]
+        derived = [(tag, var, text) for tag, var, text in derived if text not in dropped]
+    out = source
+    for tag, var, text in derived:
+        out = re.sub(r"\bvoid\s*\*\s*" + re.escape(var) + r"\b", f"struct {tag} *{var}", out, count=1)
+    out = typedecl.apply(out, added)
+    return out, {'stage': 'opaque-parameter-layout',
         'authority': 'fresh dataflow addresses; field mapping is a candidate hypothesis',
-        'plans': accepted, 'tag_aliases': aliases, 'declined': declined, 'memory_accesses': accesses}
+        'plans': accepted,
+        'derived_void_parameters': [{'tag': tag, 'parameter': var} for tag, var, _t in derived],
+        'tag_aliases': aliases, 'declined': declined, 'memory_accesses': accesses}
 
 
 def byte_pointer_variant(source, function, assembly):

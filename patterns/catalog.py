@@ -80,6 +80,42 @@ register(Pattern(
 ))
 
 register(Pattern(
+    id="assignment-scoped-field-cache-can-couple-unrelated-register-webs",
+    name="A later cached field assignment can keep an earlier temporary's allocation constraints",
+    kind="solver",
+    looks_like="A scalar temporary serves unrelated values in different regions; a later field cache contributes an allocation residual.",
+    means="On the exposed searched AerialTrick parent, replacing only the timer assignment's reads with explicitly converted direct field accesses produced a certified match. Earlier velocity uses and the declaration remain. This confirms one intervention, not a general liveness theorem or independent discovery.",
+    prescription="Offer solver.scoped_field.variants through the shared regalloc_mutations stream. Preserve assignment conversions; decline visible calls, escapes, intervening possibly aliasing stores, volatile declarations and unsupported control flow. Headers are not expanded, so these source guards do not prove equivalence. Require the existing source-bound object certificate and frontend pass. scoped_fields=False provides a controlled ablation.",
+    confirmed_on=[
+        "2026-09-28 updateRacePlayerMode48AerialTrick: source d3b676805330b2b207fb4ba26d757518b318d6b937f4cdd8be271c877266e1cd from the previous continuation, no reference C. Baseline plus two source-only generator proposals: temp_v0_2@3110:s32:preserve-conversion yielded [0,0,0] and exact certificate plus frontend pass. Three native calls. Previously exposed, project headers, earlier lineage unknown; not another newly discovered function. Receipts: eval/results/scoped-field-20260928/control-receipts.json.",
+    ],
+))
+
+register(Pattern(
+    id="ordered-scalar-temporaries-can-split-an-ido-register-web",
+    name="Reusing a scalar local can join allocation webs left separate by m2c temporaries",
+    kind="solver",
+    looks_like="Near-exact code loads successive values into distinct scalar temporaries while the object residual is register allocation.",
+    means="On two exposed development cases, merging a later s32 temporary into an earlier s16 local produced the target object. Textual use order is only a proposal heuristic, not a liveness or semantic-equivalence proof; a type-changing merge may alter conversions. This does not establish that selection policy is irrelevant or that the old mutation graph cannot reach a match.",
+    prescription="Offer bounded scalar_coalesce variants through regalloc_mutations.variants(coalesce=True). Reject unsupported visible bindings, address escapes and backedges; retain source/type labels. Require the ordinary frontend pass plus source-bound byte certificate. Compare production and evolvability with and without this family before campaign promotion; residual routing stays fixed.",
+    confirmed_on=[
+        "2026-09-28 stepRaceMotionLoopingAnimation and stepRaceMotionLoopingJointAnimation: frozen m2c roots from evolvability-trial-20260928/bundle-1 (attempts 255793 and 260195); final native controls each offered temp_h0->temp_v0:s32->s16 and certified exact with passing frontend. Two baseline plus two candidate compiles; both header-assisted, previously examined development cases. /home/grant/decomp/experiments/coalescing-factorial-20260928-final/controls.json; replay script and receipts in eval/results/coalescing-factorial-20260928/. No reference C or prior winner was supplied.",
+    ],
+))
+
+register(Pattern(
+    id="exclusive-pointer-locals-can-split-an-ido-register-web",
+    name="Merging pointer locals across exclusive arms can propagate a register constraint",
+    kind="solver",
+    looks_like="The same pointer role uses v0 in one candidate branch and v1 in another, while the target uses v1 in both; instruction shapes and other operands already agree.",
+    means="Separate C locals can create separate allocation webs. In the measured candidate, the first arm's pointer had no conflict with v0, while the other arm's pointer did. Reusing one compatible pointer local across those exclusive arms produced the target allocation without changing the original literal-zero store. This is a confirmed intervention on one development function, not a reconstruction of its original C or a general transfer result.",
+    prescription="Offer a bounded local_web_merge candidate for compatible plain pointer locals confined to opposite if/else arms. Reject ambiguous scope, shadows and address escapes. Compile the generated source and inspect all collateral changes; ordinary frontend and object-section certificate acceptance remain required.",
+    confirmed_on=[
+        "2026-09-26 releaseSoundEffectHandleNode: retained attempt 108368 reproduced 99.615; private followup.sqlite receipt 6 merged temp_v1_2 into temp_v1, scored 100 with empty diff, passing frontend and exact byte certificate. eval/results/frontier-run-20260926/register/RESULT.md and WEB_MERGE_PROTOCOL.md. Project-header-assisted development case; no reference or previous winning C used.",
+    ],
+))
+
+register(Pattern(
     id="do-token-refusal-forces-a-non-equivalent-lowering",
     name="Refusing the `do` token before IDO runs turned matching sources into near misses and hid every refused candidate's real error",
     kind="evidence",
@@ -91,6 +127,102 @@ register(Pattern(
         "population 2026-09-17, eval/do_while_population.py: 390 `do {` occurrences, 236 functions, of which 54 live residue and 168 never attempted against kb-sbk1.sqlite.",
         "cost of the refusal 2026-09-17, eval/do_ban_rerun.py: 845 attempts across 97 functions carried the policy error; re-scored as written, 7 compile and 0 are exact. eval/results/do-ban-rerun-20260917/",
         "yield of the inverse 2026-09-17, eval/do_restore_search.py over the 54 live do-bearing functions: 20 restorable sites, 13 compiled, 2 EXACT -- func_80063A9C (88.261 -> 100.0, candidate origin `dag-pipeline-census-root`, so CAPABILITY) and updateRaceGameplayFlow (99.346 -> 100.0, candidate origin `authorized-target-history-recovery`, so recovered). func_80063A9C re-verified independently: 245/245 instructions, empty diff. eval/results/do-restore-20260917/",
+    ],
+))
+
+register(Pattern(
+    id="m2c-type-placeholder-blocks-the-whole-translation-unit",
+    name="m2c's `?` type placeholder makes cfe stop at that line and judge nothing after it, so ONE unresolved type masks the entire draft",
+    kind="evidence",
+    looks_like="cfe reports `Syntax Error` + `Empty declaration specifiers` at the first declaration m2c could not type -- `? lldiv(s32 *, s32, s32);` at line 12 of `_Litob`, `? sp30;` inside a body, `? *var_s3;` for an unknown pointee -- and truncates the error list there.",
+    means="The draft does not merely have a bad line: the parse stops, so every later defect in the file is invisible. This is why the admission taxonomy looked like a wall of syntax errors. The class is measured: 122 drafts in `~/decomp/sbk1/nonmatchings` carry a `?` declaration, and 1,962 logged attempts died with `Empty declaration specifiers`.",
+    prescription="`solver/m2c_placeholders.rewrite` substitutes a concrete type, evidence first (a name with a KB width keeps it) and `s32` otherwise; `variants` bounds the enumeration for the cases where the object disagrees. `tests/test_m2c_placeholders.py` asserts it FIRES on all four emitted shapes and declines on clean source and on a `?` in prose. NOTE the first version of the pattern required the `?` to be followed directly by an identifier, silently skipped `? *var_s3;`, and the sweep then reported 'the error moved rather than cleared' on six drafts where the line was still sitting there -- the silent-decline failure mode again. Resolving the placeholder does NOT by itself admit the file: the errors advance to the next class (`bitwise` casts, undeclared parameter types, a `? sp30;` later used as `sp30.unk0`, so `s32` is the wrong answer for it).",
+    confirmed_on=[
+        "population 2026-09-17, eval/m2c_placeholder_census.py: 122 drafts carry a `?` declaration; 1,962 attempts have `Empty declaration specifiers` in their error text.",
+        "residual 2026-09-17, eval/placeholder_resolution_sweep.py: rewriting the placeholder alone admits 0 of 8 sampled drafts; eval/placeholder_admission.py composes it with the header route and still admits 0 of 8, because each fix exposes the next defect class. eval/results/placeholder-admission-20260917/RESULT.md",
+        "silent decline 2026-09-17: the first DECL_LINE pattern missed `? *var_s3;` and reported no change while leaving the blocker in place, caught by reading the compiler's caret output rather than the summary count.",
+    ],
+))
+
+register(Pattern(
+    id="a-blank-draft-is-a-stale-artifact-not-an-m2c-limit",
+    name="`// file is blank because m2c failed to decompile function` records a failure from whenever the workspace was bootstrapped, not a current one",
+    kind="evidence",
+    looks_like="`base.c` is 79 bytes: an include plus that comment. The object compiles to no text symbols, so the scorer reports `Compiled object has no text symbols. Check for type conflicts or include issues.` -- which reads like a recipe bug.",
+    means="`tools/claude` writes that comment when m2c exits non-zero and then DISCARDS the diagnostic (`echo` to scrollback), so the reason is recorded nowhere and the blank is indistinguishable from a capability gap. Re-running the identical invocation against each workspace's own `target.s` with the m2c installed now succeeds on 66 of 79: the drafts were stale, not impossible.",
+    prescription="`eval/m2c_refusal_probe.py` re-runs the bootstrap invocation and keeps the stderr; `eval/m2c_redraft.py` regenerates the drafts atomically, preserving the original. Treat a blank draft as a routing signal (needs m2c re-run or a model call), never as four compiles of evidence that the function cannot be drafted.",
+    confirmed_on=[
+        "population 2026-09-17, eval/blank_draft_census.py: 79 of 2,066 workspaces have a draft with no statements, all 79 carrying the literal marker.",
+        "re-run 2026-09-17, eval/m2c_refusal_probe.py: 66 of 79 now exit 0; the remaining 13 are `other` 11, `jump-table` 1, `directive` 1. eval/results/m2c-refusal-20260917.json",
+    ],
+))
+
+register(Pattern(
+    id="admission-buys-scoreability-not-matches",
+    name="The header/repair admission route takes a never-compiling draft to 80-93% and never to exact",
+    kind="review",
+    looks_like="`eval/header_admission.py` admits ~22% of the never-compiling stratum with an include round plus `zero_token_harvest.repair_chain`, and the admitted candidates score 78-93.214 while none is exact.",
+    means="Measured 2026-09-17 on the most favourable sample the run can produce -- its four HIGHEST scorers, since conversion can only get easier as the score rises. Through `solver/repair`'s deterministic rungs: `__osSiRawStartDma` 93.214 -> 93.214, `MusStop` 86.361 -> 87.889, `__osSetTimerIntr` 83.393 -> 83.393, `MusHandleAsk` 80.810 -> 80.810. Four of four stay non-exact, so the population does not convert either. Admission's product is a SCOREABLE draft: eligible for triage and for a model-refine loop, and no longer an invisible row.",
+    prescription="Do not size an admission campaign by its admit rate. Size it by conversion, and measure conversion on the highest scorers first -- a run whose best four do not convert does not need 1,633 more rows to find out. Spend the model-call budget on admitted-but-not-exact drafts, which is the only thing admission actually unlocks.",
+    confirmed_on=[
+        "conversion 2026-09-17, eval/repaired_admission.py on the four highest scorers of eval/results/header-admission-full-20260917: 0 exact, best gain +1.5. eval/results/repaired-admission-20260917/state.json",
+        "admission rate 2026-09-17, eval/header_admission.py stopped at 112/1633 with {not-compiling: 94, compiled: 17, raised: 1}.",
+    ],
+))
+
+register(Pattern(
+    id="bootstrap-context-carries-the-reference-source-declarations",
+    name="`tools/claude` builds m2c's `ctx.c` from the project's own fully-matched `src/**.c`, so an m2c draft may already contain the reference struct layouts",
+    kind="evidence",
+    looks_like="An m2c draft uses a type name that no header declares and that assembly cannot supply -- `CourseGridEntry *var_v0;` in `clearRaceReplayCourseGrid`, `RaceCourseSurface *var;` in the five `*RaceCourseSurface*` drafts -- and `header_admission.declaring_header` returns None for it.",
+    means="`tools/claude` sets `C_FILE=\"src/${RELATIVE_DIR}.c\"` and runs `python3 tools/m2ctx.py \"$C_FILE\"`, passing the result to m2c as `--context`. For a 100%-decompiled target that file IS the reference answer, so the declarations m2c was handed include the reference struct bodies. Traced mechanically 2026-09-17 over the never-attempted drafts: of 75 distinct type names, 53 are declared by a project HEADER and 21 ONLY by a project `.c` -- and for each of those 21 the declaring `.c` is the very source file of the function being drafted (`CourseGridEntry` -> `src/race/flow/race_flow.c:54`, which is where `clearRaceReplayCourseGrid` lives). One name (`Mtx_t`) is declared nowhere.",
+    prescription="`eval/match_claim_audit.py` collects every non-primitive type name a source mentions, asks where each is declared, and reports a tier CEILING: a match resting on a header-declared type is at most `header-assisted`, and one resting on a `.c`-only type is not independent capability at all. Run it on any candidate whose draft predates 2026-09-17 before calling it SOLVED. Re-drafting with m2c invoked WITHOUT `--context` produces genuinely independent drafts and is what `eval/m2c_redraft.py` does; its three matches audit `unqualified`.",
+    confirmed_on=[
+        "provenance 2026-09-17, eval/type_name_provenance.py over 1,197 never-attempted drafts: 75 type names, 53 header-declared, 21 project-.c-only, 1 nowhere; 174 functions fully header-resolvable, 31 carrying a header-less name. eval/results/type-name-provenance-20260917-v2.json",
+        "per-name trace 2026-09-17, eval/match_claim_audit.py --types: all 21 header-less names resolve to a project `.c`, each the drafted function's own file. eval/results/match-claim-audit-20260917.json",
+        "audit of this session's four matches 2026-09-17, eval/match_claim_audit.py --functions: `loadMainMenuSceneModelAnimationBank`, `__osViGetCurrentContext`, `alFxParam`, `resetRenderScratchAllocator` all report ceiling `unqualified`, so the SOLVED claims stand.",
+    ],
+))
+
+register(Pattern(
+    id="declaring-header-must-know-every-typedef-spelling",
+    name="A provenance detector that returns None is not neutral: it routes a resolvable name to the evidence-free path",
+    kind="evidence",
+    looks_like="`declaring_header(repo, 'Mat3x3')` returns None, so a function using it is counted as carrying a type no header declares -- while `include/game/math/geometry.h:23` says `typedef s16 Mat3x3[9];`.",
+    means="Only `typedef struct Name {` and `} Name;` were recognised. The project also writes plain `typedef <base> Name[...];` with no braces. Measured 2026-09-17: this silently misclassified 3 of 75 names (`Mat3x3`, `Gsettilesize`, `Gloadtlut`) as evidence-free. The failure is worse than a missed fix because None is the SIGNAL used to route a name to the `unk`-only path -- the silent-decline failure mode applied to provenance.",
+    prescription="Recognise four spellings: `typedef struct Name {`, `} Name;`, a no-brace `typedef ... Name ...;` where the name is the last identifier before the `;` (array suffix allowed), and a bare `struct|union|enum Name`. The no-brace form must not match `typedef s32 (*Fn)(SomeType *);`, where the name is only a parameter -- pinned in `tests/test_declaring_header.py` along with `initRaceCourseSurfaceData`, which is not a declaration of `RaceCourseSurface`.",
+    confirmed_on=[
+        "spelling 2026-09-17: `include/game/math/geometry.h:23` is `typedef s16 Mat3x3[9];`, and `drawRacePlayerModel-2`'s draft uses `Mat3x3 rotation;`.",
+        "effect 2026-09-17, eval/type_name_provenance.py before/after: 50 -> 53 names resolved, 25 -> 22 header-less. tests/test_declaring_header.py, 7 tests.",
+    ],
+))
+
+register(Pattern(
+    id="a-contaminated-draft-is-fixed-by-re-drafting-not-by-rewriting",
+    name="For an m2c draft that carries a project-`.c`-only type, stripping the type launders the knowledge; re-running m2c with no `--context` is the only instrument that removes it",
+    kind="solver",
+    looks_like="A draft uses a type no header declares (`CourseGridEntry *var_v0;`) because `m2ctx.py` fed m2c the function's own reference source. The obvious repair is to declare the type `unk`-only and rewrite the member accesses as byte arithmetic.",
+    means="That repair is the same knowledge laundered: the offsets and member names in the draft came from the reference layout, so byte arithmetic over those offsets proves nothing about what the binary could have told us. Measured 2026-09-17 over all 31 affected drafts, re-run with m2c invoked WITHOUT `--context`: 29 drafts produced (2 refused), **0 compile**, 28 not-compiling, 1 skipped for a suffixed workspace. The mechanism does fire -- no re-drafted source uses any project type as a type; `clearRaceReplayCourseGrid` goes from `CourseGridEntry *var_v0;` / `var_v0->status` to `s16 *var_v0;` / `*var_v0` with `var_v0 += 0x10`. The context was doing the work: without it the drafts do not compile at all.",
+    prescription="Use `eval/m2c_redraft.py --provenance <type_name_provenance>.json --sidecar --admit`, which writes `base.contextfree.c` BESIDE `base.c` -- the contaminated draft is the evidence and is not overwritten. Do not spend effort on an `unk`-only rewrite of a contaminated draft; it cannot yield a SOLVED claim either way. For those functions the honest options are a model draft or the reference layout, and the latter is `header-assisted` at most.",
+    confirmed_on=[
+        "outcome 2026-09-17, eval/m2c_redraft.py --provenance over 31 drafts: 29 re-drafted, 0 compile, 28 not-compiling, 2 m2c refusals, 1 suffixed workspace. Residuals: Syntax Error 26, Selector-requires-struct 2. eval/results/contextfree-redraft-20260917/state.json",
+        "firing 2026-09-17: no sidecar draft uses a project type as a type; `clearRaceReplayCourseGrid/base.contextfree.c` uses `s16 *var_v0;` and `var_v0 += 0x10`.",
+        "false alarm worth recording: a substring grep said 5 sidecar drafts still contained the project type, and all five were the function's own name (`findRaceCourseSurfaceFromHint`). Check the type used AS A TYPE, not the string.",
+    ],
+))
+
+register(Pattern(
+    id="header-assisted-tier-is-keyed-on-a-strategy-string-not-on-the-source",
+    name="The SOLVED/header-assisted split reads the winning attempt's strategy label, so a route that is a header route by construction lands in SOLVED",
+    kind="review",
+    looks_like="`eval/status.py` computes `header_assisted` as `a.strategy like '%project-header%'`. `eval/header_admission.py` logs `strategy=\"header-admission:*\"`, which does not contain that substring, so its matches are counted as SOLVED.",
+    means="Measured 2026-09-17 on the two matches the header route produced: `loopMainMenuSceneModelAnimation` (uses `MainMenuSceneModel`) and `notifySchedulerClients` (`SchedulerClient`, `SchedulerState`), both header-backed per `eval/match_claim_audit.py`, both therefore ceiling `header-assisted`, both counted as SOLVED. The route's own definition is 'a reconstructed `include/game/**` header supplies the prototype and the layout', so the label and the route disagree by construction. **THE WHOLE-SET CHECK IS NOW DONE.** `eval/match_claim_audit.py --from-db` audits the winning exact attempt's own `source_code` for all 319 exact functions, and 139 of the 261 labelled SOLVED dereference a member through a header-declared type. Corrected split approximately 114 SOLVED / 150 header-assisted / 55 recovered, byte-exact unchanged at 319. 45 further `header-assisted` rows sit inside `recovered`, which is already excluded from SOLVED and must not be double-booked into the correction. 119 of the labelled-SOLVED take no struct layout at all (72 wholly unqualified plus 47 that name a header type and contain no `->`), and that part survives the strictest reading.",
+    prescription="The classification is deliberately NOT changed. `eval/status.py` states the precondition for changing it -- the check must run across the whole matched set rather than be applied to one match -- and that precondition is now met, so applying it is a bounded change rather than a guess. It stays the operator's call because it moves the headline by 139 and because the label rule is the project's published definition, not a defect. Until then: quote 319 byte-exact, and never quote 253 SOLVED without saying it is label-based. The ratchet is byte-exact and byte-exact is 319 under every reading.",
+    confirmed_on=[
+        "mechanism 2026-09-17, eval/status.py:130-135 and the comment at 118-129.",
+        "whole set 2026-09-17, eval/match_claim_audit.py --from-db over 319 exact functions, 0 missing sources: ceiling 186 header-assisted / 52 mentions-only / 81 unqualified; cross-tab SOLVED-by-label -> 139 header-assisted, 50 mentions, 72 unqualified; recovered -> 45 / 2 / 8. eval/results/claim-audit-whole-set-20260917.json",
+        "instances 2026-09-17, eval/match_claim_audit.py --from-ledger over all 91 cohort nodes: 27 header-assisted, 41 mentions-only, 23 unqualified; 38 of the 41 contain no `->` at all. eval/results/claim-audit-all-cohorts-20260917.json",
+        "known under-count 2026-09-17: the member-access test looks for a LOCAL declaration, so it misses `gCurrentGameTask->fade` where the global's type comes from a header -- confirmed on `returnToRaceTypeSelectMenu`. 139 is a floor.",
     ],
 ))
 
@@ -208,6 +340,27 @@ register(Pattern(
         "eval/results/residual-patterns-20260912/stack-home-v1/report.json:updateEndingJamPhase3DPrep:44877",
         "eval/results/residual-patterns-20260912/stack-home-v1/report.json:updateEndingJamPhase3FAnim3:44882",
     ],
+))
+
+register(Pattern(
+    id="named-local-web-across-call",
+    name="A declared local living across a call takes its own stack home; inlining it shifts every spill slot",
+    kind="solver",
+    looks_like="Same frame size; every sp-relative spill/reload around a call sits 4 bytes lower in the candidate than in the target, and the candidate declares a pointer or scalar local initialised once from a call-free value and read at the calls (typically an m2c temp_*).",
+    means="IDO gives a declared local that is live across a call a home slot above the compiler's own temporaries; an unnamed expression recomputed or spilled as a temporary does not take that slot. The draft's extra named local, not a pad, is what moves the slots.",
+    prescription="Use regalloc_mutations.pure_local_inlines: substitute the value at every read and drop the local, only when the value has no call or side effect and none of its identifiers is written in the body. Object exactness decides; stack_layout pads cannot reach this shape.",
+    confirmed_on=["eval/results/restored-holes-20260925/analysis-pop.json:probeControllerPak",
+                  "eval/results/restored-holes-20260925/analysis-pop.json:drawMultiplayerRaceHud"],
+))
+
+register(Pattern(
+    id="named-operand-local-order",
+    name="A named operand local flips commutative operand order where a source swap does not",
+    kind="solver",
+    looks_like="The residual is one commutative instruction with the same registers in swapped order (addu v0,a0,t6 vs addu v0,t6,a0), and swapping the C operands leaves it unchanged.",
+    means="IDO orders operands by web, not by source position; hoisting the compound operand into its own named local gives it a separate web and the target order.",
+    prescription="Use regalloc_mutations.operand_locals (hoist one parenthesised call-free operand of a simple statement into an s32 local assigned just before it). One confirmation so far; treat transfer as unproven.",
+    confirmed_on=["eval/results/restored-holes-20260925/analysis-pop.json:resolveAssetTableRelativePointer"],
 ))
 
 register(Pattern(
@@ -382,6 +535,120 @@ register(Pattern(
         "member is s16, copied word-wise at 0x34/0x38/0x3C while a genuine "
         "lh reads 0x24)",
     ],
+))
+
+register(Pattern(
+    id="uopt53-derived-iv-from-counter",
+    name="uopt derives a counter loop's offset and index variables itself; hand-written derived variables differ",
+    kind="solver",
+    looks_like="Target and candidate differ only in the order of the zero initialisations of a loop's variables "
+               "(`move s2,zero; move s3,zero` swapped), and the loop bound sits in the register of an earlier loop's "
+               "counter. The source steps `offset += K; idx++;` itself and tests `offset != B`.",
+    means="`for (i = 0; i < N; i++) { ... i * K ... a[i] ... }` is strength-reduced by uopt into derived variables "
+          "(stepped by K and by the element size) with the exit test moved onto the offset (`bne off, bound`, bound "
+          "0xK*N hoisted). Written out by hand, the same loop compiles differently (H6 P6a); `i << s` is not `i * K` "
+          "(P6b, the shift stays in the loop); the test moves onto the derived offset (P6c). A no-op `i++; i--;` after "
+          "the loop keeps the counter live and blocks the match. 25 earlier compiles reordering the initialisations "
+          "never moved the order (register-steer-20260923).",
+    prescription="Rewrite derived variables stepped at a bottom-tested loop's tail as a counter `for` loop, and a "
+                 "variable stepped in lockstep with a `for` counter as that counter (strength_inverse."
+                 "counter_loop_variants, family `counter_loop`). The five 99.936 siblings: 100.0.",
+    confirmed_on=["syn H6 P6a-P6c (3/3)", "drawCharacterSelectCoursePreviewPanel2/6/8, "
+                  "drawRaceSplitscreenSelectOption2/4Frame fire tests"],
+))
+
+register(Pattern(
+    id="m2c-var-at-is-a-branch-temp",
+    name="m2c's `var_at` is a comparison IDO evaluated straight into a branch; never a C variable",
+    kind="solver",
+    looks_like="Target `slt at,x,y; bnez at` where the candidate has `slt a3,x,y; bnez a3`; the source carries m2c's "
+                "`s32 var_at; ... var_at = x < y; ... while (var_at != 0)` (often assigned on several paths).",
+    means="`at` is the assembler temporary: IDO uses it for compare-and-branch temporaries and address halves and never "
+          "homes a C variable there. m2c names a variable after the register, so a comparison the compiler "
+          "duplicated onto several paths becomes a real variable with its own register. Paths where m2c "
+          "constant-propagated it (`var_v0 = 4; var_at = 4 < -4;`) are the same comparison.",
+    prescription="Fold every `var_at` back into the test that reads it (solver.branch_shape.at_inline). Fire tests: "
+                 "MusStop, MusHandleSetFreqOffset, MusHandleSetPan, MusHandleSetVolume 100.0; MusHandleStop "
+                 "82.6 -> 98.6.",
+    confirmed_on=["MusStop, MusHandleSetFreqOffset, MusHandleSetPan, MusHandleSetVolume fire tests"],
+))
+
+register(Pattern(
+    id="ido53-struct-copy-loop",
+    name="IDO 5.3 lowers a large struct assignment to its own 12-byte copy loop; a C word loop differs",
+    kind="solver",
+    looks_like="`addiu END,SRC,N-4`, then a loop of three `lw at`/`sw at` pairs stepping both pointers by 12, "
+               "`bne SRC,END`, and a one-word tail; the candidate has m2c's `M2C_MEMCPY_ALIGNED(D, S, N)` as a call.",
+    means="A whole-struct assignment of N bytes (16 words tested). A `for` word loop over the same words compiles "
+          "to a different, 4x-unrolled counted loop (E4, eval/results/branch-layout-20260924).",
+    prescription="Write m2c's pseudo-call as `*(T *)D = *(T *)S;` with `typedef struct { s32 w[N/4]; } T;` "
+                 "(solver.branch_shape.m2c_struct_copy). copyGfxCommandBlockToScratch 42.0 -> 100.0.",
+    confirmed_on=["syn E4 struct_assign vs word_loop", "copyGfxCommandBlockToScratch fire test"],
+))
+
+register(Pattern(
+    id="ido53-unaligned-struct-copy",
+    name="IDO 5.3 copies an alignment-1 struct with lwl/lwr; the stores stay `sw` only into a declared local",
+    kind="solver",
+    looks_like="Target `lwl at,0(S)`/`lwr at,3(S)` + `sw at,0(D)` word copies. At 8 bytes: two straight-line pairs. "
+               "At 40 bytes: `addiu END,S,0x24` and a loop of three pairs stepping both pointers by 12, then a trailing "
+               "word. The candidate has m2c's transcription with each word lowered to four `lbu` packed by "
+               "`sll 24/16/8` + `or`.",
+    means="Assignment of an all-`u8` struct (alignment 1) of N bytes. The source is read unaligned; the destination is "
+          "stored with an aligned `sw` only when it is a declared local of that struct type. Written through a cast "
+          "pointer (`*(T *)arr = ...`) or a union member, the stores become `swl/swr` as well. The byte-packed "
+          "form compiles to 0 lwl/24 lbu/18 sll at -O2. Probed at -O1 and -O2 (eval/results/unaligned-copy-20260929: "
+          "copy.c, copy4.c, castdst.c, aligndst.c, packed.c).",
+    prescription="Replace the copy with `DST = *(T *)(SRC);`, keeping DST's struct type or retyping an array DST to "
+                 "`typedef struct { u8 bytes[N]; } UnalignedN;` (solver.unaligned_copy). Fire run on the best states: "
+                 "6 of 8 eligible fire, 6/6 compile with matching lwl/lwr counts; osMotorStart 50.6 -> 89.3, "
+                 "__osContRamWrite 52.2 -> 84.2, __osContGetInitData 49.1 -> 78.2, osContGetReadData 24.0 -> 57.9.",
+    confirmed_on=["IDO probe copy/castdst/aligndst at -O1 and -O2", "osMotorStart, osMotorStop, __osContRamRead, "
+                  "__osContRamWrite, __osContGetInitData, osContGetReadData fire runs"],
+))
+
+register(Pattern(
+    id="ido53-o1-copyback-temporary",
+    name="IDO 5.3 -O1: m2c's copy-back temporary gets a stack home the direct assignment doesn't",
+    kind="solver",
+    looks_like="-O1 candidate `addiu t8,t7,1; sw t8,H(sp); ... lw t1,H(sp); slt at,t1,..` where the target keeps the "
+               "value in its register (`addiu t5,t4,1; sw t5,X(sp); ... slt at,t5,..`), and a larger frame. The source "
+               "has m2c's `temp_tN = X + 1; X = temp_tN; ... if (!(temp_tN < n)) break;`.",
+    means="At -O1 every local has a home, so a temporary that only re-names X is stored and reloaded; `X = X + 1` "
+          "compares straight from the register (eval/results/temp-copyback-20260929: m2c.c vs direct.c vs forloop.c).",
+    prescription="Merge `T = E; X = T;` into `X = E;` and read X where T was read, when T is not read before the pair and "
+                 "every later read precedes the next write of X or T (solver.temp_copyback). Pending population measurement.",
+    confirmed_on=["IDO -O1 probe m2c/direct/forloop"],
+))
+
+register(Pattern(
+    id="ido53-o1-array-element-base",
+    name="IDO 5.3 -O1: a constant-index array element of a local is loaded off a computed base; a named field off sp",
+    kind="solver",
+    looks_like="Candidate `addiu tN,sp,OFF; lbu tM,K(tN)` (and knock-on `andi s0,v0,0xff`, an extra s-register save and "
+               "a larger frame) where the target has `lbu tM,OFF+K(sp)`.",
+    means="`l.bytes[38]` on a local struct costs an address register at -O1; `l.datacrc` (a named field at the same "
+          "offset) is addressed directly off sp. Probe: field_array.c 80-byte frame + andi s0; field_named.c 64-byte "
+          "frame, direct lbu (eval/results/unaligned-copy-20260929).",
+    prescription="Give generated byte structs named fields (b0..bN-1) and turn constant indexes into field accesses "
+                 "(solver.unaligned_copy). osMotorStart's copy step went 89.3 -> 93.8 with frame and width resolved.",
+    confirmed_on=["IDO -O1 probe field_array/field_named", "osMotorStart copy variant"],
+))
+
+register(Pattern(
+    id="ido53-o1-counted-loop-shape",
+    name="m2c's rotated counted loop and the `for` it came from compile to different temporary orders",
+    kind="solver",
+    looks_like="m2c `i = 0; if (n > 0) { for (;;) { ...; i += 1 (or temp_tN = i + 1; ... i = temp_tN); "
+               "if (!(i < n)) break; } }`, register-only residue in the loop (the target's counter in t4 where the "
+               "candidate's is in t2).",
+    means="Same control flow and instruction count, but IDO assigns ugen temporaries in a different order for the "
+          "rotated spelling. On osMotorStart at 99.223 (registers only), `for (i = 0; i < n; i++)` gave 100.0; the "
+          "swapped statements, `++` forms, a comma step and an unguarded for gave 94.7-99.4 "
+          "(eval/results/temp-copyback-20260929/loopshape.py).",
+    prescription="Write the loop back as `for (i = 0; i < n; i++)` when nothing after the increment reads the counter "
+                 "(solver.counted_loop). The greedy chain rebuilt osMotorStart and osMotorStop exact from their raw drafts.",
+    confirmed_on=["osMotorStart loopshape", "osMotorStop loopshape", "greedy_chain osMotorStart/osMotorStop exact"],
 ))
 
 register(Pattern(
@@ -702,6 +969,59 @@ register(Pattern(
 ))
 
 
+register(Pattern(
+    id="store-then-reread-global-keeps-its-address",
+    name="A global stored and then read back keeps its address in a register",
+    kind="solver",
+    looks_like="`lui rN,%hi(g) / addiu rN,rN,%lo(g) / sw v0,0(rN)` where a plain `g = v` compiles to "
+               "`lui at,%hi(g) / sw v0,%lo(g)(at)`; later accesses go through v0, not a reload of g.",
+    means="The source stored a value into the global and then used the GLOBAL (not the temporary) in a "
+          "later expression. IDO forwards the stored value, so no reload appears, but the address of g was "
+          "already materialised for reuse, so the store addresses through the register at offset 0. "
+          "Declaration shape (scalar, array, struct, unknown-size array) and store spelling (index 0, "
+          "pointer temp, volatile, reordering) do not produce it.",
+    prescription="solver/site_edits `readback`: after `G = t;` replace the first (or every) later use of t "
+                 "with (G). SUPERSEDED for the spawnEndingCredits* shape by "
+                 "`copy-from-stored-global-keeps-address-in-a0`: the re-read is a real `lw` in ugen's output "
+                 "(`cc -S`) that as1 copy-propagates away, so it spends a ugen temporary (t8 where the target "
+                 "has t7) and the address lands in v1, not a0. Keep it as a lower-priority operator; it closed "
+                 "updateRaceCamera.",
+    confirmed_on=[
+        "2026-09-29 IDO 5.3 -O2 -mips1 -G 0 standalone probe (scratch idoprobe/p.sh and q.sh): six "
+        "declaration shapes all folded to %lo; `t = call(); gT = t; *(s16 *)((char *)gT + 0x18) = a0;` "
+        "produced lui/lh/addiu/sw v0,0(v1)/sh, the target's instruction shape.",
+        "2026-09-29 spawnEndingCreditsSmallBurst and spawnEndingCreditsCharacterAura (retained campaign "
+        "sources): re-reading gActiveMenuTask for the first field store turned the store residual into a "
+        "register-only one (v1 vs a0), score 84.5 -> 98.5 and 88.9 -> 98.2. No reference C was used.",
+    ],
+))
+
+
+register(Pattern(
+    id="copy-from-stored-global-keeps-address-in-a0",
+    name="Copy the temporary FROM the stored global, not the global from the temporary",
+    kind="solver",
+    looks_like="After a call: `lui a0,%hi(g) / (unrelated) / addiu a0,a0,%lo(g) / sw v0,0(a0)`, later field "
+               "stores through v0, ugen temporaries in unbroken order (t6, t7). `t = call(); g = t;` gives "
+               "`lui at / sw v0,%lo(g)(at)` instead.",
+    means="The source was `g = call(); t = g;` (or `t = g = call();`). In ugen's output the address of g is "
+          "materialised with `la` into an argument register and the copy back into t is forwarded, so no "
+          "extra temporary appears. Where the address register lands depends on the allocator (a0 in every "
+          "case probed so far), but the copy direction is what makes it a register at all. 56 spellings of "
+          "the other direction (types, casts, re-reads, temps, chaining the wrong way) never produced it.",
+    prescription="solver/site_edits `copydir`: rewrite `t = e; ... G = t;` as `G = e; t = G;` when nothing "
+                 "between them calls, reads t, or writes what e reads. The register protocol flagged this "
+                 "family's residual as unreachable through register edits, which pointed the probe here.",
+    confirmed_on=[
+        "2026-09-29 IDO 5.3 -O2 standalone (scratch idoprobe/invisible.py): `t = gT = call` and "
+        "`gT = call; t = gT` both reproduce the target sequence exactly; nine other shapes fold to %lo.",
+        "2026-09-29 spawnEndingCreditsCharacterAura, ...CharacterVanishPoof, ...DelayedSparkle, "
+        "...PhaseAdvanceSparkle, ...SmallBurst: campaign-retained sources with the one statement rewritten "
+        "certify byte-exact with frontend passing (scratch reverse_copy.py). No reference C was used.",
+    ],
+))
+
+
 # --------------------------------------------------------------- detectors
 #
 # A detector reads TARGET assembly and says whether this pattern is present.
@@ -1012,6 +1332,41 @@ register(Pattern(
 
 # ---------------------------------------------------------------- reporting
 
+register(Pattern(
+    id="input-cursor-advance-at-load",
+    name="Advance a single-use input cursor at its load instead of its return",
+    kind="solver",
+    looks_like="A draft loads through a pointer parameter, never uses that pointer again until returning p+1, "
+               "while the target advances its argument register immediately after the load.",
+    means="The source positions the pointer update too late. On the exposed Fdistort development state, "
+          "widening the sign-extension temporary alone reached 81%; combining it with an advance at the load "
+          "reached object-exact. This is a source-shape hypothesis confirmed by compilation, not a new type fact.",
+    prescription="solver.cursor_advance.variants proposes v=*p++; ... return p, through the existing "
+                 "regalloc_mutations registry. It requires a simple pointer parameter, exactly two uses, an "
+                 "unconditional load and final return, and no intervening pointer use or loop/jump. Keep "
+                 "compiler verification authoritative. The motivating dev state is excluded from training.",
+    confirmed_on=["eval/results/residual-repair-20260922/paired-search.json: Fdistort, header-assisted; "
+                  "same 40-compile ceiling, old search 24 compiles/nonexact, new search 10/object-exact; "
+                  "fresh independent workspace and frontend verification"],
+))
+
+register(Pattern(
+    id="mmio-symbol-literal-and-register-poll",
+    name="Fixed hardware-address loads and a register poll temporary",
+    kind="review",
+    looks_like="The binary reloads a hardware status word through t6/t8 into a3, retains an 8-byte frame, "
+               "and forms a KSEG1 access with lui at,0xa000; the draft uses ordinary symbol lvalues.",
+    means="On osEPiRawWriteIo and osEPiRawReadIo, a register u32 polling local plus explicit volatile "
+          "hardware-address accesses reproduces the ROM bytes. Volatile alone did not change codegen. "
+          "The literal address values were read from target instruction words, not reference C.",
+    prescription="This is a recorded experimental repair, not an automatically enabled MMIO generator. "
+                 "Use binary-derived addresses and verify with the existing schema-3 function certificate; "
+                 "symbolic-vs-literal relocation spelling can keep the object score below 100 despite "
+                 "identical linked function bytes. No claim of whole-ROM integration.",
+    confirmed_on=["eval/results/residual-repair-20260922/paired-search.json: both I/O functions freshly "
+                  "ROM-backed function-exact, schema 3, frontend passing, binary-only candidates"],
+))
+
 
 def summary() -> str:
     lines = []
@@ -1040,6 +1395,100 @@ if __name__ == "__main__":
         print(f"\nunconfirmed: {', '.join(unconfirmed)}")
 
 
+# ------------------------------------- IDO 5.3 allocator rules tested against 7.1 claims (2026-09-23)
+# Protocol and receipts: eval/results/allocator-rules-20260923/ (PROTOCOL.md written before any test;
+# eval/allocator_rules.py over the 115-TU uopt trace census, eval/allocator_interventions.py paired compiles).
+# 7.1 source: akratch/ssb64-func_ovl0_800CEF4C-frontier docs/allocator-model.md (instrumented 7.1 uopt).
+
+register(Pattern(
+    id="uopt53-priority-block-units",
+    name="IDO 5.3 live-range priority is an integer save over a step function of the block span",
+    kind="evidence",
+    looks_like="uopt's level-5 `adjsave` for a live range, e.g. 31/14 at a 50-block span, 155/6 at 19 blocks.",
+    means="adjsave = save / units(span), units(raw) = raw if raw < 3 else ((raw - 2) >> 2) + 2, raw = the "
+          "number of basic blocks the range is live in. 11,808 of 11,809 census ranges (shuffled spans: 69.7%). "
+          "The step is 7.1's, but 7.1's raw adds the reference count; that pre-registered form fit 12.6% "
+          "(shuffled 11.9%) and is refuted. POST-HOC: read off the pre-registered test's misses, then checked on "
+          "all ranges.",
+    prescription="Predict a range's colouring priority from its block span and save; lengthening a range "
+                 "across blocks lowers its priority in steps, not per block.",
+    confirmed_on=["uopt trace census 2026-09-14: 115 SBK1 TUs, 11,809 live ranges"],
+))
+
+register(Pattern(
+    id="uopt53-save-counts-reads",
+    name="IDO 5.3 save rises by 1 per read of the variable and not at all per write",
+    kind="solver",
+    looks_like="A variable's adjsave changes when a use is added or removed, with no change to its block span.",
+    means="Paired compiles (traced 5.3 uopt, game -O2 recipe) on three bases: one more read +1 save in 3 of 3, "
+          "one more write +0 in 3 of 3. 7.1 is described as +10 per reference of either kind. Save can reach "
+          "zero or below (`not colored (-ve save)`): a two-call function's local had adjsave 0 and stayed in "
+          "memory, so 5.3 also subtracts a cost the 7.1 description does not mention. Loop weighting untested "
+          "(the loop split the range).",
+    prescription="To raise a variable's colouring priority add a read, not a write; to lower it remove reads.",
+    confirmed_on=["syn_f leaf, leaf_branch, across_call (eval/allocator_interventions.py)"],
+))
+
+register(Pattern(
+    id="uopt53-empty-test-steers-priority",
+    name="`if (!x);` raises x's priority by exactly one read, and in leaf code emits nothing",
+    kind="solver",
+    looks_like="A register-only residual where one variable must win (or lose) a colour against a neighbour.",
+    means="The empty conditional is one read of x to uopt (+1 save in 3 of 3 bases, equal to an extra real "
+          "read) and IDO emits no instruction for it: the object was identical in both leaf bases; across a "
+          "call the changed priority changed the allocation. 7.1 describes the same trick at +10. A bare `x;` "
+          "left object and priority unchanged in 3 of 3 but not the trace text (numbering), so the "
+          "pre-registered 'inert' criterion failed on the trace; the object claim holds.",
+    prescription="A zero-code priority knob for register residuals: add `if (!x);` to lift x one read above "
+                 "an equal-priority neighbour.",
+    confirmed_on=["syn_f leaf, leaf_branch, across_call (eval/allocator_interventions.py)"],
+))
+
+register(Pattern(
+    id="uopt53-colouring-order",
+    name="IDO 5.3 colours constrained ranges by descending priority, ties in live-range order; the rest in "
+         "live-range order regardless of priority",
+    kind="evidence",
+    looks_like="The order of uopt's level-6 colouring decisions.",
+    means="Constrained: descending adjsave in 98.9% of 8,640 consecutive pairs; equal-adjsave ties in "
+          "increasing live-range number (first u-code store) in 99.6% of 3,471. Unconstrained: live-range order "
+          "in 875 of 875 pairs, priority order in only 66%. 7.1's 'all webs by descending priority, ties by "
+          "first source appearance' holds for constrained ranges only. Lowest-free selection (7.1) fits 89.5% "
+          "of 11,310 decisions; the 5.3 preference model in solver/uopt_trace.py fits 99.9%.",
+    prescription="For unconstrained ranges, which variable is first STORED decides colouring order; for "
+                 "constrained ones priority does, then first store.",
+    confirmed_on=["uopt trace census 2026-09-14: 1,976 procedures, 11,310 decisions"],
+))
+
+register(Pattern(
+    id="uopt53-local-offsets",
+    name="IDO 5.3 gives word locals frame offsets -4, -8, -12, ... in declaration order",
+    kind="evidence",
+    looks_like="uopt isvar kind M with a frame offset (`isvar M 3 -8vreg`).",
+    means="Three declaration orders of the same three word locals, each mapped by the confirmed +1-read probe: "
+          "the first declared local is always -4, then -8, -12 (eval/allocator_interventions.py h7). Only word "
+          "locals were tested; a wider or array local ends the rule.",
+    prescription="Map a uopt live range to its C variable by declaration order instead of by probing.",
+    confirmed_on=["syn_f a/b/c in orders abc, cab, bca", "waitCourseSelectRecordsClose var_s1 -4, var_s0 -8"],
+))
+
+register(Pattern(
+    id="ido53-frame-layout",
+    name="IDO 5.3 frame = align8(outgoing) + align8(saves) + align8(deepest memory-resident local), locals on top",
+    kind="evidence",
+    looks_like="`addiu sp,sp,-N` and `addiu aK,sp,OFF` / `sw ...,OFF(sp)` for address-taken or spilled locals.",
+    means="Every declared local takes a virtual offset below the frame top in declaration order, used or not and "
+          "register-allocated or not: a scalar aligned to its own size (char 1, short 2, word 4, double 8), an "
+          "array or struct to max(4, its alignment). The locals area is only as deep as the deepest local that "
+          "lives in memory (address taken, or spilled to its home). Saves: ra at the top of the save area, "
+          "s-registers descending. Outgoing: max(16, 4 x widest call's words), 0 in a leaf without calls. Fitted "
+          "on 7 constructs (H15 refuted); H15b 21/22 on 7 fresh ones (short at -6, not -8); H15c 12/12 on 6 more "
+          "(eval/results/frame-size-20260923).",
+    prescription="A frame-size or sp-offset residual is a declaration residual: the target's slot for an addressed "
+                 "local fixes how many bytes of declared locals precede it, and in which order and widths.",
+    confirmed_on=["syn_f H15b P1-P7 (21/22)", "syn_f H15c Q1-Q6 (12/12)"],
+))
+
 register(Pattern(
     id="ido53-o1-register-local-saved",
     name="IDO 5.3 -O1: a `register` local takes a callee-saved register; at -O2 `register` is inert",
@@ -1062,3 +1511,429 @@ register(Pattern(
     confirmed_on=["syn_f H6 P6a", "H7 ablation: 14/14 -O1 change, 36/36 -O2 identical",
                   "__osSetGlobalIntMask", "__osResetGlobalIntMask"],
 ))
+
+register(Pattern(
+    id="ido53-select-keeps-arm-paths",
+    name="IDO 5.3 -O2 keeps one path per if/else arm to the join; default-then-override has one",
+    kind="solver",
+    looks_like="Target `li A; b!c join; nop; b join; li B` (a `b` to the join with the then-value in its delay "
+               "slot), candidate `li A; b!c join; nop; li B` from m2c's `x = A; if (c) x = B;`.",
+    means="`if (c) x = B; else x = A;` and `x = c ? B : A;` compile identically, with one more path to the join than "
+          "`x = A; if (c) x = B;`. When the join is ordinary code the extra path is a `b join`; when it is a "
+          "frameless return, the return tail is duplicated per arm. Where the else value lands (hoisted above the "
+          "branch or in its own block) is as1 delay-slot scheduling, not C. An empty `else {}` equals no else. "
+          "m2c flattens the target's shape to the default form because the else value sits above the branch. "
+          "(eval/results/branch-layout-20260924: E1; H1 refuted on b-next specifics, H1' P1'c 2 vs 1 paths.)",
+    prescription="Target has more unconditional branches than the candidate at a select: rewrite `x = A; if (c) "
+                 "x = B;` to if/else (solver.branch_shape.select_else). drawTrainingCourseLessonEndMenu, "
+                 "updateEndingLindaHandshakeLoop 76.4 -> 96.1.",
+    confirmed_on=["syn H1 P1b/P1c/P1f", "syn H1' P1'b/P1'c", "drawTrainingCourseLessonEndMenu fire test"],
+))
+
+register(Pattern(
+    id="ido53-o1-local-frame-epilogue",
+    name="IDO 5.3 -O1: a declared local gives a leaf a frame, and every return then branches to one epilogue",
+    kind="solver",
+    looks_like="-O1 target: leaf `addiu sp,sp,-8`, returns as `b epilogue`, one `jr ra`; candidate frameless with "
+               "a `jr ra` per return. The value sits in an argument register not holding a parameter (a0, or a1).",
+    means="At -O1 (libultra io/*) locals get a frame of align8(4 x locals) even with no store; with no local each "
+          "return is its own `jr ra`. A `register` local has the frame and no stack store (H2, 4/4 on fresh "
+          "constructs; eval/results/branch-layout-20260924). At -O2 none of these forms has a frame.",
+    prescription="-O1 function whose target has the frame and `b` returns: read the tested global into a "
+                 "`register` local first (solver.branch_shape.o1_register_local). __osAiDeviceBusy 65.8 -> 98.3, "
+                 "__osSi/SpDeviceBusy 62.6 -> 98.2, __osSpSetPc 67.6 -> 97.7. Residual: the target computes the "
+                 "address in t6 and loads into a0; the direct extern read uses a0 for both (open).",
+    confirmed_on=["syn H2 P2a-P2d (4/4)", "__osAiDeviceBusy, __osSpSetPc fire tests"],
+))
+
+register(Pattern(
+    id="ido53-return-tail-per-statement",
+    name="IDO 5.3 -O2 emits one return tail per return statement, and duplicates a return in each unrolled copy",
+    kind="solver",
+    looks_like="Two `li v0,-1; jr ra` tails in the candidate where the target has one (m2c comments "
+               "`Duplicate return node`).",
+    means="Two `return -1;` statements give two tails, a `break` to one `return -1;` gives one (H3' 2/2); IDO does "
+          "not merge identical tails. A loop IDO unrolls (4x for a small body with no call) copies an in-loop "
+          "return into every unrolled body (H3 P3a: 5 copies).",
+    prescription="Where m2c marks a `Duplicate return node`, route it to the one return it duplicates "
+                 "(solver.branch_shape.dup_return_merge). __MusIntFindChannel 90.864 -> 100.0.",
+    confirmed_on=["syn H3' P3'a/P3'b", "__MusIntFindChannel fire test"],
+))
+
+register(Pattern(
+    id="uopt53-loop-exit-test-rewrite",
+    name="uopt rewrites a loop's `<` exit test to `!=` (bne against a hoisted bound) except in some loops",
+    kind="review",
+    looks_like="Target `slti at,iv,N; bnez at,loop`, candidate `bne iv,sK,loop` with `li sK,N` before the loop.",
+    means="For, while, do-while and goto loops with a constant bound all get `bne` (E3). `slt` is kept for a narrow "
+          "(short/u8) loop variable (with sign/zero extension), an unknown start value, a bound reloaded each "
+          "iteration, a variable-bound goto loop (H4 P4a), and on the earlier loops when one variable drives "
+          "adjacent loops (P5a). H5, 'reused by any later loop', was refuted (P5c, P5d), so the selector is "
+          "open. m2c splits one variable's webs into var_R, var_R_2 ...; merging the webs that share a register "
+          "in the target restored the target's `slt` loops in drawTrainingCourseLessonEndMenu (fire test).",
+    prescription="Target keeps `slt` where the candidate has `bne`: propose merging m2c's split webs of one "
+                 "register (solver.branch_shape.split_merge); the compiler decides.",
+    confirmed_on=["syn H4 P4a/P4b", "syn H5 P5a/P5b", "drawTrainingCourseLessonEndMenu fire test"],
+))
+
+register(Pattern(
+    id="uopt53-empty-test-adds-blocks",
+    name="An empty `if (!x);` adds two basic blocks to every range live across it, and after a constant "
+         "assignment adds no read",
+    kind="solver",
+    looks_like="Block spans growing by 2 per inserted empty test, which can push units(span) up a step.",
+    means="After `x = 0;` the test is folded (save unchanged) yet x's span grew 7 -> 9 (h6); in "
+          "waitCourseSelectRecordsClose each empty test added 2 blocks to both live ranges, so priority "
+          "falls in steps as the span crosses 3, 7, 11 ... Emitted no instruction there. In the two leaf "
+          "bases the span did not change, so block growth depends on context. H16 "
+          "(eval/results/empty-test-reads-20260923): straight-line after a load, computed or call-result "
+          "assignment, +1 save and +2 span (3/3). Inside a conditional arm, right after the arm's assignment, "
+          "+0 save and +1/+2 span for a constant, a copy AND the computed control (3/3): the read is lost there "
+          "whatever the value, so the test only costs blocks. In the population the inverter's raise moved the "
+          "target's register in 2 of 30 measured candidates, and on blocked ranges save stayed flat at every k. "
+          "Unexplained: `temp_v0 = call(); if (!temp_v0);` in enqueueSoundEffectWithVolume (straight-line, not "
+          "live across a call) also added +0. The arm finding is NOT general: in freeRelocatableHeapBlock an "
+          "empty test inside an arm moved temp_v0 to v0 (eval/results/alloc-inverter-20260923/lost_check.py).",
+    prescription="Simulate both effects when steering: the read raises save, the blocks can lower priority "
+                 "of the range and of every range live across it. Do not count the read after a constant or a "
+                 "copy of a local/parameter (a global is a load and counts); verify the colour in the trace "
+                 "(action_trace.py) rather than trusting the formula.",
+    confirmed_on=["syn_f h6 base", "waitCourseSelectRecordsClose k = 1, 2, 3, 10", "syn_f H16 3/3, H16b 3 arms"],
+))
+
+register(Pattern(
+    id="uopt53-loop-read-weight",
+    name="A read inside a loop adds 10 to save (1 outside)",
+    kind="solver",
+    looks_like="adjsave jumping by 10/units per added use in a loop body.",
+    means="waitCourseSelectRecordsClose: 1, 2, 3 and 10 empty tests after `var_s0 += 1;` in the do-while "
+          "raised save 31 -> 41, 51, 61, 131: exactly 10 per read. Nested loops untested.",
+    prescription="One read in a loop is worth ten outside it; compute k accordingly.",
+    confirmed_on=["waitCourseSelectRecordsClose (4 compiles)"],
+))
+
+register(Pattern(
+    id="ugen53-temp-fifo",
+    name="IDO 5.3 ugen allocates expression temporaries from a FIFO cycle t6 t7 t8 t9 t0 ... t5, minus uopt's "
+         "registers; as1 then reorders the instructions",
+    kind="evidence",
+    looks_like="`t8` where the target has `t0`: the whole temporary sequence is shifted by the number of "
+               "allocations that differ before that point.",
+    means="7.1 reg_mgr (LLONSIT/ido-decomp, read) describes a FIFO free list t6..t9, t0..t5, head allocated, freed "
+          "registers appended. On 5.3, over the matched targets of 1,632 functions with temporaries (uopt-coloured "
+          "registers removed from the pool using each procedure's own trace): 95.1% of 27,371 allocated registers "
+          "are the ones the cycle predicts, order-free; 1,013 functions match exactly, 617 match once 3,694 "
+          "allocated-but-never-emitted registers are allowed, 2 disagree. Scored in emitted order it looked like 62% "
+          "because as1 interleaves ugen's allocation order (synthetic probe: allocated t6 t7 t8 t9, emitted "
+          "sll t6, sll t8, sra t7, sra t9). A value computed straight into an argument or return register takes no "
+          "temporary. The unused slots are as1 copy propagation: `cc -S` emits ugen's own output before as1, and there the sequence has no gap (syn_h3 probe: mul $24 (t8); move $2,$24 -- as1 folded both into `sll v0,a1,2`, removing t8). So a skipped slot is a temporary whose only use is a move into another register.",
+    prescription="Read a temporary-numbering residual as an allocation count: the cycle distance between the "
+                 "target's and the candidate's register is how many temporaries the source must add (or remove) "
+                 "before that point.",
+    confirmed_on=["uopt trace census TUs: 1,632 matched functions", "syn_f stores/args/return probes"],
+))
+
+register(Pattern(
+    id="uopt53-strength-reduced-index",
+    name="A pointer stepping by the element size through an array is uopt's strength reduction of `&BASE[i]`",
+    kind="solver",
+    looks_like="Decompiled `p = BASE; do { ...p...; i += 1; p = (T *)((u8 *)p + K); } while (i < n);` whose "
+               "residual is temporaries, scheduling and allocation that no local repair closes.",
+    means="uopt rewrites indexed addressing in a loop into a stepped pointer; the decompiler copies the "
+          "pointer. Compiling the original index form reproduces uopt's own reduction, so the temporaries and "
+          "the schedule follow. waitCourseSelectRecordsClose sat at 97.39 through allocator steering (99.13) and "
+          "a temporary-count repair (99.348); the index form with the loop's later uses read through the global "
+          "just stored was exact on its own; the index form with member access through the array was 91.28.",
+    prescription="solver/strength_inverse.py (family `index_form` in regalloc_mutations): propose both "
+                 "variants; the compiler decides.",
+    confirmed_on=["waitCourseSelectRecordsClose (receipt 95882; attribution.py)"],
+))
+
+register(Pattern(
+    id="uopt53-member-offset-equivalence",
+    name="IDO 5.3 compiles `p->m` and `*(T *)((u8 *)p + OFF)` identically",
+    kind="solver",
+    looks_like="A `field:offset` residual whose wrong offset is a struct member, often of a header type.",
+    means="30 of 30 paired compiles identical (s32/s16/u16/s8/u8 x load/store x pointer parameter, pointer "
+          "local, global struct array element; eval/results/offset-access-20260923/h10.json).",
+    prescription="Apply a stated offset without touching the declaration: rewrite the attributed member access "
+                 "to the explicit byte-offset form with the target offset (solver/evidence_site.py).",
+    confirmed_on=["syn_f 30 pairs (h10.py)"],
+))
+
+register(Pattern(
+    id="ido53-narrow-local-mask",
+    name="A computed value assigned to a u8/u16 local gets `andi`; to s8/s16 a `sll`/`sra` pair; a narrow local "
+         "loaded from a wider field narrows the LOAD instead",
+    kind="solver",
+    looks_like="A surplus `andi 0xff/0xffff` (or `sll`/`sra` 24/16) with no mask or cast on its source line.",
+    means="Paired compiles (eval/results/mask-type-20260923/h13.json), s32 vs u8/u16/s8/s16 local: from a call, "
+          "exactly one extra andi (unsigned) or extension pair (signed); from a sum, the mask plus one more "
+          "instruction; from a wider field load, NO mask -- IDO emits the narrower load (lbu/lhu) instead; as a "
+          "loop counter the whole loop compiles differently (s32: 28 instructions, narrow: 14). Pre-registered "
+          "criterion (exactly one extra instruction in every shape) held only for the call shape: PARTIAL.",
+    prescription="solver/evidence_site.py: a surplus mask/extension on a line assigning a u8/u16/s8/s16 local "
+                 "retypes that local to s32. Replay: 11 of 16 candidates improved, 9 functions.",
+    confirmed_on=["syn_f call shape (4 types)", "drawMenuAsciiTextDefaultScale +12.94 (replay)"],
+))
+
+register(Pattern(
+    id="uopt53-arg-preference",
+    name="Passing a value as call argument k gives its live range a preference for a(k); returning it gives no v0 "
+         "preference",
+    kind="evidence",
+    looks_like="A value held in an argument register (a0-a3) where the target holds it in a temporary, or the "
+               "reverse: the `selection` diagnosis class.",
+    means="Paired traced compiles (eval/results/alloc-preference-20260923): a local passed as argument 0, 1, 2, 3 "
+          "gets preference colour 3, 4, 5, 6 and lands in a0..a3, 4 of 4; used only in arithmetic, no preference "
+          "(lowest free, v0); returned, NO v0 preference (it took v1) -- refuted for returns; assigned a call's "
+          "result, no allocator range at all (untestable).",
+    prescription="To move a value into a(k), make it flow into argument k; to move it out, the target's C does not "
+                 "pass that same value there. The allocator inverter's preference operator.",
+    confirmed_on=["syn_f arg0..arg3, none (probe.py)"],
+))
+
+# ------------------------------------- object rows the normalized diff cannot show (2026-09-30)
+
+register(Pattern(
+    id="address-taken-rodata-names-the-target-label",
+    name="A string whose address the function passes on must be read through the target's rodata label",
+    kind="solver",
+    looks_like="Byte-identical .text; the candidate owns the literal in its own .rodata (or names it with an extern "
+               "the ROM does not define) while the target addresses a labelled datum. Score 99.9-100, empty or "
+               "spelling-only diff; function_boundary refuses 'address-taken candidate rodata needs its named symbol', "
+               "'candidate rodata the function does not read' or 'unresolved candidate external'.",
+    means="The split-asm target keeps every datum under a label (D_800E12F4); a function-owned literal is placed by "
+          "the translation unit, not by the function, and drawRaceSplitscreenSelectEntryFee's own literal failed "
+          "the whole-ROM checksum (2026-09-14). The C is right; the datum's name is not.",
+    prescription="solver.rodata_symbol.address_variants: pair each candidate addiu site with the target relocation "
+                 "at the same instruction offsets, read the exact target label, and rewrite the definition, the "
+                 "extern or the anonymous literal (only when the source literals rebuild .rodata byte for byte) to "
+                 "an extern of that label. The function certificate and whole-ROM integration decide.",
+    confirmed_on=[
+        "2026-09-30 func_8005A884, func_8005CF60, updateEndingObjectSpriteDebugViewer, func_8005C14C, "
+        "func_8005D558, func_8005AC44: function_boundary refused each; each rewrite is function_exact (schema 3). "
+        "Whole-ROM integration (corrected later 2026-09-30): the extern-label form of all six prepares but FAILS TO LINK "
+        "(`undefined reference to D_800E...`: no linker script defines the label and only a TU literal ever emitted "
+        "the bytes). The function-exact certificate is therefore not an integration claim for this form. The "
+        "original inline-literal sources of six of the seven cases are whole-ROM exact, alone and as one batch of six "
+        "(eval/results/hidden-object-20260930/linking_probe.py). "
+        "eval/results/hidden-object-20260930/address_cases.json",
+    ],
+))
+
+register(Pattern(
+    id="struct-field-access-where-target-names-a-global",
+    name="A struct field the target keeps as its own named global",
+    kind="solver",
+    looks_like="One relocation pair `%lo(A)` (target) against `%lo(B+K)` (candidate) at a load/store, where the "
+               "candidate reaches B+K through a struct field `B.f`; score 99.8, a one- or two-line diff.",
+    means="The target's data is split into separate symbols (`gRaceSetupPlayerCountPromptAlpha`) where the "
+          "candidate's struct typing merged them. The access width in the target instruction fixes the type.",
+    prescription="solver.relocation_names.field_names: for each field the function accesses on B, propose `B.f` -> A "
+                 "(declared with the target instruction's width) for every use and for each single use. No layout "
+                 "is read; the object oracle picks the right field and site. Wired into operand_repair._proposals "
+                 "(relocation_names had no caller before 2026-09-30).",
+    confirmed_on=[
+        "2026-09-30 updateRaceSetupPlayerCountPrompt: 99.829 -> 99.915, function_exact (schema 3); the winning variant "
+        "replaces only the second `.alpha` use (all-uses scored 93.4). Single instance: treat the rule as measured on "
+        "one function. 33 of 222 unsolved functions with a named relocation mismatch are reached by any "
+        "relocation_names generator.",
+    ],
+))
+
+register(Pattern(
+    id="unused-file-scope-object-adds-bss",
+    name="An unused file-scope object gives the candidate a .bss the target lacks",
+    kind="solver",
+    looks_like="Empty or unchanged diff, every diff-driven lane declining ('no mismatching instruction mapped'), and "
+               "an object whose only extra is .bss/.data; names like dummy, padding, spNN.",
+    means="Stack-padding edits written at file scope, where they cannot change the frame and only add data.",
+    prescription="solver.file_scope_objects.variants: when the target object has no .bss/.data, delete file-scope "
+                 "object definitions no other line mentions. The compiler decides.",
+    confirmed_on=[
+        "2026-09-30 guMtxIdent: `float sp18[4][4];` removed -> object_sections_exact "
+        "(eval/results/hidden-object-20260930/RESULTS.md)",
+    ],
+))
+
+register(Pattern(
+    id="unresolved-extern-names-the-target-symbol",
+    name="An extern the ROM does not define, where the identical target names another symbol",
+    kind="solver",
+    looks_like="Byte-identical .text; a reloc_identity row with different external names at the same instruction "
+               "offsets; function_boundary refuses 'unresolved candidate external'.",
+    means="A reference-style or invented name for the object the target actually addresses. The instructions agree, "
+          "so the target's name is the evidence.",
+    prescription="solver.rodata_symbol.address_facts emits a symbol site only when .text is byte-identical; "
+                 "address_rewrite renames every use and keeps the candidate's declared type. The certificate decides.",
+    confirmed_on=[
+        "2026-09-30 drawCharacterSelectCourseExitPreviewPanel: gCharacterSelectCourseExitPreviewCornerTile -> "
+        "gCharacterSelectCourseExitPreviewData, object_sections_exact (eval/results/hidden-object-20260930/"
+        "layer_run2.jsonl); whole-ROM integration blocked by the shared-declaration limit",
+    ],
+))
+
+
+# ------------------------------------------------------------------ 2026-10-02: rules behind the planted-edit generators
+# Each rule was first seen on planted single-line edits (eval/results/edit-capability-20261002) and then PROBED on
+# fresh minimal constructs with the game's own recipes, -O2 game code and -O1 libultra io (eval/rule_probes.py,
+# receipt eval/results/rule-probes-20261002/probes.json). The probe conditions, not the planted cases, define the
+# rule; "invisible" conditions are recorded too, because they say where a search should not spend compiles.
+_PROBES = "eval/results/rule-probes-20261002/probes.json"
+
+register(Pattern(
+    id="ido53-o1-result-temporary-has-a-stack-home",
+    name="At -O1 a temporary holding a result is stored and reloaded; at -O2 it vanishes",
+    kind="solver",
+    looks_like="-O1 target returns straight from v0 in a frame 8 bytes smaller; the candidate adds `sw v0,N(sp)` / "
+               "`lw v0,N(sp)` (or the same pair around another value) before the return.",
+    means="`t = E; return t;` (and `t = E; S(t);`): at -O1 every local has a stack home, so the temporary costs a "
+          "store, a reload and frame space. At -O2 the two spellings compile identically.",
+    prescription="Inline the temporary into its single next use: solver.next_use_temp (site_edits gaps=True). At "
+                 "-O2 do not spend compiles on this rewrite for a result temporary: it cannot change the object.",
+    confirmed_on=[
+        f"probes {_PROBES} return_temp: -O1 differ 4/4 (call value, arithmetic value, field load, call then more "
+        "code); -O2 same 4/4.",
+        "planted (edit-capability-20261002): `return E` -> temporary was invisible 118/124 on game code; the visible "
+        "cases were -O1 libultra (osSpTaskYield, __osSiGetAccess, __osPiRelAccess, osVirtualToPhysical), all fixed "
+        "by next_use_temp.",
+    ],
+))
+
+register(Pattern(
+    id="ido53-commutative-operand-materialisation-order",
+    name="A commutative operator's operand order shows only where both operands are materialised separately",
+    kind="solver",
+    looks_like="Two loads feeding one add/mul appear in swapped order (`lw t7,12(a0); lw t6,8(a0)` vs `lw t7,8(a0); "
+               "lw t6,12(a0)`) with the arithmetic instruction itself unchanged; or, for two register-held "
+               "parameters, the arithmetic operands themselves swapped (`addu v0,a1,a2` vs `addu v0,a2,a1`).",
+    means="IDO emits the operand LOADS in source order, and keeps source order for two register-resident operands. "
+          "A load against a parameter, or anything against an immediate, is canonicalised: swapping the C operands "
+          "changes nothing. Consistent with named-operand-local-order (operand order follows webs there).",
+    prescription="Offer operand swaps only where both operands are loads or both are register-held values "
+                 "(site_edits gaps=True restricts regalloc_mutations.commutative_swaps to attributed lines). Skip "
+                 "`x OP const` and load-vs-parameter: invisible.",
+    confirmed_on=[
+        f"probes {_PROBES} commute_operands, -O1 and -O2 alike: differ for two s16 loads, two s32 loads, two sums "
+        "in one call, two params, field*field; same for field+param and field&constant.",
+        "planted: operand swaps invisible 36/37 (game code); the visible one swapped two field loads "
+        "(drawEndingCreditsCharacterLoopingSparkle), fixed by the commutative lane.",
+    ],
+))
+
+register(Pattern(
+    id="ido53-o1-mirrored-comparison-keeps-source-order",
+    name="`a < b` and `b > a` compile identically at -O2 but not at -O1 when both sides are values",
+    kind="solver",
+    looks_like="-O1: the two stack-home reloads feeding `slt` come in the other order and `slt at,t7,t6` vs "
+               "`slt at,t6,t7`.",
+    means="At -O1 each operand is reloaded from its home in source order. At -O2, and at -O1 against a constant, the "
+          "comparison is canonicalised.",
+    prescription="Mirror a comparison (swap operands, reverse the operator) only in -O1 functions where both sides "
+                 "are variables or fields. Never at -O2.",
+    confirmed_on=[
+        f"probes {_PROBES} mirror_comparison: -O1 differ field-vs-field and param-vs-param, same field-vs-constant; "
+        "-O2 same 3/3.",
+        "planted: mirrored comparisons invisible 46/46 (game code -O2, mostly against constants).",
+    ],
+))
+
+register(Pattern(
+    id="ido53-adjacent-store-order-is-preserved",
+    name="Two adjacent stores to different fields keep source order",
+    kind="solver",
+    looks_like="The same set of stores (`sh t6,0x18(a0)`, `sh t7,0x1a(a0)`) in a different order; the values' "
+               "`li` instructions usually reorder with them.",
+    means="IDO does not reorder independent stores, before a call or not. For constant stores the order is directly "
+          "visible, unlike operand order. For two read-modify-write statements (`a->x -= 0x30; a->y += 3;`) IDO "
+          "schedules loads and stores the same way in either order, and the swap is visible only as which temp "
+          "registers the two webs get (planted stmt_swap updateRaceItemProjectileTrailEffect: identical "
+          "instruction order, t7/t9/t0/t8 exchanged).",
+    prescription="Swap or move the statements so the stores follow the target's order: the pool's `move statement` "
+                 "and the mined `stmt_order` rules already do this (planted stmt_swap 6/6 dev, 6/6 held-out).",
+    confirmed_on=[
+        f"probes {_PROBES} store_order: differ 4/4 at both -O1 and -O2 (two constants, zero stores, read-modify-"
+        "write, stores before a call).",
+        "planted: adjacent store swaps visible 12/12 (dev and held-out), none normalised.",
+    ],
+))
+
+register(Pattern(
+    id="ido53-empty-arm-layout-conditions",
+    name="An empty then-arm (`if (!(c)) {} else {B}`) is usually folded, but not always",
+    kind="solver",
+    looks_like="Branch sense and block order differ around one if: `bnez` vs `beqz` plus an extra `b`, the arm's "
+               "code moved.",
+    means="MEASURED CONDITIONS, MECHANISM NOT EXPLAINED. Folded (identical to `if (c) {B}`) in 7 simple contexts at "
+          "both levels. Visible at -O1 when the arm returns a computed value and code follows the if; visible at -O2 "
+          "when the arm contains a nested if and code follows the outer if. A nested if alone, code after alone, or "
+          "`return 1` were folded.",
+    prescription="Offer rewrite_library.empty_arm_drops wherever an empty arm exists (cheap, one compile each). The "
+                 "conditions above are not yet a detector: the residual cannot be attributed to this rule from the "
+                 "diff alone.",
+    confirmed_on=[
+        f"probes {_PROBES} empty_then_arm (13 contexts x 2 levels): differ only for '&& test, body returns' (-O1), "
+        "'simple test, body returns, code after' (-O1), 'return inside nested if, code after' (-O2), 'nested if "
+        "without return, code after' (-O2); empty_else_arm same.",
+        "planted: inverted ifs with an empty then-arm invisible 53/55; visible updateRacePlayerRecoverySparkle (-O2, "
+        "nested if + code after) and osVirtualToPhysical (-O1, && test, body returns), both fixed by empty_arm_drops.",
+    ],
+))
+
+register(Pattern(
+    id="target-only-store-is-a-missing-statement",
+    name="A store the target performs and the candidate never does is a missing statement",
+    kind="solver",
+    looks_like="The target has `sh/sw/sb R,OFF(aN)` (through aN or a saved copy `move sN,aN`) whose (opcode, offset) "
+               "the candidate performs fewer times; its value is `zero`, a preceding `li R,IMM`, or `lh R0,OFF` + "
+               "`addiu R,R0,IMM`.",
+    means="A statement `argN->field = IMM;` / `argN->field += IMM;` is absent from the C. Nothing on the candidate side "
+          "maps to it, so line-local edit families and the localizer cannot see it.",
+    prescription="solver.missing_store (site_edits gaps=True) writes it from the target's own instructions (member "
+                 "`unkOFF` or a raw offset store) at boundaries beside the charged lines. Values the target computes "
+                 "(calls, arithmetic) go to solver.missing_statement_llm.",
+    confirmed_on=[
+        "planted (edit-capability-20261002): missing_store solved 4/6 dropped statements on dev and 3/6 on the frozen "
+        "held-out set; the model lane solved 2 more on each.",
+    ],
+))
+
+register(Pattern(
+    id="load-opcode-names-the-access-type",
+    name="A different load opcode at the same offset names the C type of the access",
+    kind="solver",
+    looks_like="Aligned target/candidate loads at one base+offset with different opcodes: `lw` vs `lh`, `lb` vs `lbu`, "
+               "`lh` vs `lhu`.",
+    means="The value is read through a different C type: lb s8, lbu u8, lh s16, lhu u16, lw s32. The type token is on "
+          "the attributed line (a cast or the field's type) or in the declaration of an identifier used there. Until "
+          "today this lived only in solver.evidence_site's docstring; this entry makes it citable.",
+    prescription="solver.evidence_site opcode:<pair> rewrites the type token on the attributed line, else the "
+                 "declaration of an identifier used on it. A per-location lh/lhu mix that compiles is a cast, not a "
+                 "conflict (signedness-cast).",
+    confirmed_on=[
+        "eval/results/retrodiction-20260922: evidence_site rewrote global_load_signedness source-for-source on 5/5 "
+        "of its successes.",
+        "planted (edit-capability-20261002): decl_width updateControllerPakReplaySaveMessageSecondPageFadeIn, "
+        "updateRaceSplitscreenSelectPortrait, initRaceSetupOpponentFocus fixed by evidence_site opcode:lh/lw and "
+        "opcode:lb/lbu.",
+    ],
+))
+
+register(Pattern(
+    id="candidate-only-extension-widens-a-declaration",
+    name="A sign/zero extension only the candidate performs names a declaration that is too narrow",
+    kind="solver",
+    looks_like="Candidate-only `sll R,X,0x10` + `sra R,R,0x10` (or 0x18, or `andi 0xffff/0xff`) on a value the target "
+               "uses directly.",
+    means="The residual form of s16-sign-extend: the candidate narrows a value to s16/s8 (or u16/u8) where the target "
+          "keeps it wider, so IDO re-extends it. The narrowing is either a CAST on the use (`(s16) x`) or the "
+          "DECLARATION of a variable the value passes through; the attributed line says which.",
+    prescription="Rank decl/type edits that widen the named narrow type first (site_edits.widening_hint, gaps=True); "
+                 "a cast on the attributed line is a type edit there, not a declaration change.",
+    confirmed_on=[
+        "planted (edit-capability-20261002): decl_width alLoadNew had the fix proposed only at rank 33 of 50 without "
+        "the hint and first with it; decl_width 6/6 dev and 6/6 held-out with the gap lane.",
+    ],
+))
+

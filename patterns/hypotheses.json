@@ -2009,5 +2009,98 @@
     "tested_on": "",
     "date": "",
     "keywords": []
+  },
+  {
+    "id": "uopt-trace-ordering-law",
+    "claim": "uopt colours constrained live ranges in non-increasing adjsave, then unconstrained ranges in increasing live-range number, each taking a colour its earlier-coloured neighbours do not hold.",
+    "source": "uopt's own -zdbug:5/6 trace, unblocked by tools/ido-trace (ecvt fix); supersedes the reconstruction-based uopt-ordering-law-reproduces",
+    "status": "CONFIRMED",
+    "evidence": "Measured directly, not reconstructed from assembly: SBK1 census, 1,976 procedures, 11,310 decisions. Forbidden-at-time: 0 violations. Unconstrained range-number order: 0 violations. Constrained adjsave order: 1,907/1,976 procedures (95 items: 17 cross integer/float classes, 44 involve split pieces, 34 unexplained). Confirmed causally on createCallbackTaskPreservingArgs: inlining the index and storing newTask first renumbered newTask's range below insertAfter's and moved it to v1/a3 as in the target, removing every variable-colour difference. eval/results/uopt-trace-20260914/README.md",
+    "tested_on": "SBK1 game C, 115 TUs at -O2; one causal probe",
+    "date": "2026-09-14",
+    "keywords": [
+      "uopt",
+      "register allocation",
+      "colouring order",
+      "adjsave",
+      "live range",
+      "trace",
+      "zdbug"
+    ]
+  },
+  {
+    "id": "uopt-lowest-free-colour-is-the-selection-rule",
+    "claim": "Given the forbidden set, uopt gives a live range the lowest free colour in its band (1-13 caller-saved, 14+ callee-saved), except that a parameter may keep its incoming a0-a3.",
+    "source": "SBK1 DECOMPILATION_LEARNINGS.md (instrumented uopt), tested with uopt's own trace",
+    "status": "REFUTED",
+    "evidence": "Holds in 1,397/1,976 procedures only; 781 exceptions. Dominated by a0-a3 taken while v0 was free (5 over 1: 211, 3 over 1: 126, 4 over 1: 105), including expression ranges and parameters moving to a different argument register: argument-register preference is real and unmodelled. 104 exceptions are colours 24-33, floating-point registers the integer bands misdescribe. Do not predict colours from this rule until preference and register classes are modelled. eval/results/uopt-trace-20260914/README.md",
+    "tested_on": "SBK1 game C, 115 TUs at -O2",
+    "date": "2026-09-14",
+    "keywords": [
+      "uopt",
+      "register allocation",
+      "lowest free",
+      "argument register",
+      "preference",
+      "float",
+      "trace"
+    ]
+  },
+  {
+    "id": "uopt-colour-selection-model",
+    "claim": "Within the band of the chosen colour, uopt gives a live range its first free preferred colour (last column of the -zdbug:5 block rows; scan upward from the first preference if all are forbidden), else a parameter live at entry scans upward from a0 (float 26), else the lowest colour not forbidden.",
+    "source": "fitted on the SBK1 uopt trace census after uopt-lowest-free-colour-is-the-selection-rule was refuted",
+    "status": "CONFIRMED",
+    "evidence": "In-sample (reference source, 1,976 procedures): 11,300/11,310 decisions; misses are 3 integer-caller and 7 integer-callee in three libultra audio functions. Held out (750 m2c campaign candidates, same compiler, rules frozen): 2,375/2,375, of which 474 were not lowest-free. Each rule beat a scored alternative: every parameter scanning from a0 loses 38, preferences outside the band lose 2. Scope: the band (must the range survive a call) is read from the chosen colour, not predicted, and the source-level meaning of the preference column is untested. eval/results/uopt-trace-20260914/README.md",
+    "tested_on": "SBK1 census 11,310 decisions; held-out candidates 2,375 decisions",
+    "date": "2026-09-14",
+    "keywords": [
+      "uopt",
+      "register allocation",
+      "preference",
+      "argument register",
+      "select colour",
+      "trace",
+      "float"
+    ]
+  },
+  {
+    "id": "uopt-callee-band-is-call-crossing",
+    "claim": "uopt puts a live range in the callee-saved band exactly when it is live across a call.",
+    "source": "the textbook rule, and HYP-20260912-01's '100% of call-crossing values are in s0-s8'",
+    "status": "REFUTED",
+    "evidence": "The HYP-20260912-01 figure was true by construction (uopt_replay marked only non-caller-saved webs as crossing). Measured with uopt's own live ranges and calls located from ugen's tree dump (solver/uopt_calls.py, 1,788 mapped SBK1 procedures): 532 caller-saved ranges are live into and out of a call node, every one with a callee-saved colour free, against 1,788 callee-saved. The band is a cost trade-off. As an approximation, callee-saved iff loop-weighted crossed calls >= 3 gets 94.4% of 8,712 in-sample decisions (always caller-saved 77.3%) and 95.4% of 2,218 held-out candidate decisions (82.2%); callee recall 80-82%, precision 91-94%. Parameters switch at lower weight than locals and constants, and an already-open callee register tips a few. Not exact; must not steer. eval/results/uopt-trace-20260914/README.md (Follow-up 2)",
+    "tested_on": "SBK1 census 8,712 integer decisions; held-out candidates 2,218",
+    "date": "2026-09-14",
+    "keywords": [
+      "uopt",
+      "register allocation",
+      "callee-saved",
+      "caller-saved",
+      "call crossing",
+      "band",
+      "ugen dump"
+    ]
+  },
+  {
+    "id": "strategy-memory-beats-its-own-no-learn-control",
+    "claim": "The controller's learned strategy memory -- seed weights updated from realized value -- allocates research compute better than the same priority terms with learning switched off, so the decision layer is worth distilling into model weights.",
+    "source": "eval/research_loop.py design claim, gated by eval/research_loop.gate and consumed by eval/distill_policy.py",
+    "status": "REFUTED",
+    "evidence": "Paired replay over 400 forests on kb-sbk1.sqlite at budgets 8, 24 and 48: `adaptive` and `adaptive-nolearn` are identical on every metric (P_discovery, P_solved, mean_best, mean_regret, mean_dead_share) at every budget, and their solved-function sets have ZERO discordant pairs (n01=0, n10=0; 92/95/95 functions solved in common). At budget 48 both also coincide with plain `greedy` and `evolutionary` (P_discovery 1.0000, mean_regret 0.000). The Sept 16 report shows the same identity at 0.985 discovery / 0.345 solved. `adaptive` DOES beat `fixed-seed` and `random` on discovery at all three budgets, so adaptive allocation is supported and the learning component is not -- those are different claims. The old gate compared only against fixed-seed and random, neither of which has the priority terms, so it could not separate the allocation from the learning and passed the Sept 16 run, which then wrote 2,639 distillation pairs. Receiver: eval/results/research-loop-20260920/GATE-REVIEW.md FOLLOW-UP 2026-09-20 (seedbook-trajectory.json, decision-divergence.json): the weights DO move -- 40 credit() calls over 7,388 expansions drove `unexplored` 1.0 -> 3.00 (its ceiling), `control-flow` -> 1.56, `register-pressure` -> 1.46, for a seed-term spread of 0.150 (same order as W_UNCERTAIN 0.15). So the mechanism is not dead: 12 of 400 forests have DIVERGENT decision sequences, first divergence at steps 1-22. But 0 functions differ in the solved set, so the memory is live and not outcome-relevant. Three measured reasons, any one sufficient: (1) at budget 48 adaptive, adaptive-nolearn, greedy and evolutionary ALL reach P_discovery 1.0000 and mean_regret 0.000, so the outcome does not depend on the allocation and there is nothing for a policy to learn; (2) the term's 0.150 spread competes with W_VALUE's 0.45 range in a space where ~99.8% of expansions are dead; (3) the highest-weighted seed is `unexplored`, whose SEED_LENSES entry is an EMPTY dict scored as fault_total/6 -- a magnitude, not a direction -- and which _reseed assigns by rule on Plateau.CONVERGENCE, so the memory is reinforcing something the code hands out. Verdict: not fixable by tuning. Keep the priority terms, which do beat random allocation on discovery; retire the 'learning research taste' claim. Precondition for revisiting: a search space where the budget actually binds. MEASURED REASON (supersedes the three speculative ones above): two of the three reasons above were OUR OWN DEFECTS. (1) `credit()` updates a PREFERENCE weight while `_reseed` assigns `contradiction`/`unexplored` by plateau RULE, so the memory was credited for seeds the rule handed out -- circular, and why `unexplored` hit ceiling weight 3.0 on 26 events while moving 12 of 400 decisions. Fixed: `Branch.by_preference` gates crediting to preference-chosen seeds. (2) `credit()` had ONE call site inside a GAIN test, so weights were monotone non-decreasing and the docstring's 'decays on dead branches' was unreachable; non-gains now credit 0.0. Fixing both made the adaptive/nolearn tie EXACT (all weights pinned at 1.0), and the probe then gave the real reason: gain RATES over seeds that were used are field-layout 2/328=0.00610, control-flow 4/679=0.00589, unexplored 26/4450=0.00584, statement-order 1/208=0.00481, register-pressure 7/1576=0.00444 -- a 1.37x spread on 1 to 26 events, with 3 of 8 seeds never used at all. Rate estimates from one or two events are not measurements, so the seed dimension carries NO SIGNAL at this resolution and any weighting is fitting noise. The mechanism does not fail; it declines to move on noise, which is correct. Arithmetic: at a ~0.5% gain rate, 7,388 expansions give ~40 gain events over 8 seeds; ~20% resolution needs ~25 events PER SEED, i.e. 5-10x the budget, or fewer seeds, or a denser success signal. This is OUR error to fix -- a measurement-resolution problem, not a property of research-policy learning.",
+    "tested_on": "off-policy replay, 400 logged forests, budget 8/24/48, 7 policies, no GPU",
+    "date": "2026-09-20",
+    "keywords": [
+      "ablation",
+      "allocation",
+      "controller",
+      "distillation",
+      "divergence",
+      "gate",
+      "policy",
+      "research",
+      "seedbook",
+      "trajectory"
+    ]
   }
 ]

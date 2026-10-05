@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from dataclasses import dataclass, field
 from pathlib import Path
 import re
 import subprocess
@@ -312,6 +313,160 @@ def generate(endpoint: str, model: str, prompt: str, timeout: int = 900,
 
 def tokens_per_second(meta: dict) -> float:
     return meta.get("eval_count", 0) / ((meta.get("eval_duration", 0) or 1) / 1e9)
+
+
+# --- generation receipts ------------------------------------------------------
+
+# The receipt is a DATA STRUCTURE, not a convention, because every previous attempt
+# to carry generation provenance as "the caller will remember to pass it" lost it.
+# `OllamaGenerator.sample` returned `list[str]` and dropped the meta dict on the
+# floor; `WorkspaceScorer.score` therefore had nothing to store; and the result was
+# 29 `factory-refine` attempts with no prompt, no model and no raw response -- real
+# work that cannot be audited or repurposed. A generator that cannot describe what
+# it asked and what came back is not a component of a data factory.
+#
+# `status` is the reconciliation key. Every model call ends in exactly one of these,
+# and a call that is not `ok` still has a receipt: an errored or refused call is
+# evidence about the target, not an absence of evidence.
+
+RECEIPT_STATUSES = ("ok", "refusal", "no-extract", "error", "timeout", "empty")
+
+# Top-level response keys worth keeping verbatim. Ollama adds timing and token
+# counters; naming them is what makes token accounting possible downstream. The
+# full response is still retained in `raw_meta` -- this list is a convenience
+# projection, never the source of truth.
+_META_TOKEN_KEYS = (
+    "eval_count", "prompt_eval_count", "eval_duration", "prompt_eval_duration",
+    "total_duration", "load_duration", "done_reason", "done",
+)
+
+
+@dataclass
+class GenerationReceipt:
+    """Everything one model call must leave behind, in one object.
+
+    `prompt` is stored IN FULL rather than as a hash alone. A hash proves a prompt
+    is unchanged and proves nothing about its content; the experiment needs to read
+    back what the model was actually asked, and reconstructing it later from a
+    workspace that has since been rebuilt is not reconstruction, it is a guess.
+    """
+
+    prompt: str
+    raw_response: str
+    status: str = "ok"
+    model: str = ""
+    digest: str = ""
+    sampling: dict = field(default_factory=dict)
+    token_cost: int = 0
+    wall_ms: int = 0
+    error: str = ""
+    extracted: str = ""
+    extract_status: str = ""
+    done_reason: str = ""
+    raw_meta: dict = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.status not in RECEIPT_STATUSES:
+            raise ValueError(
+                f"unknown receipt status {self.status!r}; every call must "
+                f"reconcile to one of {RECEIPT_STATUSES}")
+
+    @property
+    def produced_c(self) -> bool:
+        return bool(self.extracted)
+
+    def as_sampling(self) -> dict:
+        """The projection stored in `attempts.sampling` / `model_proposals.sampling`."""
+        out = {"status": self.status}
+        if self.digest:
+            out["model_digest"] = self.digest
+        if self.done_reason:
+            out["done_reason"] = self.done_reason
+        if self.extract_status:
+            out["extract_status"] = self.extract_status
+        if self.token_cost:
+            out["token_cost"] = self.token_cost
+        out["wall_ms"] = self.wall_ms
+        return out
+
+    def as_row(self) -> dict:
+        """A JSON-safe row for a durable proposal record."""
+        return {
+            "status": self.status,
+            "model": self.model,
+            "model_digest": self.digest,
+            "prompt_sha256": hashlib.sha256(self.prompt.encode("utf-8")).hexdigest(),
+            "raw_response_sha256": hashlib.sha256(
+                (self.raw_response or "").encode("utf-8")).hexdigest(),
+            "raw_response_bytes": len((self.raw_response or "").encode("utf-8")),
+            "extracted_sha256": (hashlib.sha256(self.extracted.encode("utf-8")).hexdigest()
+                                 if self.extracted else None),
+            "extract_status": self.extract_status,
+            "done_reason": self.done_reason,
+            "sampling": dict(self.sampling),
+            "token_cost": self.token_cost,
+            "wall_ms": self.wall_ms,
+            "error": self.error[:1000],
+            "meta": {k: self.raw_meta.get(k) for k in _META_TOKEN_KEYS
+                     if k in self.raw_meta},
+        }
+
+
+def classify_generation(text: str, extracted: str, error: str = "") -> str:
+    """One terminal status per call, in priority order.
+
+    Priority matters and is not arbitrary: an error outranks a refusal (the model
+    was never asked), a refusal outranks an extraction failure (there was never
+    anything to extract), and `empty` is distinguished from `no-extract` because a
+    model that says nothing at all and a model that answers in the wrong shape have
+    different cures.
+    """
+    if error:
+        return "timeout" if "timeout" in error.lower() else "error"
+    if not (text or "").strip():
+        return "empty"
+    if is_refusal(text):
+        return "refusal"
+    if not extracted:
+        return "no-extract"
+    return "ok"
+
+
+def generation_receipt(text: str, meta: dict, *, prompt: str, model: str,
+                       extracted: str, sampling: dict | None = None,
+                       wall_ms: int = 0, error: str = "",
+                       timeout_seconds: int | None = None) -> GenerationReceipt:
+    """Assemble a receipt from a `generate` result, classifying the outcome.
+
+    `wall_ms` is supplied by the caller because only the caller has the clock that
+    spans the retry loop; `generate` reports per-transport-attempt timings.
+    """
+    meta = meta or {}
+    error_text = error
+    if not error_text and timeout_seconds is not None:
+        # A wall-clock overrun is not a model failure and must be labelled as a
+        # timeout so it is not averaged into a quality metric.
+        events = meta.get("_transport_events") or []
+        if events and events[-1].get("status") == "error" and not meta.get("done"):
+            error_text = ""
+    status = classify_generation(text, extracted, error_text)
+    sampling_out = dict(sampling or {})
+    sampling_out.update(meta.get("_request_options") or {})
+    return GenerationReceipt(
+        prompt=prompt,
+        raw_response=text or "",
+        status=status,
+        model=model,
+        digest=str(meta.get("model") or ""),
+        sampling=sampling_out,
+        token_cost=int(meta.get("eval_count") or 0),
+        wall_ms=int(wall_ms),
+        error=error_text,
+        extracted=extracted or "",
+        extract_status=classify_extraction(text or "", extracted or ""),
+        done_reason=str(meta.get("done_reason") or ""),
+        raw_meta=meta,
+    )
 
 
 # A candidate is assembly, not C, if it is mostly MIPS instruction lines.
