@@ -120,8 +120,8 @@ def test_prepared_recipe_survives_unlogged_deterministic_compile(tmp_path, monke
     original = "guard\n" + recipe.INVOCATION + "\nverify\n"
     (ws / "build.sh").write_text(original)
     conn = sqlite3.connect(":memory:")
-    conn.executescript("CREATE TABLE functions(name,tu_id); CREATE TABLE tus(id,name); "
-                      "INSERT INTO functions VALUES('f',1); INSERT INTO tus VALUES(1,'build/src/f.o');")
+    conn.executescript("CREATE TABLE functions(name,tu_id); CREATE TABLE tus(id,name,object_path); "
+                      "INSERT INTO functions VALUES('f',1); INSERT INTO tus VALUES(1,'build/src/f.o',NULL);")
     monkeypatch.setattr(recipe, "resolve", lambda repo, target: {
         "target": target, "command": ["cc", "-mips2"], "settings": {"C_MIPS": "-mips2"}})
     first = recipe.prepare(tmp_path, ws, conn, "f")
@@ -132,6 +132,34 @@ def test_prepared_recipe_survives_unlogged_deterministic_compile(tmp_path, monke
     first[0].write_text("tampered")
     with pytest.raises(ValueError, match="changed outside"):
         recipe.prepare(tmp_path, ws, None, "")
+
+
+@pytest.mark.parametrize('object_path', ['build/src/ui/level_preview.o', '../outside.o'])
+def test_source_named_tu_uses_explicit_object_identity_and_keeps_target_guards(tmp_path, monkeypatch, object_path):
+    ws = tmp_path / 'nonmatchings/holdLevelPreviewCamera'
+    ws.mkdir(parents=True)
+    (tmp_path / 'Makefile').write_text(MAKE)
+    (ws / 'build.sh').write_text(recipe.INVOCATION)
+    conn = sqlite3.connect(':memory:')
+    conn.executescript('CREATE TABLE functions(name,tu_id); CREATE TABLE tus(id,name,object_path);')
+    conn.execute('INSERT INTO functions VALUES(?,1)', ('holdLevelPreviewCamera',))
+    tu_name = 'build/src/legacy.o' if object_path.startswith('../') else 'src/ui/level_preview.c'
+    conn.execute('INSERT INTO tus VALUES(1,?,?)', (tu_name, object_path))
+    def resolve(repo, target):
+        recipe.projection(MAKE, target, 'mips-linux-gnu-')
+        return {'target': target, 'command': ['cc'], 'settings': {}}
+    monkeypatch.setattr(recipe, 'resolve', resolve)
+    if object_path.startswith('../'):
+        with pytest.raises(ValueError, match='unsupported TU object identity'):
+            recipe.prepare(tmp_path, ws, conn, 'holdLevelPreviewCamera')
+    else:
+        _, manifest = recipe.prepare(tmp_path, ws, conn, 'holdLevelPreviewCamera')
+        assert manifest['target'] == object_path
+        identity = json.loads((ws / '.compiler-target.json').read_text())
+        assert identity == {'function': 'holdLevelPreviewCamera', 'target': object_path}
+        conn.execute("UPDATE tus SET object_path='build/src/other.o'")
+        with pytest.raises(ValueError, match='target identity changed'):
+            recipe.prepare(tmp_path, ws, conn, 'holdLevelPreviewCamera')
 
 
 def test_workspace_logs_recipe_in_nonexact_attempt(tmp_path, monkeypatch):

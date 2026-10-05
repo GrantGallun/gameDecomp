@@ -80,3 +80,74 @@ def test_literal_text_round_trips_exactly():
     for v in (4 / 3, 0.1, -2.5, 1e-7, 1024.0):
         text = rodata_symbol.literal_text("f32", struct.pack(">f", v))
         assert struct.pack(">f", float(text.rstrip("f"))) == struct.pack(">f", v)
+
+
+# --- address-taken rodata (rodata_symbol.address_rewrite) ------------------------------------------------------------
+# Replays the facts read from real objects (eval/results/hidden-object-20260930/address_probe.py): six functions whose
+# .text is byte-identical to the target and which the function certificate refused over their rodata. Each rewrite
+# was function_exact under schema 3 when scored.
+import json as _json
+from pathlib import Path as _Path
+
+CASES = {c["function"]: c for c in _json.loads(
+    (_Path(__file__).parent / "fixtures" / "rodata_address_cases.json").read_text(encoding="utf-8"))}
+
+
+def test_address_rewrite_fires_on_every_motivating_residual():
+    fired = {}
+    for name, case in CASES.items():
+        out, receipt = rodata_symbol.address_rewrite(case["source"], name, case["facts"])
+        assert out == case["rewritten"], name                      # deterministic replay of the scored rewrite
+        fired[name] = out is not None
+        if out is not None:
+            assert case["after"]["function_exact"] is True and case["before"]["function_exact"] is False, name
+    assert sorted(n for n, f in fired.items() if f) == sorted(
+        ["func_8005A884", "func_8005CF60", "updateEndingObjectSpriteDebugViewer", "func_8005C14C",
+         "func_8005D558", "func_8005AC44"])
+    # already named correctly: nothing to do, and it says so
+    assert not fired["func_8005905C"]
+
+
+def test_each_source_shape_becomes_the_target_label():
+    out, r = rodata_symbol.address_rewrite(CASES["func_8005A884"]["source"], "func_8005A884", CASES["func_8005A884"]["facts"])
+    assert r["definitions"] == {"gRaceUiCourseValueFormat": "D_800E12F4"}
+    assert "extern const char D_800E12F4[];" in out and "gRaceUiCourseValueFormat" not in out
+    out, r = rodata_symbol.address_rewrite(CASES["func_8005D558"]["source"], "func_8005D558", CASES["func_8005D558"]["facts"])
+    assert r["renamed"] == {"gRaceUiTrickValueFormat": "D_800E1454"} and "gRaceUiTrickValueFormat" not in out
+    name = "updateEndingObjectSpriteDebugViewer"
+    out, r = rodata_symbol.address_rewrite(CASES[name]["source"], name, CASES[name]["facts"])
+    assert 'rmonPrintf(D_800E1070,' in out and "extern const char D_800E1070[];" in out
+    out, r = rodata_symbol.address_rewrite(CASES["func_8005C14C"]["source"], "func_8005C14C", CASES["func_8005C14C"]["facts"])
+    assert len(r["dropped_unread"]) == 10 and '"-Target-"' not in out
+
+
+def test_address_rewrite_declines_without_evidence_or_when_layout_does_not_reproduce():
+    name = "updateEndingObjectSpriteDebugViewer"
+    source, facts = CASES[name]["source"], CASES[name]["facts"]
+    assert rodata_symbol.address_rewrite(source, name, {"sites": []})[0] is None
+    # a candidate .rodata the source's literals do not rebuild: the pairing is not guessed
+    bad = dict(facts, candidate_rodata="00" + facts["candidate_rodata"][2:])
+    out, r = rodata_symbol.address_rewrite(source, name, bad)
+    assert out is None and "do not reproduce" in r["declined"][0]
+    # a datum offset no literal starts at
+    shifted = dict(facts, sites=[dict(facts["sites"][0], candidate=["section", 4])])
+    out, r = rodata_symbol.address_rewrite(source, name, shifted)
+    assert out is None and "no literal starts" in r["declined"][0]
+
+
+def test_c_string_decodes_escapes():
+    assert rodata_symbol.c_string(r"x = %d  y = %d \n") == b"x = %d  y = %d \n"
+    assert rodata_symbol.c_string(r'%2.2d\'%2.2d\"') == b"%2.2d'%2.2d\""
+    assert rodata_symbol.c_string(r"\101\x42") == b"AB"
+    assert rodata_symbol.c_string(r"\q") is None
+
+
+def test_symbol_site_renames_to_the_target_symbol_and_keeps_its_declared_type():
+    # drawCharacterSelectCourseExitPreviewPanel (2026-09-30): a name the ROM does not define, at the site where the
+    # byte-identical target names gCharacterSelectCourseExitPreviewData; renamed -> object exact.
+    source = "extern u16 gCorner;\nvoid f(void) {\n    g(&gCorner);\n}\n"
+    facts = {"sites": [{"at": 8, "target_label": "gData", "candidate": ["external", "gCorner"], "symbol": True}],
+             "candidate_symbols": {}, "candidate_rodata": ""}
+    out, receipt = rodata_symbol.address_rewrite(source, "f", facts)
+    assert receipt["renamed"] == {"gCorner": "gData"}
+    assert out == "extern u16 gData;\nvoid f(void) {\n    g(&gData);\n}\n"      # no `extern const char gData[];`

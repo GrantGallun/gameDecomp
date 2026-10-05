@@ -16,6 +16,13 @@ def node(semantic=None, **kw):
             'semantic_validation': semantic, **kw}
 
 
+def revalidated(n):
+    """The node's stored semantic verdict is current for this environment code (revalidate@ already spent)."""
+    n['jobs'].append({'profile': 'revalidate@' + queue.semantic_environment_digest(),
+                      'source_sha256': n['source_sha256']})
+    return n
+
+
 def state(nodes, **config):
     return {'config': {'scheduler': 'evidence-v1', 'model_calls': 2, **config}, 'nodes': nodes}
 
@@ -27,12 +34,12 @@ def state(nodes, **config):
     ({'status': 'unavailable', 'reason': 'hardware'}, 'local_rewrites'),
 ])
 def test_route_by_evidence(semantic, expected):
-    n = node(semantic)
+    n = revalidated(node(semantic))
     assert campaign.choose(state({'f': n}))[1]['name'] == expected
 
 
 def test_inconclusive_abi_comparisons_do_not_spend_byte_polish_model_budget():
-    n = node({'status': 'inconclusive', 'counts': {'passed': 8, 'inconclusive': 56}})
+    n = revalidated(node({'status': 'inconclusive', 'counts': {'passed': 8, 'inconclusive': 56}}))
     key = queue.evidence_key(n)
     assert queue.lane(n) == queue.Lane.ENVIRONMENT
     # Reproduce the old key explicitly: scheduling is not new evidence.
@@ -74,7 +81,7 @@ def test_inconclusive_shared_obstructions_ignore_frequency_but_preserve_evidence
 
 
 def test_retry_requires_new_measured_evidence_not_logging_changes():
-    n = node({'status': 'observed_failure', 'counts': {'failed': 1}})
+    n = revalidated(node({'status': 'observed_failure', 'counts': {'failed': 1}}))
     s = state({'f': n})
     for _ in range(2):
         _, p = campaign.choose(s)
@@ -84,6 +91,23 @@ def test_retry_requires_new_measured_evidence_not_logging_changes():
     assert campaign.choose(s) is None
     n['semantic_validation']['counts']['failed'] = 2
     assert campaign.choose(s)[1]['name'] == 'semantic_counterexample'
+
+
+def test_operand_revision_tracks_branch_default_generator(monkeypatch):
+    original_read = Path.read_bytes
+    branch = Path('solver/branch_defaults.py').resolve()
+    current = original_read(branch)
+    monkeypatch.setattr(queue, '_OPERAND_REPAIR_DIGEST', None)
+    baseline = queue.operand_repair_digest()
+
+    def changed_branch(path):
+        data = original_read(path)
+        return data + b'\n# revised generator\n' if path.resolve() == branch else data
+
+    monkeypatch.setattr(Path, 'read_bytes', changed_branch)
+    monkeypatch.setattr(queue, '_OPERAND_REPAIR_DIGEST', None)
+    assert queue.operand_repair_digest() != baseline
+    assert original_read(branch) == current
 
 
 def test_unavailable_is_shared_issue_not_repeated_model_work():

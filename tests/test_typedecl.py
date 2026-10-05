@@ -141,3 +141,69 @@ def test_build_type_locals_produce_no_plan():
 def test_keyword_pointer_locals_are_ignored_by_the_scanner():
     code = 'void f(void) {\n    void *p;\n    p = 0;\n}\n'
     assert typedecl.pointer_locals(code, "f") == []
+
+
+# --- typedefs(): which names a header ALREADY gives to a type ---------------
+#
+# THE DEFECT THESE PIN. `compile_obligations.opaque_variant` re-implemented this check inline as
+# `re.search(r'\btypedef\b[^;]*\bNAME\s*;', header_text)`, which cannot cross a `;` and so cannot see
+# `typedef struct RacePlayer { ... } RacePlayer;` -- the way every real struct is written. It appended the
+# alias anyway and cfe answered `redeclaration of 'RacePlayer'; previous declaration at line 243 in
+# race_player_input.h`, turning 3 of the 17 development states from compiling into uncompilable.
+
+def test_a_typedef_with_a_body_declares_its_alias():
+    """THE MOTIVATING CASE, verbatim from the header the compiler named."""
+    assert typedecl.typedefs("typedef struct RacePlayer { s32 speed; } RacePlayer;") == {
+        "RacePlayer": "RacePlayer"}
+
+
+def test_the_named_and_anonymous_spellings_are_both_read():
+    assert typedecl.typedefs("typedef struct RacePlayer RacePlayer;") == {"RacePlayer": "RacePlayer"}
+    assert typedecl.typedefs("typedef struct { s32 a; } Anon;") == {"Anon": None}
+    assert typedecl.typedefs("typedef unsigned int u32;") == {"u32": None}
+
+
+def test_a_bare_tag_is_not_an_alias():
+    """The repair this must NOT suppress: a header that supplies only `struct X;` leaves `X` unusable as a
+    type name, which is exactly when `typedef struct X X;` is a repair rather than a redeclaration."""
+    assert typedecl.typedefs("struct RacePlayer;") == {}
+    assert typedecl.declared_in("struct RacePlayer;", "RacePlayer") is True
+
+
+def test_the_tag_is_not_reported_as_the_alias():
+    """`typedef struct RacePlayer { ... } Other;` names Other. Conflating the two would suppress the
+    alias repair for every tag-only header in the game."""
+    assert typedecl.typedefs("typedef struct RacePlayer { s32 a; } Other;") == {"Other": "RacePlayer"}
+
+
+def test_several_declarators_in_one_typedef():
+    assert typedecl.typedefs("typedef struct X X, *PX;") == {"X": "X", "PX": "X"}
+
+
+def test_a_commented_out_typedef_declares_nothing():
+    assert typedecl.typedefs("/* typedef struct Fake { } Fake; */\ntypedef struct Real { } Real;") == {
+        "Real": "Real"}
+
+
+def test_a_nested_body_does_not_end_the_statement():
+    """Unions inside structs are how the actor types are written, and a scanner that stops at the first
+    `}` or `;` reads the alias as something else -- the same shape as the brace-depth bug in
+    `source_type_declarations`."""
+    text = "typedef struct A { union { struct { s32 x; } in; } u; s32 y; } A;"
+    assert typedecl.typedefs(text) == {"A": "A"}
+
+
+def test_the_emitter_refuses_to_add_a_declaration_that_redeclares():
+    """The guard that makes "never emit invalid C" decidable without a compiler."""
+    from solver import compile_obligations
+
+    header = "typedef struct RacePlayer { s32 speed; } RacePlayer;"
+    added = [{"type": "RacePlayer", "text": "typedef struct RacePlayer RacePlayer;"}]
+    assert "redeclare the type name 'RacePlayer'" in compile_obligations._redeclaration(
+        added, 'void f(void) {}\n', header)
+    # ...and the same declaration against a TAG-ONLY header is the repair, not a collision.
+    assert compile_obligations._redeclaration(
+        added, 'void f(void) {}\n', "struct RacePlayer;") == ""
+    # A struct tag that is already defined cannot be defined again either.
+    assert "redefine the struct tag" in compile_obligations._redeclaration(
+        [{"text": "struct RacePlayer { s32 a; };"}], "", header)

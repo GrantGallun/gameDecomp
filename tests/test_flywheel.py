@@ -164,7 +164,9 @@ def test_pipeline_uses_the_frozen_pool_without_reloading_live_db(
     from solver import pipeline
 
     captured = {}
-    monkeypatch.setattr(pipeline.kb_context, "for_function", lambda *_: "KB")
+    # **__ because build_prompt now forwards repo=/declarations= to the context builder, and a
+    # stub that pins the old signature fails on the new keywords rather than testing anything.
+    monkeypatch.setattr(pipeline.kb_context, "for_function", lambda *_, **__: "KB")
     monkeypatch.setattr(pipeline, "hints_for_asm", lambda _asm: "HINTS")
     monkeypatch.setattr(
         pipeline.siblings, "verified_sources",
@@ -187,7 +189,7 @@ def test_pipeline_uses_shaped_pool_without_reloading_legacy_context(
     from solver import pipeline
 
     library = {"digest": "shape", "nodes": {}}
-    monkeypatch.setattr(pipeline.kb_context, "for_function", lambda *_: "KB")
+    monkeypatch.setattr(pipeline.kb_context, "for_function", lambda *_, **__: "KB")
     monkeypatch.setattr(pipeline, "hints_for_asm", lambda _asm: "HINTS")
     monkeypatch.setattr(
         pipeline.siblings, "context_block",

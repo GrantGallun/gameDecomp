@@ -346,3 +346,13 @@ def test_public_definition_leaves_file_scope_data_static():
            "}\n")
     out = c89.public_definition(src, "target")
     assert "static s32 gTable[4];" in out
+
+
+def test_register_bindings_are_stripped_but_asm_statements_are_not() -> None:
+    from solver import c89
+    src = ('void f(void) {\n    register u8 *p __asm__("v0");\n'
+           '    register s32 n asm("$a1") = 3;\n    __asm__("nop");\n}\n')
+    out = c89.strip_register_bindings(src)
+    assert "register u8 *p;" in out and "register s32 n = 3;" in out
+    assert '__asm__("nop");' in out, "an inline-assembly statement is forbidden, not repaired"
+    assert c89.to_c89(src).count("__asm__") == 1

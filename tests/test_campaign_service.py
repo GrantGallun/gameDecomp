@@ -51,6 +51,73 @@ sys.exit(1 if s['completed']==1 else 0)
     assert service.read(tmp_path / 'service.json')['status'] == 'finished'
 
 
+def test_split_state_path_drives_checkpoint_and_backup(tmp_path, monkeypatch):
+    control = tmp_path / 'control'
+    state_run = tmp_path / 'state'
+    (control / 'code').mkdir(parents=True)
+    state_run.mkdir()
+    worker = tmp_path / 'worker.py'
+    worker.write_text("""import json,pathlib,sys
+p=pathlib.Path(sys.argv[sys.argv.index('--state')+1])
+s=json.loads(p.read_text());s['completed']+=1
+s['status']='paused_budget' if s['completed']==1 else 'complete'
+p.write_text(json.dumps(s))
+sys.exit(1 if s['completed']==1 else 0)
+""")
+    command = [sys.executable, str(worker), '--state', str(state_run / 'campaign.json'),
+               '--max-work-items', '1000']
+    service.save(control / 'launch.json', {'command': command})
+    service.save(state_run / 'campaign.json', {'completed': 0, 'status': 'paused_budget'})
+    monkeypatch.setattr(service.time, 'sleep', lambda _: None)
+
+    service.supervise(control, 10)
+
+    assert service.read(state_run / 'campaign.json')['completed'] == 2
+    assert service.read(state_run / 'checkpoint.previous.json')['completed'] == 1
+    assert not (control / 'checkpoint.previous.json').exists()
+    assert service.read(control / 'service.json')['status'] == 'finished'
+
+
+def test_health_uses_split_checkpoint(tmp_path):
+    control = tmp_path / 'control'
+    state_run = tmp_path / 'state'
+    control.mkdir()
+    state_run.mkdir()
+    command = ['python', '--state', str(state_run / 'campaign.json'), '--max-work-items', '1000']
+    service.save(control / 'launch.json', {'command': command})
+    service.save(state_run / 'campaign.json', {
+        'status': 'paused_budget',
+        'nodes': {'f': {'status': 'object_exact'}},
+    })
+    service.save(control / 'service.json', {'status': 'stopped'})
+
+    result = service.health(control)
+
+    assert result['states'] == {'object_exact': 1}
+    assert result['status'] == 'stopped'
+
+
+def test_pause_control_is_mirrored_to_split_state_directory(tmp_path):
+    control = tmp_path / 'control'
+    state_run = tmp_path / 'state'
+    control.mkdir()
+    state_run.mkdir()
+    command = ['python', '--state', str(state_run / 'campaign.json'), '--max-work-items', '1000']
+    service.save(control / 'launch.json', {'command': command})
+
+    service.set_paused(control, True)
+
+    assert service.read(control / 'service-control.json')['paused'] is True
+    assert (control / 'service.pause').exists()
+    assert (state_run / 'service.pause').exists()
+
+    service.set_paused(control, False)
+
+    assert service.read(control / 'service-control.json')['paused'] is False
+    assert not (control / 'service.pause').exists()
+    assert not (state_run / 'service.pause').exists()
+
+
 def test_persistent_failure_stops_after_three_workers(tmp_path, monkeypatch):
     (tmp_path / 'code').mkdir()
     worker = tmp_path / 'worker.py'

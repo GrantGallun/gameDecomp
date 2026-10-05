@@ -1513,6 +1513,53 @@ def test_single_precision_convert_arithmetic_and_fcsr_truncation():
     assert result.target.return_values["v0"] == 3
 
 
+def test_cvt_w_s_unsupported_inputs_are_inconclusive_for_all_rounding_modes():
+    assembly = "cvt.w.s f6,f4\nmfc1 v0,f6\njr ra\nnop"
+    program = differential.Program.parse("convert", assembly)
+    # Infinity, NaN, and finite values beyond signed word range all require
+    # conversion exception/FCSR behavior that the runner does not model.
+    for bits in (0x7F800000, 0xFF800000, 0x7FC00000,
+                 0x4F000000, 0xCF000001):
+        for rounding in range(4):
+            case = _case(entry_registers=(("f4", bits),
+                                          ("c1_fcsr", rounding)))
+            run = differential.execute_case(program, case,
+                                            return_registers=("v0",))
+            assert run.status == "unsupported", (bits, rounding, run)
+            assert "cvt.w.s" in run.error
+
+    result = differential.compare_programs(
+        program, program,
+        _case(entry_registers=(("f4", 0x7F800000), ("c1_fcsr", 1))))
+    assert result.status == "inconclusive"
+
+    explored = differential.explore_coverage(
+        assembly,
+        (_case(entry_registers=(("f4", 0x7F800000),
+                                ("c1_fcsr", 1))),),
+        max_cases=1)
+    assert explored.trial_status_counts == {"unsupported": 1}
+    assert explored.execution_obstructions[0]["status"] == "unsupported"
+
+
+def test_cvt_w_s_keeps_finite_in_range_rounding_behavior():
+    program = differential.Program.parse(
+        "convert", "cvt.w.s f6,f4\nmfc1 v0,f6\njr ra\nnop")
+    for bits, expected in (
+        (0x3FC00000, (2, 1, 2, 1)),
+        (0xBFC00000, (-2, -1, -1, -2)),
+        (0x4EFFFFFF, (2147483520,) * 4),
+        (0xCF000000, (-2147483648,) * 4),
+    ):
+        for rounding, converted in enumerate(expected):
+            case = _case(entry_registers=(("f4", bits),
+                                          ("c1_fcsr", rounding)))
+            run = differential.execute_case(program, case,
+                                            return_registers=("v0",))
+            assert run.status == "returned", (bits, rounding, run)
+            assert run.return_values["v0"] == converted & 0xFFFFFFFF
+
+
 def test_d_hex_absolute_symbol_resolves_to_its_linker_value():
     target = """
         lui v0,%hi(D_3FFFF)

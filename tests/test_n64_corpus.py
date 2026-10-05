@@ -103,3 +103,23 @@ def test_build_and_query_index_without_storing_source_bodies(tmp_path, monkeypat
 def sqlite3_connect(path):
     import sqlite3
     return sqlite3.connect(path)
+
+
+def test_a_function_right_after_a_directive_is_extracted():
+    """A `#define` between the last declaration and a function made its header start with `#`,
+    and the function was dropped: 119 SBK1 and 18 SBK2 functions were invisible to the
+    training-data contamination guard (shape of SBK1 initTitleDemoRaceIntro)."""
+    source = (
+        "extern void releaseMenuAssetHandles(void);\n\n"
+        "#define RACE_PLAYER_REPLAY_SNAPSHOT(index) \\n"
+        "    (((RacePlayerReplaySnapshot *)gRacePlayers)[index])\n\n"
+        "void initTitleDemoRaceIntro(void) {\n    RacePlayer *players;\n}\n")
+    (fn,) = n64_corpus.extract_functions(source)
+    assert fn["name"] == "initTitleDemoRaceIntro"
+    assert fn["definition"].startswith("void initTitleDemoRaceIntro")
+
+
+def test_a_function_first_in_a_file_after_includes_is_extracted():
+    source = '#include "common.h"\n#include "task.h"\n\ns32 first(s32 a) {\n    return a;\n}\n'
+    (fn,) = n64_corpus.extract_functions(source)
+    assert fn["name"] == "first" and "#include" not in fn["definition"]

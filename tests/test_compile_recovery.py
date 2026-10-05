@@ -199,8 +199,15 @@ def test_compile_recovery_reapplies_absolute_adapter_to_later_drafts(tmp_path, m
     monkeypatch.setattr(compile_obligations, 'byte_pointer_variant', lambda s,f,a:(s, {}))
     attempt = SimpleNamespace(compiler_recipe={'target':'build/src/f.o'}, frontend={}, compiler_stderr='')
     rows, reports = compile_recovery.variants(None,tmp_path,'f',tmp_path,source,attempt)
-    assert rows[0] == ('absolute-symbols', 'int f(void) { return (int)0x1234; }\n')
-    assert reports[0]['resolved'] == [('D_1234', 0x1234)]
+    # Asserted by MEMBERSHIP, not by index. `source` contains `extern ? D_1234;`, which is m2c's type
+    # placeholder, so the placeholder stage now legitimately offers its own candidate first -- measured
+    # 2026-09-19: this test failed on `rows[0]` purely because a new stage preceded it, which is a
+    # property of the pipeline's order rather than of the absolute-symbol adapter being tested here.
+    # The placeholder variant is ALSO offered and the object decides between them; nothing is replaced.
+    assert ('absolute-symbols', 'int f(void) { return (int)0x1234; }\n') in rows
+    assert ('m2c-type-placeholder',
+            'extern s32 D_1234;\nint f(void) { return (int)&D_1234; }\n') in rows
+    assert any(r.get('resolved') == [('D_1234', 0x1234)] for r in reports)
 
 
 def test_globals_recovery_reuses_evidence_but_never_redeclares_header_globals(tmp_path, monkeypatch):

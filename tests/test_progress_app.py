@@ -82,6 +82,31 @@ def test_service_running_overrides_budget_checkpoint_and_reports_stale_heartbeat
     assert snapshot(tmp_path,now=150)['status']=='heartbeat_delayed'
     (tmp_path/'service.pause').touch()
     assert snapshot(tmp_path,now=150)['status']=='pausing'
+
+
+def test_checkpoint_follows_launch_state_not_the_control_directory_copy(tmp_path, monkeypatch):
+    # Motivating residual: after the 2026-09-20 relocation the dashboard kept reading the control
+    # directory's pre-relocation pointer (commit 23522) while the live one moved on (28382).
+    control, live = tmp_path/'control', tmp_path/'live'
+    control.mkdir(); live.mkdir()
+    stale = {'kind':'campaign-checkpoint-index-v1','commit':1,'health':{'functions':1}}
+    fresh = {'kind':'campaign-checkpoint-index-v1','commit':2,'health':{'functions':7}}
+    (control/'campaign.json').write_text(json.dumps(stale))
+    (live/'campaign.json').write_text(json.dumps(fresh))
+    (control/'service.json').write_text(json.dumps({'status':'paused'}))
+    (control/'launch.json').write_text(json.dumps({'command':['python','--state','../live/campaign.json']}))
+    assert progress_app.checkpoint_dir(control).resolve() == live.resolve()
+    value = snapshot(control, now=0)
+    assert value['commit'] == 2 and value['functions'] == 7
+    (control/'launch.json').write_text(json.dumps({'command':['python','--state','/home/x/run/campaign.json']}))
+    real = progress_app.os.name
+    if real == 'posix':                                 # a POSIX path can only be built on a POSIX host
+        assert str(progress_app.checkpoint_dir(control)) == '/home/x/run'
+    monkeypatch.setattr(progress_app.os, 'name', 'nt')
+    with pytest.raises(RuntimeError, match='WSL-side'):
+        progress_app.checkpoint_dir(control)            # never silently fall back to the stale copy
+
+
 def test_gpu_telemetry_and_missing_driver(monkeypatch):
     from eval import progress_app
     from types import SimpleNamespace
@@ -144,3 +169,48 @@ def test_a_replaced_shorter_log_resets_the_history(tmp_path):
     _log(path, [{'function': 'a', 'score': 5.0}])
     rows = recent_results(path, history=history)
     assert rows[0]['previous_score'] is None and [s for _, s in history.scores['a']] == [5.0]
+
+
+def test_bounded_runner_overrides_paused_supervisor_and_uses_its_log(tmp_path, monkeypatch):
+    frontier = tmp_path/'frontier'
+    batch = frontier/'batch-0002'
+    batch.mkdir(parents=True)
+    (tmp_path/'campaign.json').write_text(json.dumps({
+        'kind':'campaign-checkpoint-index-v1', 'commit':42, 'updated_at':99,
+        'health':{'functions':20}, 'fast_metrics':{'completed_items':30}}))
+    (tmp_path/'service.json').write_text(json.dumps({'status':'paused'}))
+    (tmp_path/'service.pause').touch()
+    (frontier/'progress.json').write_text(json.dumps({'status':'running', 'completed_batches':1}))
+    _log(tmp_path/'pipeline.log', [{'function':'old', 'score':10}])
+    _log(batch/'canary-controller.log', [{'function':'current', 'score':90}])
+    monkeypatch.setattr(progress_app, 'frontier_running', lambda path: True)
+    value = snapshot(tmp_path, now=100, frontier=frontier)
+    assert value['status'] == 'running' and value['mode'] == 'deterministic_frontier'
+    assert value['commit'] == 42 and value['metrics']['completed_items'] == 30
+    assert value['recent'][0]['function'] == 'current'
+    assert value['completed_batches'] == 1
+    monkeypatch.setattr(progress_app, 'frontier_running', lambda path: False)
+    assert snapshot(tmp_path, now=100, frontier=frontier)['status'] == 'needs_repair'
+    (frontier/'progress.json').write_text(json.dumps({'status':'failed', 'error':'worker failed'}))
+    assert snapshot(tmp_path, frontier=frontier)['error'] == 'worker failed'
+
+
+def test_changing_batch_logs_does_not_mix_score_offsets(tmp_path):
+    history = progress_app.ScoreHistory()
+    first, second = tmp_path/'first.log', tmp_path/'second.log'
+    _log(first, [{'function':'a','score':10}])
+    recent_results(first, history=history)
+    _log(second, [{'function':'a','score':20}, {'function':'a','score':30}])
+    rows = recent_results(second, history=history)
+    assert [(r['score'],r['previous_score']) for r in rows] == [(30,20),(20,None)]
+
+
+@pytest.mark.skipif(progress_app.os.name != 'posix', reason='runner uses WSL file locks')
+def test_runner_status_uses_live_lock_not_stale_progress(tmp_path):
+    import fcntl
+    lock = tmp_path/'frontier.lock'
+    with lock.open('wb') as held:
+        assert not progress_app.frontier_running(tmp_path)
+        fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        assert progress_app.frontier_running(tmp_path)
+    assert not progress_app.frontier_running(tmp_path)

@@ -212,3 +212,49 @@ def test_ordering_counts_as_repairable():
     s = signals.Signals(ordering=3)
     assert s.repairable == 3
     assert s.no_repair_implemented == 0 and s.unrepairable == 0
+
+
+# --- branch targets displaced by insertions elsewhere (2026-09-29) ----------
+
+from pathlib import Path
+
+MODE28 = (Path(__file__).parent / "fixtures" / "branch_shift_mode28.diff").read_text()
+
+
+def test_line_map_follows_insertions_in_real_diff():
+    # updateRacePlayerMode28TerrainFallWithItemEffect, attempt 283997: the
+    # candidate has 23 more instructions ahead of the shared exit block, which
+    # sits at 0x41c in the target and 0x490 in the candidate.
+    lmap = signals.line_map(MODE28)
+    assert lmap.get(0x41c // 4) == 0x490 // 4
+
+
+def test_shifted_branches_fire_on_motivating_residual():
+    # The pass must FIRE on the residual it was written for, not just decline.
+    s = signals.analyse(MODE28, 82.0, False, True)
+    assert signals.label_equivalent("b    41c", "b    490", signals.line_map(MODE28))
+    assert s.branch_shift >= 3          # three `b 41c` -> `b 490` exits at least
+    old = s.structural + s.branch_shift
+    assert s.structural < old
+
+
+def test_branch_to_a_different_instruction_stays_structural():
+    diff = "\n".join(["--- t", "+++ c", "@@ -1,4 +1,4 @@",
+                      " addiu sp,sp,-0x18", "-beqz a0,c", "+beqz a0,8",
+                      " nop", " jr ra", " nop"])
+    s = signals.analyse(diff)
+    assert s.structural == 1 and s.branch_shift == 0
+
+
+def test_branch_shift_with_other_condition_register_is_regalloc():
+    diff = "\n".join(["--- t", "+++ c", "@@ -1,4 +1,5 @@",
+                      "-bnez t0,c", "+bnez t6,10", "+nop",
+                      " nop", " addiu v0,zero,1", " jr ra"])
+    s = signals.analyse(diff)
+    assert s.regalloc == 1 and s.branch_shift == 0
+
+
+def test_no_hunk_header_keeps_conservative_reading():
+    assert signals.line_map("-b 41c\n+b 490") is None
+    s = signals.analyse("--- t\n+++ c\n-b    41c\n+b    490")
+    assert s.branch_shift == 0

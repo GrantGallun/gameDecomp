@@ -93,3 +93,44 @@ def test_audit_detects_unlogged_result_artifact(tmp_path):
 
     assert not result["clean"]
     assert result["result_artifact_heldout"] == ["freshD"]
+
+
+def _multi_tu_database() -> sqlite3.Connection:
+    conn = sqlite3.connect(":memory:")
+    refine.ensure_schema(conn)
+    address = 1
+    for tu_id in range(1, 7):
+        conn.execute("INSERT INTO tus (id,name) VALUES (?,?)", (tu_id, f"src/unit{tu_id}.c"))
+        for index in range(4):
+            conn.execute(
+                "INSERT INTO functions (addr,name,tu_id,insn_count,is_leaf,state) "
+                "VALUES (?,?,?,10,1,'asm')", (address, f"fn{tu_id}_{index}", tu_id))
+            address += 1
+    conn.commit()
+    return conn
+
+
+def test_tu_disjoint_split_never_puts_one_unit_on_both_sides(tmp_path):
+    conn = _multi_tu_database()
+    sets_dir = tmp_path / "eval" / "sets"
+    sets_dir.mkdir(parents=True)
+    manifest = clean_set.freeze(conn, project_root=tmp_path, sets_dir=sets_dir,
+                                out=sets_dir / "new.json", per_stratum=4, seed=3,
+                                tu_disjoint=True)
+    unit = lambda name: "src/unit" + name[2:name.index("_")] + ".c"
+    dev_units = {unit(r["function"]) for r in manifest["dev"]}
+    held_units = {unit(r["function"]) for r in manifest["heldout"]}
+    assert manifest["dev"] and manifest["heldout"]
+    assert not dev_units & held_units
+    assert held_units <= set(manifest["heldout_tus"])
+    assert manifest["policy"]["split"] == "tu-disjoint"
+    assert clean_set.audit(conn, manifest, project_root=tmp_path)["clean"]
+
+
+def test_default_split_manifest_shape_is_unchanged(tmp_path):
+    sets_dir = tmp_path / "eval" / "sets"
+    sets_dir.mkdir(parents=True)
+    manifest = clean_set.freeze(_multi_tu_database(), project_root=tmp_path,
+                                sets_dir=sets_dir, out=sets_dir / "new.json",
+                                per_stratum=2, seed=3)
+    assert "heldout_tus" not in manifest and "split" not in manifest["policy"]

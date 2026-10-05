@@ -46,6 +46,23 @@ def test_full_hash_detects_same_size_restored_mtime_and_nonfiles(tmp_path):
         frozen_wavefront.verify_files(pins)
 
 
+def test_transient_read_failure_is_retried_but_real_change_is_not_masked(tmp_path, monkeypatch):
+    path = tmp_path/'input'; path.write_bytes(b'original')
+    pins = {str(path):hashlib.sha256(path.read_bytes()).hexdigest()}
+    real_open, failures = os.open, []
+    def flaky(name, *args, **kwargs):
+        if str(name) == str(path) and not failures:
+            failures.append(name)
+            raise OSError(5, 'Input/output error')
+        return real_open(name, *args, **kwargs)
+    monkeypatch.setattr(frozen_wavefront.os, 'open', flaky)
+    frozen_wavefront.verify_files(pins, retry_delay=0)
+    assert failures
+    path.write_bytes(b'modified')
+    with pytest.raises(frozen_wavefront.FrozenInputChanged):
+        frozen_wavefront.verify_files(pins, retry_delay=0)
+
+
 @pytest.mark.skipif(os.name=='nt',reason='symlink/FIFO behavior validated on WSL')
 def test_full_hash_checks_symlink_target_and_rejects_fifo_without_blocking(tmp_path):
     target = tmp_path/'target'; target.write_bytes(b'original')

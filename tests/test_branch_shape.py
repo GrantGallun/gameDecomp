@@ -256,6 +256,21 @@ def test_at_inline_accepts_a_constant_propagated_path_and_declines_unrelated_for
     assert not list(branch_shape.at_inline(other, "f"))
 
 
+def test_at_inline_declines_a_declared_but_never_assigned_var_at():
+    # updateCourseSelectPlayerPanels (2026-09-29 fire test): no statement assigns var_at, and max() over no
+    # expressions raised, which aborted every branch-shape family for the function.
+    src = """void f(s32 arg0) {
+    s32 var_at;
+
+    if ((var_at = arg0 < 3) != 0) {
+        g();
+    }
+}
+"""
+    assert list(branch_shape.at_inline(src, "f")) == []
+    list(branch_shape.variants(src, "f", ""))    # the whole chain must survive it
+
+
 # __osSetGlobalIntMask best node (restart round 3, 75.833) and its diff's gate lines: the target saves s0 and keeps
 # the __osDisableInt result there; the candidate stores it to the stack.
 SET_MASK = """extern s32 __OSGlobalIntMask;

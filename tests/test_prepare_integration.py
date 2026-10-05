@@ -26,6 +26,35 @@ def test_extern_obligations_preserved_at_replaced_function():
         prep.candidate_parts(candidate, 'f')
 
 
+def test_plain_prototypes_become_extern_declarations():
+    # addMainMenuSceneModelDrawCallback (object-exact, 2026-09-14) was blocked only by this line.
+    candidate = ('#include "common.h"\nvoid drawMainMenuSceneModel(void *);\nstruct Foo *makeFoo(s32, u8 (*)(void));\n'
+                 'extern s32 gCount;\nvoid f(void) { drawMainMenuSceneModel(0); }\n')
+    _body, includes, declarations = prep._candidate_components(candidate, 'f')
+    assert includes == ['common.h']
+    assert declarations == ['extern s32 gCount;', 'extern void drawMainMenuSceneModel(void *);',
+                            'extern struct Foo *makeFoo(s32, u8 (*)(void));']
+
+
+def test_converted_prototype_yields_to_a_destination_declaration_but_explicit_externs_stay():
+    original = ('#include "common.h"\nvoid f(void) {}\n'
+                'void initTrainingCourseEndingDialog(TrainingCourseUiActor *arg0) {}\n')
+    candidate = ('void initTrainingCourseEndingDialog(void *);\nvoid helperUnknownToTu(void);\nextern s16 gMenuFadeAlpha;\n'
+                 'void f(void) { initTrainingCourseEndingDialog(0); helperUnknownToTu(); }\n')
+    replaced = prep.replace_function(original, candidate, 'f')
+    # Defined later in the destination TU: the m2c guess would conflict, so it yields.
+    assert 'extern void initTrainingCourseEndingDialog(void *);' not in replaced
+    # Unknown to the destination: the candidate's declaration is still needed; explicit externs stay.
+    assert 'extern s16 gMenuFadeAlpha;\nextern void helperUnknownToTu(void);\nvoid f(void) {' in replaced
+
+
+@pytest.mark.parametrize('extra', ['static void helper(void);', 'void (*callback)(void);',
+                                   'typedef void handler(void);', 'struct Foo { int x; };'])
+def test_non_prototype_declarations_still_block(extra):
+    with pytest.raises(ValueError, match='shared declaration'):
+        prep._candidate_components(extra + '\nvoid f(void) {}\n', 'f')
+
+
 @pytest.fixture
 def extern_frontend(tmp_path, monkeypatch):
     import shutil
@@ -112,3 +141,88 @@ def test_source_and_attempt_bound_preparation(tmp_path):
     candidate.write_text("int f(void) {return 2;}\n")
     with pytest.raises(ValueError, match="source-bound"):
         prep.prepare(repo=repo, db=db, entries=[entry], output_dir=tmp_path / "stale")
+
+
+ACTOR = ('typedef struct ExampleActor {\n    /* 0x00 */ u8 pad0[0x18];\n    /* 0x18 */ s16 alpha;\n} ExampleActor;\n')
+
+
+def test_candidate_typedefs_and_macros_are_carried_into_the_destination():
+    # Fires on the 2026-09-30 residual: func_8005CF60 / func_8005C14C were function-exact but
+    # blocked only by a local `typedef struct ... Actor;` and `#define label D_800E...` aliases.
+    original = '#include "common.h"\nint before(void) {return 2;}\nvoid f(void) {}\n'
+    candidate = ('#include "common.h"\n' + ACTOR + '#define gLabel D_800E139C\nextern char D_800E139C[];\n'
+                 'void f(ExampleActor *a) { a->alpha = gLabel[0]; }\n')
+    body, includes, declarations, preamble = prep._candidate_split(candidate, 'f')
+    assert [b.split('\n')[0] for b in preamble] == ['typedef struct ExampleActor {', '#define gLabel D_800E139C']
+    replaced = prep.replace_function(original, candidate, 'f')
+    assert replaced.index('typedef struct ExampleActor') < replaced.index('extern char D_800E139C[];') < replaced.index('void f(ExampleActor')
+    assert replaced.count('ExampleActor;') == 1 and 'int before(void) {return 2;}' in replaced
+    # the context-free readiness check still refuses: admission needs the frontend and the ROM gate
+    for path in (prep._candidate_components, prep.candidate_parts):
+        with pytest.raises(ValueError, match='shared declaration'):
+            path(candidate, 'f')
+
+
+def test_identical_preamble_yields_and_a_second_function_does_not_redefine_it():
+    candidate = '#include "common.h"\n' + ACTOR + 'void f(ExampleActor *a) { a->alpha = 1; }\n'
+    other = '#include "common.h"\n' + ACTOR + 'void g(ExampleActor *a) { a->alpha = 2; }\n'
+    original = '#include "common.h"\nvoid f(void) {}\nvoid g(void) {}\n'
+    once = prep.replace_function(original, candidate, 'f')
+    twice = prep.replace_function(once, other, 'g')
+    assert twice.count('} ExampleActor;') == 1
+    assert prep.replace_function(once, candidate, 'f') == once        # the destination already states it
+
+
+def test_same_name_different_definition_declines_rather_than_merging():
+    original = '#include "common.h"\ntypedef struct { s32 alpha; } ExampleActor;\n#define gLabel 5\nvoid f(void) {}\n'
+    with pytest.raises(ValueError, match='conflicts'):
+        prep.replace_function(original, '#include "common.h"\n' + ACTOR + 'void f(ExampleActor *a) {}\n', 'f')
+    with pytest.raises(ValueError, match='conflicts'):
+        prep.replace_function(original, '#define gLabel 6\nvoid f(void) { gLabel; }\n', 'f')
+
+
+@pytest.mark.parametrize('extra', ['typedef struct Foo *FooPtr;', 'typedef int Vec[3];',
+                                   'typedef struct { int x; } A, *B;', '#define MACRO(x) ((x) + 1)',
+                                   '#define STR "text"', 'typedef struct { int x; } Open'])
+def test_unadmitted_file_scope_shapes_still_block(extra):
+    with pytest.raises(ValueError, match='shared declaration'):
+        prep._candidate_components(extra + '\nvoid f(void) {}\n', 'f')
+    with pytest.raises(ValueError):
+        prep.replace_function('void f(void) {}\n', extra + '\nvoid f(void) {}\n', 'f')
+
+
+def test_frontend_probe_sees_the_preamble_so_prototypes_over_local_types_admit(extern_frontend):
+    # updateEndingObjectSpriteDebugViewer: `void draw...(LocalActor *);` names a type only the candidate defines.
+    preamble = ['typedef struct A { int x; } LocalActor;']
+    report = prep.check_extern_declarations(repo=extern_frontend, target='build/f.o', includes=['types.h'],
+                                            declarations=['extern void draw(LocalActor *);'], preamble=preamble)
+    assert [r['name'] for r in report['declarations']] == ['draw']
+    with pytest.raises(ValueError):
+        prep.check_extern_declarations(repo=extern_frontend, target='build/f.o', includes=['types.h'],
+                                       declarations=['extern void draw(LocalActor *);'])
+    with pytest.raises(ValueError):   # a preamble that clashes with a header type is caught before the ROM build
+        prep.check_extern_declarations(repo=extern_frontend, target='build/f.o', includes=['types.h'],
+                                       declarations=[], preamble=['typedef struct { int y; } OSThread;'])
+
+
+def test_tu_owned_string_objects_are_admitted_as_data_and_yield_or_decline_on_name():
+    # Fires on the 2026-09-30 residual: func_8005A884 / func_8005CF60 / func_8005C14C define
+    # `const char gRaceUi...Format[4] = "%d";` at file scope. The text is data, so placement is left to the ROM gate.
+    candidate = ('#include "common.h"\nconst char gFmt[4] = "%4d";\nconst char gLabel[0xC] = "a \\"b\\" c";\n'
+                 'void f(void) { puts(gFmt); puts(gLabel); }\n')
+    _body, _includes, _declarations, preamble = prep._candidate_split(candidate, 'f')
+    assert preamble == ['const char gFmt[4] = "%4d";', 'const char gLabel[0xC] = "a \\"b\\" c";']
+    replaced = prep.replace_function('#include "common.h"\nvoid f(void) {}\n', candidate, 'f')
+    assert replaced.index('const char gFmt[4]') < replaced.index('const char gLabel') < replaced.index('void f(void) { puts')
+    assert prep.replace_function(replaced, candidate, 'f') == replaced         # identical: yields, not duplicated
+    with pytest.raises(ValueError, match='conflicts'):
+        prep.replace_function('extern char gFmt[];\nvoid f(void) {}\n', candidate, 'f')
+    with pytest.raises(ValueError, match='shared declaration'):
+        prep._candidate_components(candidate, 'f')
+
+
+@pytest.mark.parametrize('extra', ['const char gFmt[4] = "%4d" "x";', 'char gFmt[4] = "%4d";', 'const s32 gTable[2] = {1, 2};',
+                                   'const char *gFmt = "%4d";', 'const char gFmt[4] = "%4d", gOther[2] = "a";'])
+def test_other_file_scope_data_still_blocks(extra):
+    with pytest.raises(ValueError, match='shared declaration'):
+        prep._candidate_split(extra + '\nvoid f(void) {}\n', 'f')

@@ -9,6 +9,8 @@ is unrecoverable. These tests pin the fix.
 """
 import sqlite3
 import hashlib
+import json
+import subprocess
 
 import pytest
 
@@ -49,6 +51,134 @@ def test_score_accepts_optional_metadata_and_preserves_evidence(monkeypatch, tmp
         assert recorded[0]['extra']['frontend'] == report
     if extra:
         assert recorded[0]['extra']['normalization'] == 'c89'
+
+
+@pytest.mark.parametrize('stage', ['compiler-recipe', 'source-attribution', 'candidate-source', 'build'])
+def test_compiler_infrastructure_failure_is_logged_before_original_exception(conn, monkeypatch, tmp_path, stage):
+    from solver import compiler_recipe, source_attribution
+    recipe = {'target': 'build/src/f.o', 'command': ['cc', '-O2']}
+    failure = (subprocess.TimeoutExpired('candidate build', 300, output=b'partial stdout',
+                                       stderr=b'partial stderr') if stage == 'build'
+               else ValueError('compiler setup witness'))
+    called = []
+    def fail(*args, **kwargs):
+        raise failure
+    monkeypatch.setattr(compiler_recipe, 'prepare', fail if stage == 'compiler-recipe'
+                        else lambda *a: (tmp_path / 'build.sh', recipe))
+    monkeypatch.setattr(source_attribution, 'prepare', fail if stage == 'source-attribution'
+                        else lambda ws, name, script: script)
+    monkeypatch.setattr(workspace, '_candidate_compile_source', fail if stage == 'candidate-source'
+                        else lambda repo, code: code)
+    def build(*args, **kwargs):
+        called.append('build')
+        return fail()
+    monkeypatch.setattr(workspace, 'sh', build)
+    source = 'int someFunc(void) { return 1; }'
+    parent = workspace.record_attempt(conn, 'someFunc', 'parent', _att(), run_id='compiler-failure')
+    with pytest.raises(type(failure)) as raised:
+        workspace.score(tmp_path, tmp_path, 'candidate', source, conn=conn, func='someFunc',
+                        strategy='test-compiler', run_id='compiler-failure', parent_attempt_id=parent,
+                        extra={'hypothesis': 'preserve me', 'training_eligible': True})
+    assert raised.value is failure
+    rows = conn.execute('SELECT id,source_code,source_sha256,compiled,exact,score,sampling,compiler_stderr '
+                        'FROM attempts WHERE strategy=?', ('test-compiler',)).fetchall()
+    assert len(rows) == 1, 'failed setup must leave exactly one durable attempt'
+    receipt_id, saved, digest, compiled, exact, score, sampling, stderr = rows[0]
+    assert saved == source and digest == hashlib.sha256(source.encode()).hexdigest()
+    assert (compiled, exact, score) == (0, 0, 0.0)
+    evidence = json.loads(sampling)
+    assert evidence['hypothesis'] == 'preserve me'
+    assert evidence['training_eligible'] is False
+    fault = evidence['compiler_failure']
+    assert fault['stage'] == stage
+    assert fault['source_sha256'] == digest
+    assert fault['build_invoked'] == (stage == 'build')
+    assert fault['compiler_invocations'] == (None if stage == 'build' else 0)
+    assert fault['exception_type'] == type(failure).__name__
+    assert called == (['build'] if stage == 'build' else [])
+    if stage == 'build':
+        assert 'partial stdout' in stderr and 'partial stderr' in stderr
+    if stage != 'compiler-recipe':
+        assert evidence['compiler_recipe'] == recipe
+    assert conn.execute('SELECT parent_attempt_id,child_attempt_id FROM attempt_edges '
+                        'WHERE child_attempt_id=?', (receipt_id,)).fetchone() == (parent, receipt_id)
+
+
+def test_object_backend_failure_retains_resolved_evidence_and_does_not_run_build(conn, monkeypatch, tmp_path):
+    from solver import compiler_recipe
+    failure = compiler_recipe.ObjectBackendRequired('build/src/menu/race_setup/race_setup_menu.o',
+        {'C_OBJ_POSTPROCESS': 'python3 tools/trim_elf_section_tail.py target.o .data 16',
+         'ASFLAGS': '-mips3 -mabi=32'}, 'makefile-pin', 'projection-pin')
+    def fail(*args):
+        raise failure
+    monkeypatch.setattr(compiler_recipe, 'prepare', fail)
+    monkeypatch.setattr(workspace, 'sh', lambda *a, **kw: pytest.fail('backend stop must precede build'))
+    with pytest.raises(compiler_recipe.ObjectBackendRequired) as raised:
+        workspace.score(tmp_path, tmp_path, 'candidate', 'int someFunc(void) { return 0; }',
+                        conn=conn, func='someFunc')
+    assert raised.value is failure
+    saved = json.loads(conn.execute('SELECT sampling FROM attempts').fetchone()[0])
+    assert saved['compiler_failure']['evidence'] == failure.evidence
+    assert saved['compiler_failure']['compiler_invocations'] == 0
+
+
+@pytest.mark.parametrize('failure', [FileNotFoundError('compiler unavailable'),
+                                    OSError('cannot launch helper')])
+def test_build_launch_failure_is_logged_and_rethrown(conn, monkeypatch, tmp_path, failure):
+    from solver import compiler_recipe, source_attribution
+    monkeypatch.setattr(compiler_recipe, 'prepare', lambda *a: None)
+    monkeypatch.setattr(source_attribution, 'prepare', lambda ws, name, script: script)
+    monkeypatch.setattr(workspace, '_candidate_compile_source', lambda repo, code: code)
+    def fail(*args, **kwargs):
+        raise failure
+    monkeypatch.setattr(workspace, 'sh', fail)
+    with pytest.raises(OSError) as raised:
+        workspace.score(tmp_path, tmp_path, 'candidate', 'bad source', conn=conn, func='someFunc')
+    assert raised.value is failure
+    assert conn.execute('SELECT COUNT(*) FROM attempts').fetchone()[0] == 1
+    assert conn.execute('SELECT compiled,exact FROM attempts').fetchone() == (0, 0)
+
+
+@pytest.mark.parametrize('failure', [RuntimeError('compiler controller failed'),
+                                    sqlite3.OperationalError('identity query failed')])
+def test_unexpected_setup_failure_is_logged_without_changing_exception(conn, monkeypatch, tmp_path, failure):
+    from solver import compiler_recipe
+    def fail(*args):
+        raise failure
+    monkeypatch.setattr(compiler_recipe, 'prepare', fail)
+    with pytest.raises(type(failure)) as raised:
+        workspace.score(tmp_path, tmp_path, 'candidate', 'source', conn=conn, func='someFunc')
+    assert raised.value is failure
+    assert conn.execute('SELECT COUNT(*) FROM attempts').fetchone()[0] == 1
+
+
+def test_receipt_write_failure_does_not_mask_original_backend_stop(conn, monkeypatch, tmp_path):
+    from solver import compiler_recipe
+    failure = compiler_recipe.ObjectBackendRequired('build/src/f.o',
+        {'C_OBJ_POSTPROCESS': 'unsupported', 'ASFLAGS': '-mips3'}, 'make-pin', 'projection-pin')
+    def fail(*args):
+        raise failure
+    def log_failure(*args, **kwargs):
+        raise sqlite3.OperationalError('database is locked')
+    monkeypatch.setattr(compiler_recipe, 'prepare', fail)
+    monkeypatch.setattr(workspace, 'record_attempt', log_failure)
+    with pytest.raises(compiler_recipe.ObjectBackendRequired) as raised:
+        workspace.score(tmp_path, tmp_path, 'candidate', 'source', conn=conn, func='someFunc')
+    assert raised.value is failure
+    assert any('receipt could not be recorded' in note and 'database is locked' in note
+               for note in failure.__notes__)
+
+
+@pytest.mark.parametrize('failure', [KeyboardInterrupt(), SystemExit(2)])
+def test_process_interrupts_keep_their_behavior_without_becoming_compiler_failures(monkeypatch, tmp_path, failure):
+    from solver import compiler_recipe
+    def fail(*args):
+        raise failure
+    monkeypatch.setattr(compiler_recipe, 'prepare', fail)
+    monkeypatch.setattr(workspace, 'record_attempt', lambda *a, **kw: pytest.fail('interrupt is not compiler failure'))
+    with pytest.raises(type(failure)) as raised:
+        workspace.score(tmp_path, tmp_path, 'candidate', 'source', conn=object(), func='someFunc')
+    assert raised.value is failure
 
 
 @pytest.fixture

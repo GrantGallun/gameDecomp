@@ -81,9 +81,27 @@ def test_work_is_ranked_by_owned_residual_not_by_score(spec):
 # --- the loop -----------------------------------------------------------------
 
 class FakeGenerator:
+    """Implements the `draw` contract, so the control-flow tests exercise the same path
+    the real generator does -- including the role of each request and the lineage it
+    implies. The old `sample`-only fake is kept as a fallback in the factory, but a fake
+    that cannot express a repair cannot test one."""
+
     def __init__(self, scripts):
         self.scripts = list(scripts)
         self.prompts = []
+        self.roles = []
+        self.refusals = 0
+        self.errors = []
+        self.dropped = 0
+        self.raw_heads = []
+
+    def draw(self, prompt, n, temperature, *, role="independent", deadline=None):
+        self.prompts.append(prompt)
+        self.roles.append(role)
+        batch = self.scripts.pop(0) if self.scripts else []
+        source = tf.RepairState(source=batch[0], compiled=True, attempt_id=7) if role == "repair" else None
+        return [tf.Proposal(source=s, prompt=prompt, action=role, parent=source)
+                for s in batch[:n]]
 
     def sample(self, prompt, n, temperature):
         self.prompts.append(prompt)
@@ -97,20 +115,27 @@ class FakeScorer:
         self.scores = list(scores)
         self.calls = []
 
-    def score(self, func, source, parent_attempt_id):
+    def score(self, func, proposal, parent_attempt_id=None):
         index = len(self.calls)
-        self.calls.append({"func": func, "source": source, "parent": parent_attempt_id})
+        source = proposal.source if not isinstance(proposal, str) else proposal
+        parent = (proposal.parent.attempt_id if not isinstance(proposal, str)
+                  and proposal.parent is not None else parent_attempt_id)
+        action = "independent" if isinstance(proposal, str) else proposal.action
+        self.calls.append({"func": func, "source": source, "parent": parent,
+                           "action": action})
         entry = self.scores[min(index, len(self.scores) - 1)]
         return {"compiled": entry.get("compiled", True), "score": entry["score"],
                 "exact": entry.get("exact", False), "source": source,
                 "attempt_id": 1000 + index, "faults": entry.get("faults", {"layout": 1}),
-                "diff": entry.get("diff", "")}
+                "diff": entry.get("diff", ""), "action": action}
 
 
 def _factory(scripts, scores, **kwargs) -> tuple[tf.Factory, FakeScorer, FakeGenerator]:
     scorer, generator = FakeScorer(scores), FakeGenerator(scripts)
     factory = tf.Factory(generator=generator, scorer=scorer,
-                         context_for=lambda func: {"draft": "void f(void){}", "prompt": "# target"},
+                         context_for=lambda func: {"draft": "void f(void){}",
+                                                   "asm": "glabel f\nendlabel f",
+                                                   "prompt": "# target"},
                          normalizer=lambda source: (source, []), **kwargs)
     return factory, scorer, generator
 
@@ -121,33 +146,60 @@ ITEM = {"name": "tractable", "addr": 4096, "best_score": 50.0, "best_attempt_id"
 
 
 def test_every_candidate_is_linked_to_the_attempt_it_refines():
-    """Attempts without parentage are not a trajectory, and the KB already has that problem."""
+    """An independent best-of-N draw has NO candidate parent; a repair has the state's.
+
+    The first version asserted `[7, 7]` -- the seed attempt as parent of both draws --
+    while the prompt was the unchanged leaf prompt. That is a lineage claim the model was
+    never shown, and it is the defect the September 19 review reproduced.
+    """
     factory, scorer, _ = _factory([["a", "b"]], [{"score": 60.0}, {"score": 55.0}],
                                   rounds=1, samples=2)
     factory.run_function(dict(ITEM), [10])
-    assert [call["parent"] for call in scorer.calls] == [7, 7]
+    assert [call["parent"] for call in scorer.calls] == [None, None]
+    assert [call["action"] for call in scorer.calls] == ["independent", "independent"]
 
 
 def test_an_improving_candidate_becomes_the_parent_of_the_next_round():
-    factory, scorer, _ = _factory(
+    """The improvement changes the NEXT request -- which is now an actual repair prompt."""
+    factory, scorer, generator = _factory(
         [["a"], ["b"]],
         [{"score": 70.0, "faults": {"layout": 1}}, {"score": 75.0, "faults": {"layout": 0}}],
         rounds=2, samples=1)
     outcome = factory.run_function(dict(ITEM), [10])
-    assert [call["parent"] for call in scorer.calls] == [7, 1000]
+    assert [call["action"] for call in scorer.calls] == ["independent", "repair"]
+    # Round 0's draw is a root. Round 1 repairs the winner of round 0.
+    assert scorer.calls[0]["parent"] is None
+    assert scorer.calls[1]["parent"] == 1000
+    assert generator.roles == ["independent", "repair"]
     assert outcome.improving == 2 and outcome.best_after == 75.0 and outcome.improved
+    assert outcome.improving_children == 2
 
 
-def test_a_round_that_does_not_improve_keeps_the_branch_and_re_asks_the_same_question():
-    """Best-of-N, on the project's own measurement that refinement rescued zero while resampling
-    gave 87%, 82% and 100%. A flat round does not change the prompt and does not discard the best."""
+def test_a_round_that_does_not_improve_keeps_the_branch_and_asks_the_best_state():
+    """A flat round does not discard the best attempt, and it does not go back to the draft.
+
+    The old test asserted `len(set(generator.prompts)) == 1` -- "the prompt is not
+    rewritten" -- which was true and was the bug: an unchanged prompt labelled as a
+    refinement of a changing parent.
+    """
     factory, scorer, generator = _factory([["a"], ["b"], ["c"]],
                                           [{"score": 70.0}, {"score": 60.0}, {"score": 60.0}],
                                           rounds=3, samples=1)
     outcome = factory.run_function(dict(ITEM), [10])
-    assert scorer.calls[1]["parent"] == 1000, "the flat round still refines the best attempt"
-    assert len(set(generator.prompts)) == 1, "the prompt is the project's and is not rewritten"
+    assert scorer.calls[0]["parent"] is None
+    assert [call["parent"] for call in scorer.calls[1:]] == [1000, 1001], \
+        ("every later round repairs the state the prompt was built from: round 2 repairs "
+         "1000, and because its 60-point candidate still outranks the 50-point baseline it "
+         "becomes the state round 3 repairs")
+    assert generator.roles == ["independent", "repair", "repair"]
     assert outcome.improving == 1 and outcome.best_after == 70.0
+    # Each round asks its own state's question, and no round re-asks the draft prompt.
+    assert len(set(generator.prompts)) == 3
+    assert generator.prompts[0] != generator.prompts[1] != generator.prompts[2]
+    assert "TARGET ASSEMBLY" in generator.prompts[1]
+    # Round 1 repairs the 70 (receipt 1000); round 2 repairs the 60 (receipt 1001), because
+    # 60 still clears the 50-point baseline and therefore becomes the state.
+    assert [call["parent"] for call in scorer.calls[1:]] == [1000, 1001]
 
 
 def test_an_exact_candidate_ends_the_function_after_its_batch_is_scored():
@@ -267,7 +319,19 @@ def test_a_refusing_target_is_reported_as_a_target_problem_not_a_yield_of_zero()
     assert "target-selection problem" in summary["note"]
 
 
-def test_refusals_are_counted_separately_from_attempts():
+def test_refusals_are_counted_separately_from_attempts_and_consume_the_budget():
+    """A refused call is a spent call.
+
+    The refusal used to cost nothing: the round returned nothing usable and the factory moved
+    on, so a target that refuses every draw could absorb an unbounded number of model calls
+    while the run reported a budget it had not actually kept. The population is still counted
+    separately -- its cure is a different function, not a better candidate -- but it is not
+    free.
+
+    The fake here implements `sample` (the pre-receipt contract) and returns one EMPTY STRING
+    per call, which is what a refusal looks like once extraction has run: a call was made, and
+    there is no C. Each empty string is therefore one spent call.
+    """
     class Refusing:
         refusals = 0
         errors: list = []
@@ -276,15 +340,17 @@ def test_refusals_are_counted_separately_from_attempts():
 
         def sample(self, prompt, n, temperature):
             self.refusals += n
-            return []
+            return ["" for _ in range(n)]
 
     factory = tf.Factory(generator=Refusing(), scorer=FakeScorer([{"score": 60.0}]),
                          context_for=lambda f: {"prompt": "p"},
                          normalizer=lambda s: (s, []), rounds=1, samples=3)
-    outcome = factory.run_function(dict(ITEM), [10])
-    assert outcome.refusals == 3 and outcome.attempts == 0
+    budget = [10]
+    outcome = factory.run_function(dict(ITEM), budget)
+    assert outcome.refusals == 3
+    assert outcome.attempts == 3, "three calls were made; three calls were paid for"
+    assert budget[0] == 7
     assert outcome.stopped == "no extractable C"
-
 
 def test_the_two_objectives_disagree_on_purpose(spec):
     """Tractability finishes matches; learnability manufactures learnable edges."""
@@ -333,10 +399,17 @@ def test_the_prompt_is_the_projects_own_and_is_not_rewritten_by_the_factory():
 
 
 def test_a_proposal_with_no_extractable_c_stops_the_function_and_says_so():
-    """Prose is an extraction failure, not a model error, and must not reach the compiler."""
-    factory, scorer, _ = _factory([[]], [{"score": 60.0}], rounds=1, samples=2)
+    """Prose is an extraction failure, not a model error, and must not reach the compiler.
+
+    The generator here returns one proposal whose text yielded no C, which is what `extract_c`
+    produces for a prose answer. That call is counted and budgeted; what it does not do is
+    reach IDO.
+    """
+    factory, scorer, _ = _factory([[""]], [{"score": 60.0}], rounds=1, samples=2)
     outcome = factory.run_function(dict(ITEM), [10])
-    assert outcome.attempts == 0 and outcome.stopped == "no extractable C"
+    assert outcome.attempts == 1, "the empty answer was still a call"
+    assert outcome.stopped == "no extractable C"
+    assert scorer.calls == [], "prose must not be handed to the compiler"
     assert scorer.calls == []
 
 

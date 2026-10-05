@@ -45,7 +45,9 @@ def test_fair_dag_order_and_distinct_retries():
         name, profile = job
         visited.append(profile["name"])
         campaign.accept(state["nodes"][name], profile, result(), Path("r.json"))
-    assert visited == [p["name"] for p in campaign.PROFILES if not p.get('type_transaction')]
+    assert visited == [p["name"] for p in campaign.PROFILES
+                       if not p.get('type_transaction') and not p.get('compiler_localization')
+                       and p['name'] != 'regalloc_search']
     assert campaign.status(state) == "stalled_requires_new_strategy_or_evidence"
     # A new best source makes earlier transformations meaningful again.
     state["nodes"]["leaf"]["source_sha256"] = "improved"
@@ -208,9 +210,13 @@ def test_forked_intake_keeps_failed_context_and_correct_parent(tmp_path, monkeyp
     n = {'seed_attempt_id': 42, 'seed_frontier': [{'attempt_id': 43,
          'source_sha256': hashlib.sha256(contextual.encode()).hexdigest()}]}
     measured = campaign._intake(repo=tmp_path, db=db, function='f', node=n, out=tmp_path/'r.json')
-    assert parents == [42,43]
-    assert measured['attempt_id'] == 102
-    assert [s['attempt_id'] for s in measured['frontier']] == [102,101]
+    # The existing placeholder rewrite is an additional child of the raw seed.
+    assert parents[:3] == [42,42,43]
+    # Then the admission choke point (2026-09-27): every failed variant is run through the
+    # compile ladder, each rescue parented to its own failed attempt, before it counts as lost.
+    assert parents[3:] == [101,102,103]
+    assert measured['attempt_id'] == 103
+    assert [s['attempt_id'] for s in measured['frontier']] == [103,102,101]
     n['seed_frontier'][0]['source_sha256'] = 'tampered'
     with pytest.raises(ValueError, match='identity changed'):
         campaign._intake(repo=tmp_path, db=db, function='f', node=n, out=tmp_path/'bad.json')
@@ -374,3 +380,63 @@ def test_explicit_build_stop_prevents_further_integration_attempts(tmp_path, mon
         entries=[{"function": "a"}, {"function": "b"}], artifacts=tmp_path)
     assert not accepted and len(calls) == 1
     assert records[-1]["status"] == "integration_halted"
+
+
+def test_intake_admission_rescues_a_failed_draft_and_keeps_the_binary_branch_clean(tmp_path, monkeypatch):
+    """The choke point FIRES on its motivating case: a draft that dropped its includes compiles
+    once the ladder re-attaches them, and becomes the intake's result. The binary-types branch is
+    admitted without reconstructed game/ headers."""
+    from solver import compile_fallback, workspace
+    db = tmp_path / "db.sqlite"
+    sqlite3.connect(db).close()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    draft = "void f(void) { s16 x; }"
+    (ws / "base.c").write_text(draft)
+    monkeypatch.setattr(campaign.workspace, "bootstrap", lambda *a: ws)
+    monkeypatch.setattr(campaign.workspace, "target_asm", lambda *a: "glabel f")
+    monkeypatch.setattr(campaign.m2c_context, "seed_variants", lambda *a: ([], []))
+    monkeypatch.setattr(campaign.project_headers, "preflight_variants", lambda *a: [])
+    monkeypatch.setattr(campaign.project_headers, "context_headers",
+                        lambda *a: ["game/engine/task.h"])
+    seen = []
+
+    def score(ws, repo, tag, source, **kw):
+        seen.append((kw.get("strategy"), source))
+        ok = '#include "common.h"' in source
+        return workspace.Attempt(ok, 90 if ok else 0, False, "d" if ok else "",
+                                 "" if ok else "Syntax Error", "", len(seen))
+    monkeypatch.setattr(campaign.workspace, "score", score)
+    result = campaign._intake(repo=tmp_path, db=db, function="f", node={}, out=tmp_path / "r.json")
+    assert result["score"] == 90
+    rescued = [s for s in seen if s[0].startswith("campaign-intake-admission:context")]
+    assert rescued and rescued[0][0].endswith(":project-header-context"), \
+        "a rescue that adds a reconstructed game/ header is booked as header assistance"
+    assert '#include "game/engine/task.h"' in rescued[0][1]
+    assert compile_fallback.intake_includes(tmp_path, "f", "", assisted=False) == ["common.h"]
+
+
+def test_intake_admission_does_not_spend_compiles_when_a_variant_compiled(tmp_path, monkeypatch):
+    """Narrowed 2026-09-27: failed variants of a function that already has a compiling draft are
+    alternatives, not losses (0 of 15 real rescues beat the compiling draft), so no admission."""
+    from solver import workspace
+    db = tmp_path / "db.sqlite"
+    sqlite3.connect(db).close()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    (ws / "base.c").write_text("void f(void) { s16 x; }")
+    monkeypatch.setattr(campaign.workspace, "bootstrap", lambda *a: ws)
+    monkeypatch.setattr(campaign.workspace, "target_asm", lambda *a: "glabel f")
+    monkeypatch.setattr(campaign.m2c_context, "seed_variants", lambda *a: ([], []))
+    monkeypatch.setattr(campaign.project_headers, "preflight_variants",
+                        lambda *a: [("ok", '#include "common.h"\nvoid f(void) { s32 y; }')])
+    seen = []
+
+    def score(ws, repo, tag, source, **kw):
+        seen.append(kw.get("strategy"))
+        ok = '#include "common.h"' in source
+        return workspace.Attempt(ok, 70 if ok else 0, False, "d" if ok else "",
+                                 "" if ok else "Syntax Error", "", len(seen))
+    monkeypatch.setattr(campaign.workspace, "score", score)
+    campaign._intake(repo=tmp_path, db=db, function="f", node={}, out=tmp_path / "r.json")
+    assert not any(s.startswith("campaign-intake-admission") for s in seen)

@@ -280,6 +280,20 @@ def test_load_modify_store_accepts_statements_sharing_a_line():
     assert "    (*(s16 *)((u8 *)(arg0) + 0x1A))--;\n    (*(s16 *)((u8 *)(arg0) + 0x1C)) = 1;\n" in rows["load_modify_store:tmp:postfix"]
 
 
+def test_load_modify_store_skips_intervening_statements_and_stays_linear():
+    import time
+    gap = "".join(f"    func_{i:02d}(arg0, {i}, {i} + 1, {i} + 2);\n" for i in range(40))
+    source = ("void f(struct A *arg0) {\n    s16 tmp = *(s16 *)((u8 *)(arg0) + 0x1A);\n" + gap +
+              "    tmp = tmp - 2;\n    *(s16 *)((u8 *)(arg0) + 0x1A) = tmp;\n}\n")
+    rows = {label: v for label, _k, v in rm.load_modify_stores(source, "f")}
+    assert gap + "    *(s16 *)((u8 *)(arg0) + 0x1A) -= 2;\n" in rows["load_modify_store:tmp:compound"]
+    # No update after the load: the regex form backtracked exponentially here
+    # (initMainMenuSceneModelParts, 4.5 CPU hours on 2026-09-14).
+    started = time.monotonic()
+    assert list(rm.load_modify_stores(source.replace("    tmp = tmp - 2;\n", "    x = 1;\n"), "f")) == []
+    assert time.monotonic() - started < 1.0
+
+
 PVOICES = """void _collectPVoices(ALSynth *drvr) {
     ALLink *var_s0;
 
@@ -458,3 +472,175 @@ def test_result_local_reuse_fires_on_doModFunc():
     # The shape that matched object-exact on 2026-09-13.
     assert rows == [source.replace("    return (*(f32 *)((unsigned char *)arg0 + 0x1C)) * (f32) ((f64) var_f2 - 1.0);\n",
                                    "    var_f2 = var_f2 - 1.0;\n    return (*(f32 *)((unsigned char *)arg0 + 0x1C)) * var_f2;\n")]
+
+
+def test_guard_before_load_stays_linear_on_an_unclosed_guard():
+    import time
+    lines = "".join(f"        call_{i}(arg0, {i});\n" for i in range(60))
+    source = ("s32 osEPiRawStartDma(s32 arg0) {\n    s32 v;\n    v = gLock;\n    if (v == 0) {\n" + lines +
+              "  }\n    return v;\n}\n")
+    started = time.monotonic()
+    list(rm.guard_before_load(source, "osEPiRawStartDma"))
+    assert time.monotonic() - started < 1.0
+
+
+GUIDED = __import__("pathlib").Path(__file__).resolve().parents[1] / "eval/results/uopt-trace-20260914/guided"
+SLIDE_INS = ("updateRaceUiScorePopupSlideIn", "updateRaceSetupNamePlateSlideIn", "updateRaceUiCrashScorePopupSlideIn",
+             "updateRaceUiTrickScorePopupSlideIn", "updateTimeTrialRecordDeltaPopupSlideIn")
+
+
+def test_typed_field_reread_reproduces_the_five_object_exact_slide_ins():
+    for name in SLIDE_INS:
+        before = (GUIDED / f"{name}.before.c").read_text()
+        exact = (GUIDED / f"{name}.exact.c").read_text()
+        assert exact in texts(rm.typed_field_rereads(before, name)), name
+        assert exact in texts(rm.variants(before, name)), name
+
+
+def test_typed_field_reread_declines_uses_before_the_store_and_second_assignments():
+    head = "void f(u8 *arg0) {\n    u32 t;\n"
+    used_early = head + "    t = arg0[1] - 4;\n    g(t);\n    (*(s32 *)((u8 *)(arg0) + 0x28)) = t;\n    if (t == 0) {}\n}\n"
+    assigned_twice = head + "    t = 1;\n    (*(s32 *)((u8 *)(arg0) + 0x28)) = t;\n    t = 2;\n    if (t == 0) {}\n}\n"
+    unused_after = head + "    t = arg0[1];\n    (*(s32 *)((u8 *)(arg0) + 0x28)) = t;\n}\n"
+    for source in (used_early, assigned_twice, unused_after):
+        assert texts(rm.typed_field_rereads(source, "f")) == []
+
+
+def test_narrow_truth_test_reproduces_the_object_exact_roster_icons():
+    name = "updateCharacterSelectRosterIcons"
+    before = (GUIDED / f"{name}.before.c").read_text()
+    exact = (GUIDED / f"{name}.exact.c").read_text()
+    assert texts(rm.narrow_truth_tests(before, name)) == [exact]
+    assert exact in texts(rm.variants(before, name))
+
+
+def test_narrow_truth_test_declines_wide_locals_and_nonzero_compares():
+    source = "void f(void) {\n    s32 wide;\n    u8 narrow;\n    if (wide != 0) {}\n    if (narrow != 1) {}\n}\n"
+    assert texts(rm.narrow_truth_tests(source, "f")) == []
+    source = "void f(void) {\n    u16 narrow;\n    if (narrow == 0) {}\n}\n"
+    assert texts(rm.narrow_truth_tests(source, "f")) == [source.replace("if (narrow == 0)", "if (!narrow)")]
+
+
+def test_new_generators_stay_linear_on_long_bodies():
+    import time
+    body = "".join(f"    t{i} = arg0[{i}] + 1;\n    (*(s32 *)((u8 *)(arg0) + {i})) = t{i};\n    if (t{i} != 0) {{}}\n"
+                   for i in range(150))
+    decls = "".join(f"    u16 t{i};\n" for i in range(150))
+    source = "void f(u8 *arg0) {\n" + decls + body + "}\n"
+    started = time.monotonic()
+    list(rm.typed_field_rereads(source, "f"))
+    list(rm.narrow_truth_tests(source, "f"))
+    assert time.monotonic() - started < 5.0
+
+
+def test_prefer_puts_named_families_first_without_changing_the_set():
+    name = "updateCharacterSelectRosterIcons"
+    before = (GUIDED / f"{name}.before.c").read_text()
+    plain = list(rm.variants(before, name))
+    guided = list(rm.variants(before, name, prefer=("truth_test",)))
+    assert sorted(v for *_x, v in plain) == sorted(v for *_x, v in guided)
+    assert guided[0][1] == "truth_test" and plain[0][1] != "truth_test"
+    assert list(rm.variants(before, name, prefer=())) == plain
+
+
+AERIAL = """void updateRacePlayerMode16AerialTrick(RacePlayer *player) {
+    s32 var_v0;
+    u32 temp_t3;
+
+    player->stateTimer += 0x1E;
+    var_v0 = player->stateTimer;
+    if (var_v0 >= 0x401) {
+        var_v0 = 0x400;
+        player->stateTimer = 0x400;
+    }
+    temp_t3 = player->stateFlags | 2;
+}
+"""
+
+
+def test_constant_store_local_fires_on_the_aerial_trick_clamp():
+    # 2026-09-15: the second 0x400 got its own register and a hoisted `li` in a delay slot; storing var_v0 matched.
+    found = list(rm.constant_store_locals(AERIAL, "updateRacePlayerMode16AerialTrick"))
+    assert [kind for _l, kind, _t in found] == ["const_store_local"]
+    assert "        var_v0 = 0x400;\n        player->stateTimer = var_v0;\n" in found[0][2]
+    swapped = AERIAL.replace("        var_v0 = 0x400;\n        player->stateTimer = 0x400;\n",
+                             "        player->stateTimer = 0x400;\n        var_v0 = 0x400;\n")
+    assert "        var_v0 = 0x400;\n        player->stateTimer = var_v0;\n" in \
+        next(rm.constant_store_locals(swapped, "updateRacePlayerMode16AerialTrick"))[2]
+    # An enabler, not a beam family: offered as a search root, never among the round-robin variants.
+    assert [kind for _l, kind, _t in rm.enabling_variants(AERIAL, "updateRacePlayerMode16AerialTrick")] == ["const_store_local"]
+    assert not any(kind == "const_store_local" for _l, kind, _t in rm.variants(AERIAL, "updateRacePlayerMode16AerialTrick"))
+
+
+def test_constant_store_local_declines_globals_different_constants_and_stays_linear():
+    import time
+    globals_only = "void f(Actor *a) {\n    gCount = 0;\n    a->x = 0;\n}\n"
+    different = "void f(Actor *a) {\n    s32 v;\n    v = 1;\n    a->x = 2;\n}\n"
+    assert list(rm.constant_store_locals(globals_only, "f")) == []
+    assert list(rm.constant_store_locals(different, "f")) == []
+    long = "void f(Actor *a) {\n    s32 v;\n" + "    v = 0;\n    a->x = 0;\n" * 400 + "}\n"
+    started = time.monotonic()
+    assert len(list(rm.constant_store_locals(long, "f"))) == 12
+    assert time.monotonic() - started < 5.0
+
+
+PROBE = """extern OSPfs gHandles[];
+void probe(u16 arg0) {
+    OSPfs *temp_a1 = &gHandles[arg0];
+    u32 var_v0 = osPfsInitPak(&gQueue, temp_a1, arg0);
+    if (var_v0 == 2) {
+        var_v0 = osPfsInitPak(&gQueue, temp_a1, arg0);
+    }
+}
+"""
+
+
+def test_pure_inline_fires_on_pointer_temporary_read_at_two_calls():
+    # probeControllerPak (restored-holes-20260925): exact only once the declared pointer local went.
+    [(label, kind, text)] = list(rm.pure_local_inlines(PROBE, "probe"))
+    assert (label, kind) == ("pure_inline:temp_a1", "pure_inline")
+    assert "temp_a1" not in text and text.count("(&gHandles[arg0])") == 2
+    assert "var_v0 = osPfsInitPak" in text                      # written twice: kept
+
+
+def test_pure_inline_fires_on_a_separate_single_assignment():
+    source = """s32 g(s32 *p, s32 i) {
+    s32 *q;
+    q = p + i;
+    h(q);
+    return *q;
+}
+"""
+    [(_l, _k, text)] = list(rm.pure_local_inlines(source, "g"))
+    assert "s32 *q;" not in text and "q = " not in text and text.count("(p + i)") == 2
+
+
+def test_pure_inline_declines_written_operands_calls_and_rewrites():
+    guard = "    if (var_v0 == 2) {"
+    moved = PROBE.replace(guard, "    arg0++;\n" + guard)
+    assert texts(rm.pure_local_inlines(moved, "probe")) == []
+    called = PROBE.replace("&gHandles[arg0];", "getHandle(arg0);")
+    assert texts(rm.pure_local_inlines(called, "probe")) == []
+    rewritten = PROBE.replace(guard, "    temp_a1 += 1;\n" + guard)
+    assert texts(rm.pure_local_inlines(rewritten, "probe")) == []
+    returned = "s32 g(s32 a) {\n    return a;\n}\n"
+    assert texts(rm.pure_local_inlines(returned, "g")) == []
+
+
+def test_operand_local_fires_on_the_masked_operand():
+    # resolveAssetTableRelativePointer (restored-holes-20260925): `addu v0,t6,a0` flipped only with a named local.
+    source = "s32 r(s32 arg0, s32 arg1) {\n    return arg0 + (arg1 & 0xFFFFFF);\n}\n"
+    [(_label, kind, text)] = list(rm.operand_locals(source, "r"))
+    assert kind == "operand_local"
+    assert "    s32 temp_h0;\n    temp_h0 = arg1 & 0xFFFFFF;\n    return arg0 + temp_h0;\n" in text
+
+
+def test_operand_local_declines_braceless_bodies_calls_casts_and_argument_lists():
+    braceless = "void r(s32 a, s32 *p) {\n    if (a)\n        *p = a + (a & 3);\n}\n"
+    assert texts(rm.operand_locals(braceless, "r")) == []
+    called = "void r(s32 a, s32 *p) {\n    *p = a + (f(a) & 3);\n}\n"
+    assert texts(rm.operand_locals(called, "r")) == []
+    cast = "void r(s32 a, s32 *p) {\n    *p = a + (s32)a;\n}\n"
+    assert texts(rm.operand_locals(cast, "r")) == []
+    argument = "void r(s32 a) {\n    g(a + 1);\n}\n"
+    assert texts(rm.operand_locals(argument, "r")) == []

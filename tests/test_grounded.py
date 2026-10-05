@@ -48,14 +48,25 @@ def test_global_evidence_resolves_a_letter_bearing_address(kb):
 # --- bug 2: absent m2c body -------------------------------------------------
 
 def test_absent_body_fires_on_a_real_blank_draft(kb, repo_path):
-    """noopThreeArgs' base.c is a comment; 26 leaves looked 'fully known'."""
-    draft = workspace.m2c_draft(repo_path / "nonmatchings" / "noopThreeArgs")
-    if not draft.strip():
-        pytest.skip("workspace not bootstrapped")
-    assert typedecl.definition_params(draft, "noopThreeArgs") is None
-    found = unknowns.enumerate_unknowns(kb, "noopThreeArgs", draft, set(), {})
-    assert [u.kind for u in found] == ["absent_body"]
-    assert unknowns.free_weight(found) == 100
+    """noopThreeArgs' base.c is a comment; 26 leaves looked 'fully known'.
+
+    This used to read that workspace directly, which made the test a snapshot of a mutable tree: the
+    blank drafts are a DEFECT being drained (`eval/m2c_redraft.py` regenerated 66 of the 79, and this
+    test went red because one of them was `noopThreeArgs`). The behaviour under test is "a draft with
+    no body yields exactly one `absent_body` unknown of full weight", so it is asserted on the real
+    marker text rather than on whichever workspace still happens to carry it.
+    """
+    marker = workspace.m2c_draft(repo_path / "nonmatchings" / "noopThreeArgs")
+    real = marker if "m2c failed" in marker else ""
+    drafts = [real] if real.strip() else ['#include "common.h"\n\n// file is blank because m2c '
+                                          "failed to decompile function\n"]
+    for draft in drafts:
+        if not draft.strip():
+            continue
+        assert typedecl.definition_params(draft, "noopThreeArgs") is None
+        found = unknowns.enumerate_unknowns(kb, "noopThreeArgs", draft, set(), {})
+        assert [u.kind for u in found] == ["absent_body"]
+        assert unknowns.free_weight(found) == 100
 
 
 # --- bug 3: heldout key spelling --------------------------------------------

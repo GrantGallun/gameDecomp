@@ -26,6 +26,132 @@ def state():
         'b':{'status':'object_exact','jobs':[]}},'status':'running','config':{'model_calls':3}}
 
 
+def test_deterministic_dispatch_filters_model_jobs_in_pipeline_and_wave(monkeypatch):
+    from eval import fast_campaign
+    profiles = {'model_a': {'name': 'reasoned_alternative', 'model': True},
+                'cpu_a': {'name': 'recertify@digest', 'model': False},
+                'model_b': {'name': 'semantic_alternative', 'model': True},
+                'cpu_b': {'name': 'regalloc_search', 'model': False}}
+    queue = {'model_a': 0, 'cpu_a': 1, 'model_b': 2, 'cpu_b': 3}
+    campaign_state = {'config': {'model_calls': 3},
+                      'nodes': {name: {'profile': profile} for name, profile in profiles.items()},
+                      'repair_queue': {'work_items': {name: {'function': name, 'priority': priority}
+                                                      for name, priority in queue.items()}}}
+    original = copy.deepcopy(campaign_state)
+    monkeypatch.setattr(fast_campaign.campaign.repair_queue, 'next_profile',
+                        lambda node, model_calls, legacy: node['profile'])
+    for pipeline in (True, False):
+        picked = fast_campaign.dispatch_items(campaign_state, [], 3, 2, 3,
+                                              deterministic_only=True, pipeline=pipeline)
+        assert [item['function'] for item in picked] == ['cpu_a', 'cpu_b']
+    assert [item['function'] for item in fast_campaign.dispatch_items(
+        campaign_state, [], 2, 2, 3, pipeline=True)] == ['model_a', 'model_b']
+    assert [item['function'] for item in fast_campaign.dispatch_items(
+        campaign_state, [], 2, 2, 3, pipeline=False)] == ['model_a', 'cpu_a']
+    assert campaign_state == original
+
+
+def test_deterministic_dispatch_exits_when_only_model_profiles_remain(monkeypatch):
+    from eval import fast_campaign
+    campaign_state = {'config': {'model_calls': 3},
+                      'nodes': {'m': {'status': 'pending', 'profile': {'name': 'reasoned_alternative', 'model': True}}},
+                      'repair_queue': {'work_items': {'m': {'function': 'm', 'priority': 0}}}}
+    monkeypatch.setattr(fast_campaign.campaign.repair_queue, 'next_profile',
+                        lambda node, model_calls, legacy: node['profile'])
+    assert fast_campaign.dispatch_items(campaign_state, [], 3, 2, 3,
+                                        deterministic_only=True, pipeline=True) == []
+    assert 'm' in campaign_state['repair_queue']['work_items']
+
+
+def test_deterministic_resume_rejects_existing_model_inflight():
+    from eval import fast_campaign
+    with pytest.raises(ValueError, match='model job already in flight'):
+        fast_campaign.reject_model_inflight({'fast_inflight': [
+            {'profile': {'name': 'reasoned_alternative', 'model': True}}]})
+    fast_campaign.reject_model_inflight({'fast_inflight': [
+        {'profile': {'name': 'regalloc_search', 'model': False}}]})
+
+
+@pytest.mark.skipif(__import__('os').name == 'nt', reason='WSL controller uses flock')
+def test_controller_deterministic_session_stops_with_model_work_remaining(tmp_path, monkeypatch):
+    from eval import fast_campaign as fast
+    main = tmp_path/'main.sqlite'; database(main)
+    with sqlite3.connect(main) as conn:
+        conn.execute("INSERT INTO functions(addr,name) VALUES (2,'g')")
+        inventory = list(conn.execute('SELECT name,addr,size,insn_count FROM functions ORDER BY name'))
+    repo = tmp_path/'repo'; repo.mkdir()
+    nodes = {}
+    for name in ('f', 'g'):
+        source = repo/'nonmatchings'/name/'source.c'
+        source.parent.mkdir(parents=True)
+        source.write_text('int '+name+'(void){return 0;}')
+        nodes[name] = {'status': 'pending', 'source': str(source),
+                       'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
+                       'attempt_id': 1, 'jobs': [], 'residual': {'compiled': True}}
+    path = tmp_path/'campaign.json'
+    (tmp_path/'campaign-artifacts').mkdir()
+    args = SimpleNamespace(resume=True, scheduler='evidence-v1', workers=2,
+        state=path, repo=repo, db=main, project=tmp_path, model='fake', endpoint='offline',
+        model_calls=3, timeout=10, num_predict=100, worker_root=tmp_path/'workers',
+        max_work_items=5, dispatch='pipeline', model_workers=2, model_parallel=1,
+        tasks_per_worker=1, reasoned_effort='profile', integrate=True,
+        runtime_plan=tmp_path/'capture-plan.json', deterministic_only=True)
+    config = {k: str(getattr(args,k)) if k in {'repo','db','project'} else getattr(args,k)
+              for k in ('repo','db','project','model','endpoint','model_calls','timeout','num_predict','scheduler')}
+    options = {'dispatch':'pipeline','workers':2,'model_parallel':1,'model_workers':2,
+               'tasks_per_worker':1,'reasoned_effort':'profile','integrate':True,
+               'runtime_plan':str(args.runtime_plan)}
+    value = {'kind':'resumable-completion-campaign','config':config,'nodes':nodes,'pins':{},
+             'runtime_options':options,'inventory_sha256':fast.campaign.digest(inventory),
+             'model_digest':'pinned'}
+    campaign_state.atomic(path,value)
+    monkeypatch.setattr(fast.campaign,'_pins',lambda *a:{})
+    monkeypatch.setattr(fast.campaign.frozen_wavefront,'model_digest',
+                        lambda *a: pytest.fail('model endpoint contacted'))
+    monkeypatch.setattr(fast.campaign_integration,'sweep',
+                        lambda *a,**kw: pytest.fail('integration ran'))
+    monkeypatch.setattr(fast.campaign_runtime,'sweep',
+                        lambda *a,**kw: pytest.fail('runtime capture ran'))
+    # The checkpoint reloads nodes, so choose by their immutable source path.
+    def profile(node, *_):
+        from solver import repair_queue
+        cpu = Path(node['source']).parent.name == 'f'
+        return {'name':'recertify@digest' if cpu else 'reasoned_alternative',
+                'model':not cpu, 'lane':'byte', 'evidence_key':repair_queue.evidence_key(node)}
+    monkeypatch.setattr(fast.campaign.repair_queue,'next_profile',profile)
+    def project(state):
+        state['repair_queue']={'work_items': {name:{'function':name,'priority':priority}
+            for priority,name in enumerate(('g','f')) if not state['nodes'][name]['jobs']}}
+        return 'global-work' if state['repair_queue']['work_items'] else None
+    monkeypatch.setattr(fast,'project',project)
+    dispatched=[]
+    class Pool:
+        def __init__(self,*a,**kw): pass
+        def __enter__(self): return self
+        def __exit__(self,*a): pass
+        def submit(self,fn,job):
+            dispatched.append((job['function'],job['profile']['model']))
+            append(job['db'],job['id'])
+            raw={'source':job['node']['source'],'source_sha256':job['node']['source_sha256'],
+                 'attempt_id':2,'exact':False,'score':50.,'wall_seconds':1.,
+                 'residual':{'compiled':True},
+                 'performance':{'model_seconds':0.,'model_queue_seconds':0.}}
+            campaign_state.atomic(job['raw'],raw)
+            from concurrent.futures import Future
+            future=Future();future.set_result(job['raw'])
+            return future
+    monkeypatch.setattr(fast,'ProcessPoolExecutor',Pool)
+    result=fast.run(args)
+    assert dispatched==[('f',False)]
+    assert result['config']==config and result['runtime_options']==options
+    assert result['fast_metrics']['last_session']['global_work_remaining'] is True
+    assert result['fast_metrics']['last_session']['completed_items']==1
+    assert result['fast_metrics']['last_session']['deterministic_work_remaining'] is False
+    assert result['fast_metrics']['last_session']['stopped_reason']=='no_deterministic_work'
+    assert result['summary']['work_remaining'] is True
+    assert 'g' in result['repair_queue']['work_items']
+
+
 def test_incremental_roundtrip_and_previous_pointer(tmp_path):
     path = tmp_path/'campaign.json'
     value = state()
@@ -192,6 +318,63 @@ def test_cache_hits_pin_invalidation_and_fresh_frontend_path(tmp_path,monkeypatc
     metrics=fast_runtime.install(tmp_path/'cache','pin2',tmp_path/'model.lock')
     workspace.sh(cmd,cwd=ws)
     assert calls['build']==3 and metrics['compile_hits']==0
+
+
+def test_build_artifacts_are_only_what_this_build_wrote(tmp_path):
+    # Motivating residual: a 25 MB compile-cache entry for resolveRaceCourseSurfaceCollisionWithVelocity
+    # held ~60 `<fn>_agentrepair_*` outputs of OTHER candidates, all matched by the `<stem>*` glob.
+    from eval import fast_runtime
+    ws = tmp_path
+    source = ws/'fn.c'; source.write_text('int f(void){return 1;}')
+    (ws/'fn_agentrepair_retained_1_diff').write_text('debris from another candidate')
+    (ws/'fn.o').write_bytes(b'stale object')
+    (ws/'fn_meta.json').write_text('{}')
+    before = fast_runtime._artifact_stamps(ws, source)
+    import os, time
+    time.sleep(0.02)
+    (ws/'fn.o').unlink(); (ws/'fn.o').write_bytes(b'new object')          # rewritten
+    (ws/'fn_object_dump_normalized.s').write_text('asm')                    # created
+    assert fast_runtime.built_artifacts(ws, source, before) == ['fn.o', 'fn_object_dump_normalized.s']
+    assert fast_runtime.built_artifacts(ws, source, fast_runtime._artifact_stamps(ws, source)) == []
+
+
+def test_artifact_encoding_roundtrips_and_old_hex_entries_still_replay():
+    from eval import fast_runtime
+    data = b'\x00object\xff' * 1000
+    packed = fast_runtime.pack_artifact(data)
+    assert len(packed) < len(data.hex()) / 10
+    assert fast_runtime.unpack_artifact(packed, fast_runtime.ARTIFACT_ENCODING) == data
+    assert fast_runtime.unpack_artifact(data.hex(), None) == data
+    with pytest.raises(ValueError):
+        fast_runtime.unpack_artifact(packed, 'lz4')
+
+
+@pytest.mark.skipif(__import__('os').name=='nt',reason='WSL runtime uses flock')
+def test_compile_cache_excludes_workspace_debris_and_replays_old_entries(tmp_path,monkeypatch):
+    from eval import fast_runtime
+    from solver import workspace
+    calls={'build':0}
+    ws=tmp_path/'ws';ws.mkdir()
+    (ws/'candidate.c').write_text('int f(void){return 1;}')
+    (ws/'candidate_agentrepair_retained_1_diff').write_text('x'*100000)
+    script=ws/'build.sh';script.write_text('build')
+    def shell(cmd,cwd=None,timeout=300):
+        calls['build']+=1
+        (cwd/'candidate.o').write_bytes(b'object')
+        return 0,'score'
+    monkeypatch.setattr(workspace,'sh',shell)
+    fast_runtime.install(tmp_path/'cache','pin1',tmp_path/'model.lock')
+    cmd=f'. /fake/activate && bash {script} candidate.c'
+    workspace.sh(cmd,cwd=ws)
+    [value]=list((tmp_path/'cache'/'compile').glob('*/*/value.json'))
+    record=json.loads(value.read_text())['value']
+    assert sorted(record['artifacts'])==['candidate.o'] and record['encoding']==fast_runtime.ARTIFACT_ENCODING
+    # An entry written in the old hex format replays unchanged.
+    old={'returncode':0,'stdout':'score','artifacts':{'candidate.o':b'old object'.hex()}}
+    value.write_text(json.dumps({'sha256':fast_runtime.key(old),'value':old}))
+    (ws/'candidate.o').unlink()
+    workspace.sh(cmd,cwd=ws)
+    assert (ws/'candidate.o').read_bytes()==b'old object' and calls['build']==1
 
 
 def test_stale_evidence_and_external_source_rejected(tmp_path):

@@ -470,7 +470,8 @@ def test_search_accepts_provider_adapter_and_sends_exact_residual(monkeypatch):
     prompt = provider.requests[0].prompt
     assert "weighted_progress_score" in prompt
     assert "this is NOT percent bytes" in prompt
-    assert '"exact": false' in prompt
+    # Prompts are compacted (prompt_compaction): pretty JSON is re-encoded without spaces, content unchanged.
+    assert '"exact":false' in prompt.replace('": ', '":')
 
 
 def test_search_enforces_global_model_call_budget(monkeypatch):
