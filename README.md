@@ -10,8 +10,10 @@ across a whole game.
 
 ![Progress dashboard](docs/dashboard.png)
 
-*The live progress dashboard during the current campaign. Each block in the map is one function, sized by
-its code; colour shows its state (object-exact, ROM-verified, compiling at some similarity, blocked, parked).*
+*The progress dashboard at checkpoint 38,599 (2026-10-04). Each block in the map is one function, sized by
+its code; colour shows its state (object-exact, ROM-verified, compiling at some similarity, blocked, parked).
+[The same view on 2026-09-15](docs/dashboard-2026-09-15.png) had 909 object-exact and a visibly larger share of
+orange "compile blocked" blocks. A dated log of what changed is in [docs/PROGRESS.md](docs/PROGRESS.md).*
 
 ## What it does
 
@@ -55,36 +57,44 @@ is both the debugging trail and future training data.
 
 ## Current numbers
 
-Live campaign `resume-pipeline-20260908`, checkpoint 21492 (2026-09-15):
+Live campaign `resume-pipeline-20260908`, checkpoint 38,599 (2026-10-04), compared with checkpoint 21,492
+(2026-09-15), both read from the campaign's own saved state with the dashboard's classifier:
 
-| | |
-|---|---|
-| Functions in the campaign | **2,051** (62 more held out and never attempted) |
-| Object-exact | **909** (44.3%) |
-| Whole-ROM verified replacements | **21** |
-| Function-exact, awaiting integration | **20** |
-| Still pending | 1,059 (42 parked on known pipeline gaps) |
-| Object-exact share of function bytes | 14.8%. Small functions match first. |
-| Repair work items completed | ~9,900 |
+| | 2026-09-15 | 2026-10-04 |
+|---|---|---|
+| Functions in the campaign | 2,051 | 2,051 (62 more held out and never attempted) |
+| Object-exact | 909 | **1,042** |
+| Whole-ROM verified replacements | 21 | **62** |
+| Function-exact, awaiting integration | 20 | **25** |
+| **Object-exact or better, total** | 950 (46.3%) | **1,104 (53.8%)** |
+| **Compile-blocked functions** | 74 | **14** |
+| Bytes in compile-blocked functions | 70.2 KiB | **19.2 KiB** |
+| Object-exact share of function bytes | 14.8% | 19.6% |
+| Repair work items completed | ~9,900 | ~17,900 |
+
+The dashboard also shows a "Non-compiling" figure of 17. That adds three parked functions whose current
+candidate fails to compile; the 14 above are the pending ones. Compile-blocked functions fell by 81% (74 to
+14). The pipeline gained compile-error recovery in that window (undeclared identifiers, placeholder types,
+C89 declaration order), which is the likely driver; I have not isolated its share. A compile-blocked function
+can't be repaired at all, so each one recovered becomes a candidate for the other repairs.
 
 **"Object-exact" above is a node count, not a capability number, and the difference is large.** The
 cohort was seeded from the reference decompilation, so most of those functions were already exact
-before the pipeline ran. The campaign's own repair ledger separates the two. From
-`eval/results/resume-pipeline-20260908/campaign.json` (checkpoint 23325, 2026-09-17):
+before the pipeline ran. The campaign's own repair ledger (`repair_yield.exact_functions_gained`)
+separates the two:
 
-| | |
-|---|---|
-| cohort functions | 2,051 |
-| nodes whose status is object-exact or integrated | **958** |
-| — **functions the campaign actually gained** (`repair_yield.exact_functions_gained`) | **262** |
-| — functions that arrived already exact | 696 |
-| functions lost (`exact_functions_lost`) | 0 |
+| | 2026-09-17 | 2026-10-04 |
+|---|---|---|
+| nodes whose status is object-exact or integrated | 958 | **1,104** |
+| — **functions the repair campaign actually gained** | 262 | **358** |
+| — not credited to repair (arrived already exact, or imported) | 696 | 746 |
+| functions lost (`exact_functions_lost`) | 0 | 0 |
 
-So roughly 69% of the headline is pre-existing state, and the campaign's produced capability is 262 of
-2,051 functions (12.8%). `python3 -m eval.status` reports a third figure — 214 byte-exact, **148
-SOLVED** — for the smaller research knowledge base, and is not the same measurement either. Quote
-none of the three as another. The 262 is a distinct-function count; `fast_metrics.exact_items` (286) is
-a *work-item* count and must not be substituted for it.
+So roughly two thirds of the headline is pre-existing state, and the campaign's produced capability is 358
+of 2,051 functions (17.5%). Of the 358, 299 are under 256 bytes, 58 are 256 B to 1 KiB, and 1 is larger
+than that. `python3 -m eval.status` reports a different figure for the smaller research knowledge base
+(393 byte-exact of 1,074 attempted, 278 of them SOLVED) and is not the same measurement. Quote none of
+these as another.
 
 Register-allocation search is the most productive repair. It produced 155 of the first 218 exact
 functions the campaign gained, with no model call. Its latest amendment (2026-09-15) adds "enabling
@@ -99,6 +109,34 @@ roots": edits that don't improve the score but unlock a later repair. In an offl
 It is **not** a binary-only or unseen-game benchmark. How much the headers help is itself an open
 question. An earlier experiment found that handing the model perfect type information made results
 *worse*.
+
+## Training our own model
+
+Alongside the campaign, the project is training its own small model (a LoRA adapter on `gpt-oss:20b`,
+trained and served locally on one RTX 5080) in place of calling a hosted one. The aim is to teach it what the
+compiler does, not to memorise answers. The compiler labels every training example, so no label is a guess.
+
+- **Data.** Edits are planted into code from public decompilations (Super Mario 64, Mario Kart 64, Diddy Kong
+  Racing). IDO compiles each before and after, and the object diff gives a verified label. The current set has
+  27,462 tasks: predicting whether two sources compile the same, and explaining or undoing an edit. It is split
+  by function, with 612 exam tasks and a separate check split. Snowboard Kids itself is never in the training data.
+- **Training.** Supervised fine-tuning, then reinforcement learning (GRPO) with compiler-graded rewards. Held-out
+  exams freeze before a run, and success criteria are written down before the results are read.
+- **What the experiments showed.** Where the model is weak is *reading* assembly, not finding the line to edit:
+  telling it where the problem is changed little. A "reading" task (blank a statement, then recover it from the
+  instructions) helped most. On repairs of missing statements it solved 42 tasks to 18 for an equal-size control,
+  though the reading arm also had more examples of that task, so a class-matched control is still pending.
+- **General skill transfer.** On 336 held-out functions the base model compiled none of them (it pastes inline
+  assembly). The best adapter compiled 229 raw and matched 21 byte-for-byte, though it was never trained to
+  decompile whole functions. It replaces the previous adapter, which matched 15. These are single greedy runs, so
+  treat the gap as a lead, not a result.
+- **Honest limits.** An outside audit found real problems in earlier measurements (an exactness check that
+  ignored which global a symbol referred to, shared-success cost accounting, silent split fall-through). Those
+  are fixed and the affected results were re-certified against the object files. The adapter's gains so far
+  are on planted-edit and held-out exams, not new functions in the campaign. See `docs/model-capability-training-audit-20261003.md`.
+
+Training code is in `eval/` (`logic_tasks.py`, `train_*`, `arm_runner.py`), serving is in `tools/lora_serve/`, and
+`TRAINING.md` has the plan and the evaluation rules.
 
 ## How the work is judged
 
@@ -140,6 +178,12 @@ Start with `DESIGN.md` and `PIPELINE_MAP.md`. With a campaign running, `launch-p
 dashboard at `http://127.0.0.1:8765`.
 
 ## Status and next steps
+
+**New: a disassembly front end that starts from the ROM alone.** `disasm/` finds function boundaries, overlays
+and load addresses without the reference project's symbol files: SBK1 boundaries come from the ROM, and for
+Snowboard Kids 2 (a GCC build) it finds 20 of 20 overlays and 720 of 720 functions exactly. It also emits
+assembly and checks it round-trips. This is the first step toward running on a game with no existing
+decompilation.
 
 Most remaining functions compile but differ in *structure*: branch shape, extra or missing loads, and
 frame layout. These are larger functions where register search alone cannot finish. The current focus is
