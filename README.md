@@ -84,7 +84,7 @@ setup), is compiled with IDO, and is repaired where the bytes differ. The campai
 
 | Of the 1,104 object-exact or ROM-verified functions (2026-10-04) | |
 |---|---|
-| exact from the draft at intake, with no repair needed | **563** (51%) |
+| already exact when first evaluated (no repair job was run) | 563 (51%) |
 | exact after repair, credited by the repair ledger | **358** (32%) |
 | exact after repair, earlier than the ledger's measurement window | 183 (17%) |
 | functions lost (`exact_functions_lost`) | **0** |
