@@ -97,8 +97,10 @@ have not yet attributed the other 183 one by one. The earlier version of this ta
 **Where the bootstrap drafts come from matters.** The draft step prefers an existing draft in the
 decompilation project's own tree when one exists, so some of the 563 are the reference team's code, not
 something this pipeline produced. Only a few drafts carry this project's own assembly-only provenance
-(`CLAUDE.md` has the account). Treat the 563 as starting state, not capability, and treat 358 as the
-number the pipeline can claim. Of the 358, 299 are under 256 bytes, 58 are 256 B to 1 KiB, and 1 is larger.
+(`CLAUDE.md` has the account). The 563 are small (median 80 bytes, none over 496), and 507 of them include
+the reference project's `game/` headers. Only 272 carry the m2c marker; I have not traced where the other
+291 drafts came from. Treat the 563 as starting state, not capability, and treat 358 as the number the
+pipeline can claim. Of the 358, 299 are under 256 bytes, 58 are 256 B to 1 KiB, and 1 is larger.
 `python3 -m eval.status` reports a different figure for the smaller research knowledge base (393 byte-exact of
 1,074 attempted, 278 of them SOLVED) and is not the same measurement. Quote none of these as another.
 
