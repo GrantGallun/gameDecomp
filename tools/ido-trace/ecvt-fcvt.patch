@@ -1,0 +1,40 @@
+diff --git a/libc_impl.c b/libc_impl.c
+index 363115c..a3b0354 100644
+--- a/libc_impl.c
++++ b/libc_impl.c
+@@ -1124,12 +1124,33 @@ int wrapper_umask(int mode) {
+     return umask(mode);
+ }
+ 
++// ecvt and fcvt return a static buffer that each call overwrites. Mirror that with one
++// emulated buffer, allocated on first use, so repeated calls (uopt -zdbug traces) do not leak.
++static uint32_t cvt_buf_addr;
++#define CVT_BUF_SIZE 512
++
++static uint32_t cvt_result(uint8_t* mem, const char* digits, int decpt, int sign, uint32_t decpt_addr,
++                           uint32_t sign_addr) {
++    assert(strlen(digits) < CVT_BUF_SIZE);
++    if (cvt_buf_addr == 0) {
++        cvt_buf_addr = wrapper_malloc(mem, CVT_BUF_SIZE);
++    }
++    strcpy_str2mem(mem, cvt_buf_addr, digits);
++    MEM_S32(decpt_addr) = decpt;
++    MEM_S32(sign_addr) = sign;
++    return cvt_buf_addr;
++}
++
+ uint32_t wrapper_ecvt(uint8_t* mem, double number, int ndigits, uint32_t decpt_addr, uint32_t sign_addr) {
+-    assert(0);
++    int decpt, sign;
++    const char* digits = ecvt(number, ndigits, &decpt, &sign);
++    return cvt_result(mem, digits, decpt, sign, decpt_addr, sign_addr);
+ }
+ 
+ uint32_t wrapper_fcvt(uint8_t* mem, double number, int ndigits, uint32_t decpt_addr, uint32_t sign_addr) {
+-    assert(0);
++    int decpt, sign;
++    const char* digits = fcvt(number, ndigits, &decpt, &sign);
++    return cvt_result(mem, digits, decpt, sign, decpt_addr, sign_addr);
+ }
+ 
+ double wrapper_sqrt(double v) {

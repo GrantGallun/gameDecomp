@@ -150,6 +150,32 @@ def _matching_right(text: str, opening: int, left: str, right: str) -> int | Non
     return None
 
 
+def _after_directives(masked: str, start: int, end: int) -> int:
+    """Offset past leading blank lines and preprocessor directives in [start, end).
+
+    A directive between the previous declaration and a function -- `#define`, `#include`,
+    `#endif` -- used to make the whole header start with `#`, and the function was dropped as
+    preprocessor junk. Measured 2026-09-16: 119 SBK1, 18 SBK2 and 398 DKR function definitions
+    were invisible to every consumer of this extractor, including the training-data contamination
+    guard. Backslash-continued directives are skipped as one logical line.
+    """
+    pos = start
+    while pos < end:
+        while pos < end and masked[pos].isspace():
+            pos += 1
+        if pos >= end or masked[pos] != "#":
+            return pos
+        while pos < end:
+            newline = masked.find("\n", pos, end)
+            if newline < 0:
+                return end
+            continued = masked[pos:newline].rstrip().endswith("\\")
+            pos = newline + 1
+            if not continued:
+                break
+    return pos
+
+
 def extract_functions(source: str) -> Iterator[dict[str, object]]:
     """Yield brace-balanced C function records without needing preprocessing."""
     masked = _mask_noncode(source)
@@ -197,7 +223,8 @@ def extract_functions(source: str) -> Iterator[dict[str, object]]:
             boundary = closing
             opening = closing + 1
             continue
-        header = masked[boundary + 1:opening]
+        header_start = _after_directives(masked, boundary + 1, opening)
+        header = masked[header_start:opening]
         if "=" in header or header.lstrip().startswith("#"):
             boundary = closing
             opening = closing + 1
@@ -214,7 +241,7 @@ def extract_functions(source: str) -> Iterator[dict[str, object]]:
             "body": body,
             # Useful to deliberate source-recovery tools.  The public corpus
             # index still stores only hashes/sketches and never persists this.
-            "definition": source[boundary + 1:closing + 1].strip(),
+            "definition": source[header_start:closing + 1].strip(),
         }
         boundary = closing
         opening = closing + 1
