@@ -90,9 +90,8 @@ setup), is compiled with IDO, and is repaired where the bytes differ. The campai
 | functions lost (`exact_functions_lost`) | **0** |
 
 Repair is the part that is hardest to get and the part the project is built around: **541 functions went from
-failing to byte-exact through repair**, 358 of them measured directly by the ledger, and none has ever been
-lost. The 563 intake matches are mostly small (median 80 bytes, largest 496), so repair also carries nearly all
-of the larger code. Of the 358 ledger-credited, 299 are under 256 bytes, 58 are 256 B to 1 KiB, and 1 is larger.
+failing to byte-exact through repair**, 358 of them measured directly by the ledger, and none has been
+lost. The 563 intake matches are small (median 80 bytes, largest 496). Of the 358 ledger-credited, 299 are under 256 bytes, 58 are 256 B to 1 KiB, and 1 is larger.
 `python3 -m eval.status` reports a different figure for the smaller research knowledge base (393 byte-exact of
 1,074 attempted, 278 of them SOLVED), which is a separate measurement.
 
