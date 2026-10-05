@@ -426,6 +426,88 @@ Created: 2026-08-29
   `eval/results/rename-wall-20260917/adjsave_probe.py`.
 - Linked ideas: HYP-20260914-01
 
+---
+
+## The research-policy strategy memory (REFUTED 2026-09-20)
+
+- Claim under test: the controller's learned strategy memory allocates research compute better than
+  the same priority terms with learning off, so the decision layer is worth distilling.
+- Measured, `eval/results/research-loop-20260920/GATE-REVIEW.md`: `adaptive` and
+  `adaptive-nolearn` solved **exactly the same functions** at budgets 8, 24 and 48 — zero discordant
+  pairs in either direction — and are identical on P_discovery, P_solved, mean_best and mean_regret.
+  At budget 48 both coincide with `greedy` as well.
+- `adaptive` does beat `fixed-seed` and `random` on discovery at all three budgets. So the
+  **allocation** is supported and the **learning** is not. Do not merge those two claims.
+- The gate that should have caught this existed and was never called: `AdaptiveNoLearn` is the
+  control, and its docstring states the criterion ("if it matches `Adaptive`, the priority terms are
+  doing the work and the strategy memory is decoration"). `gate()` compared only against
+  `fixed-seed` and `random`, neither of which has the priority terms. Fixed: gate rule version 2
+  adds the no-learn control as a **paired** comparison on solved functions, and
+  `distill_policy.require_gate` recomputes rather than reusing a verdict from an older rule.
+- Decision:
+  - Do **not** distil a policy from the Sept 16 pairs on the strength of that run's gate verdict.
+    The pairs are still readable as records of what decisions led to what; the authorisation was
+    what failed.
+  - Do **not** read `mean_dead_share ~= 0.998` as a defect in the controller. It says the logged
+    forests are nearly all dead ends, which is why every policy converges.
+- Still open, and now the actual question: can the strategy memory be made to matter? Two live
+  readings this measurement does not separate -- (1) it learns something real that the priority
+  terms already dominate, so it is a weight/scale question; (2) the logged forests carry too little
+  signal (~99.8% dead expansions) for realized value to shape a memory. Reading 2 is testable
+  without GPU: check whether `SeedBook`'s weights move at all, and whether they move differently on
+  functions where the policy does and does not reach the known best.
+- Linked ideas: `sequential-diff-refinement` (REFUTED, same shape: a mechanism that looked
+  reasonable, was built, and did not move the outcome).
+
+- Follow-up measurements, same day (`seedbook-trajectory.json`, `decision-divergence.json`):
+  - The weights **do** move: 40 `credit()` calls over 7,388 expansions, `unexplored` 1.0 -> 3.00
+    (ceiling), `control-flow` -> 1.56, `register-pressure` -> 1.46; seed-term spread 0.150 against
+    `W_UNCERTAIN` 0.15 and `W_UPSIDE` 0.25. Do **not** record this as "the memory never learns" --
+    that is measurably false.
+  - **12 of 400 forests have divergent decision sequences** (first divergence at steps 1-22) and
+    **0 functions differ in the solved set**. It is live and not outcome-relevant.
+  - Three reasons, any one sufficient: at budget 48 every sane policy reaches regret 0.000, so
+    allocation cannot change the answer; the 0.150 spread competes with `W_VALUE`'s 0.45 in a space
+    ~99.8% dead; and the top-weighted seed is `unexplored`, an **empty lens** scored as
+    `fault_total/6` -- a magnitude, not a direction -- assigned by *rule* in `_reseed` on
+    `Plateau.CONVERGENCE`.
+  - Half-wired rule: `credit()` has exactly one call site (`research_loop.py:609`) inside a GAIN
+    test, so weights are monotonically non-decreasing from 1.0, the `max(-0.5, ...)` branch is
+    unreachable, and the docstring's "decays on dead branches" cannot occur. Fix or delete the
+    claim; do not leave the two disagreeing.
+- Decision: keep the priority terms (they do beat random allocation on discovery) and **retire the
+  "learning research taste" claim**. Revisit only on a search space where the budget binds.
+
+- **Measured reason, superseding the three speculative ones (2026-09-20, later).** Two of the three
+  were OUR OWN DEFECTS and are fixed:
+  - `credit()` updates a PREFERENCE weight, but `_reseed` assigns `contradiction`/`unexplored` by
+    plateau RULE. Crediting those was circular. `Branch.by_preference` now gates it.
+  - `credit()` had one call site inside a GAIN test, so the docstring's decay was unreachable.
+    Non-gains now credit 0.0.
+  - Fixing both made the adaptive/nolearn tie **exact** (every weight pinned at 1.0), which is the
+    corrected mechanism declining to move on noise.
+  - Gain rates: `field-layout` 2/328, `control-flow` 4/679, `unexplored` 26/4450,
+    `statement-order` 1/208, `register-pressure` 7/1576 -- **1.37x spread on 1-26 events**, 3 of 8
+    seeds never used. A rate from one event is not a measurement.
+  - Arithmetic: ~0.5% gain rate x 7,388 expansions = ~40 events over 8 seeds. ~20% resolution needs
+    ~25 events per seed = **5-10x the budget**, or fewer seeds, or a denser success signal.
+- Decision: `gate()` refusing is CORRECT here. Do not loosen it, and do not hand-tune the weights to
+  force a separation -- that would be fitting noise. Raise the resolution (budget/seeds/signal)
+  before asking the question again.
+
+### HYP-20260923-01: A localized repair brief from the C-to-diff map (faulty lines, target vs candidate instructions per line, stated fixes, cross-function example edits) makes the local model's repairs succeed where it otherwise fails.
+- Status: Refuted on the tested cohort (null)
+- Tested: 2026-09-23
+- Test: `eval/results/llm-map-brief-20260923/` (PROTOCOL.md first). Paired A/B through `eval.agentrepair.run`, gpt-oss:20b, same seeds, 2 calls per arm, on the 16 highest-scoring unsolved functions of the locality population run (best scores ~97-99.9). Arm A no brief; arm B `strategy_brief` = the map brief (branch-target noise and unstated hints removed after a preview).
+- Evidence: exact 0 vs 0; functions improved A 1, B 0; invalid proposals 12/32 vs 11/32; compiling children 9 vs 12. Sign test B-better 0, A-better 1.
+- Decision: different in kind from the 2026-09 prompt-enrichment nulls (localized and actionable, not background), same outcome. Caveats: 2 calls per function, and the cohort is the near-exact end where the remaining faults are register/branch residuals the brief can only describe, not state a fix for. The brief raised compiling children slightly; it did not raise improvements. Do not scale the prompt route on this evidence; the map's value remains as supervision (fault-line, edit, effect triples) for training, and as the locality filter.
+- Linked ideas: eval/results/edit-effect-atlas-20260923
+- Follow-up (v2, same day): short prompt, brief framed as verified evidence, 6 calls per arm, cohort of the 16
+  functions with the most stated-fix faulty lines, control = raw instruction diff. Exact 0 vs 0; B better on 3
+  functions, A on 1 (p = 0.31); B parsed 82/96 vs 59, compiled 57 vs 34, improving candidates 3 vs 2. The brief
+  improves instruction-following, not repair: 5% of the model's compiling edits improve, against 35-45% for the
+  deterministic evidence_site rule on the same stated facts. Null stands; do not pursue prompting for this.
+
 ### HYP-20260924-01: The reference's local-type changes, localized to width residuals by the compiler's line records, yield new type rules (draft type at a residual -> reference type).
 - Status: Refuted on the mining split (null); two sub-leads withdrawn
 - Tested: 2026-09-24

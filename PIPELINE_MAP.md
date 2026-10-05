@@ -1,5 +1,29 @@
 # What the decompiler pipeline actually does
 
+## October 3: model-authored tool laboratory (opt-in; no campaign wiring)
+
+`python -m eval.tool_learning_pilot --out <WSL directory>` constructs synthetic
+IDO target objects, freezes a panel, then calls `eval.tool_learning.run_experiment`.
+The installed local model authors bounded Python tools from development residuals;
+up to three development-only revisions precede the frozen evaluation.
+
+- `eval/tool_sandbox.py`: Bubblewrap namespaces, read-only runtime/root/device
+  mounts, bounded scratch, syscall restrictions and CPU/memory/output/time limits.
+  Missing isolation fails closed; generated tools cannot execute host compilers.
+- `eval/tool_learning_oracle.py`: trusted compiler configuration and target pins,
+  isolated C compilation, independent section/relocation certificates, source
+  hashes and deadline propagation. No finished-decomp source is mounted.
+- `eval/tool_learning.py`: complete-panel accounting, ordinary rewrite baseline,
+  failed-tool fallback, exact confirmation, development-cost charging, regression
+  refusal, private library retention and development-only action-SFT export.
+- Receipts include failed proposals, every compile start/result, tool executions,
+  cost, frozen artifact identities and quarantine decisions. Synthetic coverage
+  is not an SBK1 match, ROM integration, or trained-policy improvement.
+
+This laboratory has no production caller and does not change campaign defaults,
+KB evidence, existing model weights or the compiler-logic pilot. Operational
+details and smoke results: `docs/tool-learning.md`.
+
 ## October 3: own disassembly front end, stages 1-3 (branch `disasm-frontend`; standalone, not wired)
 
 `disasm/` reads a ROM and nothing else: `python -m disasm.run --rom <z64> [--grade-repo <finished decomp>] --out receipt.json`.
@@ -30,6 +54,959 @@ reference ELF. Wiring it in front of the miner is the next step, not a fact.
   Tests: `tests/test_disasm_frontend.py` (fire + decline + grounded SBK1).
 - **Not built:** overlay/DMA segment discovery, data typing/jump tables/strings/.rodata ownership (stage 4),
   compiler fingerprint (5), asm emission in the pipeline's format (6), round-trip ROM rebuild oracle.
+
+## October 2: active header conflicts deployed to the frozen campaign
+
+Amendment `20261002-integration-headers` was applied at checkpoint 37479 after
+a drained pause: 175 tests passed, 1 skipped, and the same pre-existing intake
+failure was reproduced on the untouched runtime and deselected. All retained
+nodes and 3340 unchanged input pins were preserved; the exact-or-integrated
+count stayed 1075 during installation. Deployment and controller acceptance
+receipts are in `eval/results/integration-headers-20261002/` and the amendment
+directory under `eval/results/resume-pipeline-20260908/revisions/`.
+
+- `eval/prepare_integration.py` measures admitted extern object types against
+  active destination headers using the selected frontend recipe. A measured
+  conflict uses the existing candidate-owned typed access; equal and absent
+  declarations stay unchanged. No destination function body enters the probe.
+- Unsupported source-local or conditional header selection records an
+  unavailable measurement and preserves the previous preparation path. The
+  52-candidate backlog census found one measured conflict and no new preparation
+  blocks. This is preparation coverage, not a prediction of 52 ROM matches.
+- The unchanged `checkMainMenuSecretCode` candidate plus all 34 existing
+  integrations passed a byte-identical 35-function combined ROM build. The
+  ordinary controller then integrated it at checkpoint 37490: 1076 exact or
+  integrated, 35 integrated, 51 function-exact pending, and zero lost matches.
+  The normal supervisor and worker were verified running after resume.
+- A separate, logged callback-view proposal for
+  `addEndingActorShadowRenderCallback` passed the function certificate and a
+  combined 36-function whole-ROM build. It remains private, with no campaign
+  import or generalized callback generator. Both results use existing candidates
+  and game headers; neither establishes a clean new solver discovery.
+
+## October 1: preparer names deployed to the frozen campaign
+
+Amendment `20261001-preparer-names` was applied at checkpoint 37426 after a
+drained pause and copied-runtime verification: 178 passed, 1 skipped; one
+pre-existing intake failure was deselected and reproduced on the pristine
+frozen runtime. All retained nodes stayed identical and the object-exact or
+integrated count remained 1074. Receipts:
+`eval/results/resume-pipeline-20260908/revisions/20261001-preparer-names/`.
+
+- `eval/prepare_integration.py` now carries candidate-local brace typedefs,
+  object-like aliases, and plain constant character-array literals into the
+  destination translation unit. Identical declarations yield; conflicting
+  declarations decline. Source-bound certificates and the whole-ROM gate
+  remain required. The six original inline-literal sources that passed
+  disposable ROM probes still lack the ordinary function certificate.
+- `eval/operand_repair.py` now calls `solver.relocation_names.variants`, including
+  `field_names` and offset-name repairs. `literal_names` remains excluded because
+  its extern-label spelling can certify a function but fail linking.
+- `solver/repair_queue.py` includes `relocation_names.py` in the operand-repair
+  digest, allowing one visit under the revised generator. Changed code pins
+  also renew integration evidence keys. Existing controller bounds, provenance
+  checks, and the verified-union ratchet decide which candidates advance.
+
+The service was resumed through its normal supervisor with ten-item batches.
+Live acceptance and counts are recorded separately in
+`eval/results/maturity-execution-20261001/`; this machinery-only installation
+does not itself establish new matches.
+
+## Class-by-class residual repair (September 29; main tree only, not in the campaign)
+
+- `solver/signals.py`: `line_map(diff)` rebuilds the target→candidate instruction map from hunk headers.
+  A branch whose target maps to the candidate's target is `branch_shift` (or `regalloc` when only its
+  condition register differs), not `structural`. Unsolved set: structural units 30,083 → 25,082,
+  single-axis functions 62 → 91. `eval/results/structural-residual-20260929/`.
+- `solver/branch_shape.py`: `at_inline` no longer raises on a declared but never-assigned `var_at`, which
+  had aborted every branch-shape family for the function.
+- `solver/site_edits.py`: `branch_shape.variants` enter `propose` as `shape:*` edits (ranked first, no
+  attributed line needed). Before this, branch_shape was reachable only through register search, and 202 of
+  203 variants on unsolved best states had never been compiled (`eval/results/branch-routing-20260929/`:
+  52/75 improved, 0 broke). Edit families are interleaved round-robin: width edits now fire in 204/207,
+  where 85 functions had them proposed and never compiled. `search(key=, focus=)` accepts an ordering and a
+  class focus; the default is unchanged (`gradient`).
+- `solver/residual_classes.py` (new): per-class counts (control flow, width, layout, operand, instructions,
+  registers), `key` (lexicographic, upstream first) and `focus` (instruction predicate for the first wrong
+  class, used by `site_lines(only=)`).
+- Reading-driven generators, each from an IDO-confirmed rule and wired as `shape:*` edits in `site_edits`:
+  `solver/unaligned_copy.py` (catalog `ido53-unaligned-struct-copy`, `ido53-o1-array-element-base`),
+  `solver/temp_copyback.py` (`ido53-o1-copyback-temporary`), `solver/counted_loop.py` (`ido53-o1-counted-loop-shape`).
+  Shape edits are a priority lane in `propose`. The site-edit budget is now 72 everywhere (`site_edits.search`,
+  `site_edit_repair.run` and its clamp, `completion_campaign`, `repair_queue` profile): at 48 = 2 × per_step, depth 3 was
+  unreachable. osMotorStart/osMotorStop exact through the search (`eval/results/chain-vs-search-20260929/RESULTS.md`),
+  frame A unchanged at 14/77.
+- **Rule miner (default `mined=True` in `site_edits.search`)**: Engine A (`solver/rewrite_library.py`, 10 generic
+  two-way rewrites, compiled on 915 of our own exact functions by `python -m eval.rule_mine a`; inert directions pruned) and
+  Engine B (`patterns.equivalences.directed_hunks` over 190k logged campaign edges, `python -m eval.rule_mine b`) fill
+  `patterns/mined_rules.json` (`python -m eval.rule_mine table`). `solver/rule_miner.proposals` scores applicable rewrites
+  and templates against a candidate's residual features, and they form the `mined` lane after the shape lane. Sealed
+  held-out 50: 17/3/30, p = 0.0013, 0 exact (`eval/results/rule-miner-20260929/RESULTS.md`). The site-edit digest
+  covers the new modules and the table.
+- **Near-miss levers (2026-09-30, `eval/results/loop-shape-20260930/RESULTS.md`; main tree only, not in the campaign)**:
+  - `solver/function_boundary.py` schema 3 admits jump tables: rodata words relocated against the object's own
+    `.text`, each entry inside the function, and the linked words equal to the ROM. This made 36 unsolved functions
+    function-exact; 28 are whole-ROM verified when integrated alone.
+  - `solver/plateau_search.py`: best-first search that admits up to 2 gradient-neutral steps, with generator families
+    round-robined. It reaches two-edit keys that greedy search cannot. `solver/nearmiss_llm.py` is an opt-in
+    local-model generator family for it.
+  - `solver/skeleton.py`: branch-skeleton distance, a control-flow-only oracle.
+  - `solver/c_stmt.py` and `solver/loop_shape.py`: statement trees and m2c goto-loop normalisation. L1 was negative:
+    IDO already normalises these loops.
+- **Engine G, generated rewrites** (`eval/rewrite_enum.py`, steps shapes → pairs → probe → validate → rules):
+  - Term shapes are taken from exact sources, and semantically equal siblings are found by enumeration and fingerprint.
+  - A pair is kept only if IDO compiles it differently in small probes, then it is labelled on exact functions.
+  - `rule_mine table` merges `eval/results/rewrite-enum-20260930/rules.json` as `G:` entries.
+  - `solver/term_rewrite.py` applies them on a parse tree with precedence-safe grouping, and `rule_miner._generated`
+    ranks them in the mined lane.
+  - **Opt-in** (`rule_mine table --with-generated`): on the development frame it lost 1 win to 4 losses, so the
+    default table leaves it out and the sealed 50 was not run (`eval/results/rewrite-enum-20260930/RESULTS.md`).
+- **Operator family (2026-10-02, opt-in `operators=True` on `site_edits.propose`/`search`; default off, main tree
+  only)**: `_operator_edits` flips one binary operator at an attributed line (`+`/`-`, `<`/`<=`/`>`, `==`/`!=`,
+  `&`/`|`), excluding unary minus, address-of, `->`, shifts, `&&` and compound assignment. On 51 planted single-line
+  edits (`eval/results/edit-capability-20261002/`, `enum_search.py`, `compare_search.py`): 34 → 38 exact, 0 lost,
+  +5 compiles on the 34 already solved. All 4 gains are operator faults the model fixed at most 1 of 6 of. Argument
+  and adjacent-statement swap families were built and removed: the pool and the mined `( N0 , N1 ) -> ( N1 , N0 )`
+  rule already solved all 12 such cases (`tests/test_site_edits_operators.py` asserts both the fire and that).
+  Not yet run on real residuals, so not a default.
+- **Gap lane (2026-10-02, opt-in `gaps=True` on `site_edits.propose`/`search`; default off, main tree only)**, each
+  built for a planted-edit class nothing reached (`eval/results/edit-capability-20261002/`, fire tests in
+  `tests/test_site_edits_gaps.py`):
+  - `solver/missing_store.py`: a store the target performs and the candidate lacks (target-only `sb/sh/sw` off an
+    argument, value from `li`/`zero`/`lh+addiu`), written as `argN->unkOFF` or a raw offset store and inserted at
+    statement boundaries beside the charged lines. Shape lane.
+  - `solver/next_use_temp.py`: `T = E; S(T);` -> `S(E)` when T is mentioned nowhere else (E may be a call; the
+    existing single_use/pure_inline refuse calls). Gated on extra stack traffic like `temp_copyback`. Shape lane.
+  - `rewrite_library.empty_arm_drops`: `if (c) {} else {B}` -> `if (!(c)) {B}`; `if_arm_swap` leaves the empty arm.
+  - `regalloc_mutations.commutative_swaps`, previously register-search only, restricted to attributed lines.
+  - `site_edits.widening_hint`: candidate-only `sll/sra 0x10` (etc.) ranks decl/type edits widening that type first.
+  Rules behind them: `eval/rule_probes.py` (paired minimal C at -O1/-O2 with the game's recipes, receipt
+  `eval/results/rule-probes-20261002/probes.json`) -> eight catalog entries (2026-10-02 block) ->
+  `solver.principles.residual_rules(diff)` names them from a residual and feeds `principles.retrieve` (default
+  path: retrieve now also returns these matches). Tests: `tests/test_site_edits_gaps.py` (rule naming, confirmed-only,
+  probe receipt agrees with catalog conditions).
+  Plus `solver/missing_statement_llm.py`: a local-model lane that writes a missing statement and its insertion line
+  from the target listing with target-only rows marked; requires `repo=` (reference-leak check) or `guard=`. Driven
+  by `eval/results/edit-capability-20261002/system.py`, not wired into any campaign.
+- **Learned proposal order (2026-10-03, opt-in `reorder=` on `site_edits.search`; default None = unchanged).**
+  `solver/search_priors.py` fits, per residual feature (a `principles.residual_rules` rule, and the earliest
+  `residual_classes` class still differing), how often each edit family improved its parent's gradient, and
+  `orderer(table)` stably re-sorts one parent's proposals by that rate (`drop=True` also removes families with >=8
+  tries and 0 improvements under every feature shown). Fitted ONLY on the train split of the multi-edit planted
+  panel (`eval/results/edit-capability-20261002/plant_multi.py`, `trails.py`). Scored with `eval/coverage.py`:
+  coverage of a frozen panel, coverage at a budget, and a paired accept/refuse verdict (any lost case refuses).
+  Tests: `tests/test_search_priors.py`, `tests/test_coverage.py`. `escalate=True` makes `per_step` a tier: a tier
+  with no improving child pulls the next tier of the same level (held-out 24 -> 32 with the default order, but every
+  arm lost >= 1 case, so nothing is adopted; `eval/results/edit-capability-20261002/HELDOUT_MULTI.md`).
+- **Compiler-logic training tasks (2026-10-03; data only, nothing trained yet).**
+  `eval/results/edit-capability-20261002/public_plant.py` plants the edit classes INSIDE public decomp translation
+  units (SM64/MK64/DKR from `~/decomp/public-pairs-20260921-v2`, recompiling the whole file with its recorded recipe;
+  the SBK1 workspace normalizer `objdump.py` with branch targets rebased) and keeps BOTH outcomes: edits the compiler
+  shows (`label: differ` + instruction diff) and edits it erases (`label: same`). `eval/logic_tasks.py` turns them
+  into `logic-predict` (two spellings -> SAME / DIFFER + rows) and `logic-explain` (function + diff -> edit script,
+  `apply_script` makes it oracle-gradable) tasks; prompts live in `eval/repair_prompts.py`. Splits: corpus file
+  groups -> train/exam, `--holdout-repo` -> check; `--weights` scales classes toward measured holes.
+  Tests: `tests/test_logic_tasks.py`.
+  **v2 (2026-10-03, after an external audit, `docs/model-capability-training-audit-20261003.md`):** prompts carry a
+  CHECKED context. `tools/context_closure.py` preprocesses the file (GNU cpp with IDO's own cfe defines; `cc -E`
+  misreads `-I dir`), parses it (pycparser) and takes the transitive declaration closure; `context_tasks.py`
+  admits a function only if `closure + function` compiled ALONE reproduces the full-file listing, delta-debugs the
+  closure to a 1-minimal set (median 21k -> 1.5-2k chars), re-checks each perturbed variant, and flips one scalar
+  declaration at a time (signedness/width) to record whether the answer changes. `logic_tasks` refuses rows without
+  context and adds twin tasks (same pair, retyped declaration, new answer) and `logic-need` tasks (declaration shown
+  as `??`; `NEED: <name>` iff the fact changes the answer). `logic_grade.py` grades explain answers by applying the
+  script and compiling in context; `--self-check` on the dataset's own answers must be 100%.
+  Tests: `tests/test_context_closure.py`, `tests/test_logic_tasks.py`.
+- **Instruction -> source attribution (2026-10-04).** `solver/line_map.py`: built once per compile from IDO's own
+  line records (`objdump -dl` on the unstripped CANDIDATE object, never the target's), keyed by normalized row
+  position; `attribute()` names the lines behind differing rows and the target spans of missing rows. Layers for what
+  the line table cannot see, all by INTERVENTION with the compiler as-is (any compiler): `declaration_influence`
+  (retype each declaration, record which rows move), `insertion_probes` (a volatile-store probe at every C89-legal
+  insertion point, single-statement bodies braced, positions read by alignment in target coordinates; ties all
+  named), `statement_influence` (delete each statement region), `nonlocal_kind` (register-only / frame-only
+  residuals labelled, not forced onto a line). Skipped interventions are counted in `SKIPPED`, never silent.
+  Measured by `eval/results/edit-capability-20261002/attribution_check.py` (right line named / lines named):
+  exam (developed on) line table 108/140 -> all layers 134/140, mean 3.4 of 22 lines; SM64 check split (not used
+  during development) 173/199 -> 196/199, mean 3.0 of 18. Tests: `tests/test_line_map.py`.
+- **Campaign compiler localization (2026-10-04).** `solver/compiler_localization.py` adapts candidate-only
+  `line_map` measurements to original campaign C without re-rendering it. `completion_campaign.PROFILES` adds
+  `localized_patch` after ordinary repairs; `agentrepair.run` forwards the option to `modelrepair.search`.
+  Compiled byte-lane parents require current source/diff/object identities, captured line-dump identity and
+  the original normalizer before measuring statement deletion, local retyping and insertion probes. Every
+  probe uses `workspace.score`, records parent/source identity, and carries `training_eligible=false`.
+  Probe stores are diagnostic only; a deletion/retype passing `repair_complete` is retained as a match.
+  Original character offsets distinguish same-line insertion sites; rejected/unmeasured sites never become ties.
+  Ambiguity, skipped interventions and operand/frame differences remain visible. The packet guides prompts,
+  without restricting edits or changing certificate authority. Per-parent caching and a 96-probe ceiling bound
+  diagnostics; omitted probes remain unknown. Tests: `tests/test_compiler_localization.py`, `tests/test_line_map.py`.
+  Scoped frozen amendment: `eval/results/resume-pipeline-20260908/revisions/20261004-compiler-localization/`.
+  Private compiler proof and verification receipts: `eval/results/campaign-localization-20261004/`.
+- **Operation-value policy (2026-10-04, offline only; not wired).** `eval/op_policy.py` learns from the campaign's
+  recorded attempts which operation, given the current residual, lies on a path to an exact (label = ancestor of an
+  exact, not score delta). Held-out AUC 0.93; off-policy replay on 139 held-out functions: 119 reach an exact within
+  50 steps vs 94 for the recorded order and 106 for random. Results: `eval/results/op-policy-20261004/RESULT.md`.
+  Needs a live fixed-budget comparison before any campaign use.
+- **Reading tasks (2026-10-04, pilot; training data only).** `eval/results/edit-capability-20261002/reading_tasks.py`
+  turns every context-checked public function into `logic-read` tasks (a statement blanked, the target rows the
+  line table credits to it marked, answer = the statement; `logic_grade.grade_read` substitutes and compiles) plus
+  drop_stmt explain tasks from every eligible line. The line table is the REFERENCE compile's: a teaching aid, never
+  available in a real decompile. Kind registered in `eval/repair_prompts.LOGIC_KINDS`. Driver `reading_pilot.sh`
+  (read vs equal-size `more` control); criteria and results in `LOGIC_PILOT.md`. Tests: `tests/test_logic_pilot.py`.
+  `--multi K` makes multi-blank rows (2..K statements per prompt, `Line N:` answers; `logic_grade` also reports
+  `lines_ok`, each blank checked alone against the compiler's listing for that state): one context and listing
+  per several reads. `public/reading-v2` (1,943 prompts, self-check clean).
+- **Arm runner (2026-10-04).** `eval/arm_runner.py SPEC.json` replaces the per-pilot shell queues: train (fresh or
+  `init_adapter` warm start via `train_source_repair --init-adapter`) -> one server for all adapters -> frozen exams
+  -> grading on the CPU while the next arm is examined -> `summary.json` with per-class counts and paired
+  gained/lost. Resumable; a failing stage writes `FAILED` naming the stage and stops only its own server.
+  `logic_exam freeze --kinds` freezes kind-limited exams (`exams/explain-v1.json`: 654 explain items, 189
+  drop_stmt, vs 67 drop_stmt in the logic-v3 exam). Tests: `tests/test_arm_runner.py`.
+  **Regression exam:** `decompile_tasks.py` (kind `decompile`, never trained on): whole held-out functions from
+  their instructions, graded exact / compiles / rows-different (`logic_grade.grade_decompile`); frozen as
+  `exams/decompile-v1.json` (336, answer cap 1024 tokens). Every adapter runs it; adoption rule in LOGIC_PILOT.md.
+- **Book principles probed (2026-10-05).** `eval/book_probes.py`: principles from RE / compiler literature (RE4B,
+  Eilam, Kaspersky, Hacker's Delight, Cifuentes, SAILR, C89, See MIPS Run; cited by topic) as minimal C spellings on
+  the rule_probes recipes, each measured same/differ at -O1/-O2. Batch 1: 10 of 22 book claims fail on IDO -O2
+  (switch case order visible, `x*10` decomposition, branch-free comparisons, unrolled indexed loops, alias-blocked
+  CSE, bit-field narrow loads). `eval/results/book-probes-20261005/RESULT.md`. Not yet in `patterns/catalog.py`.
+- **Self-curriculum (2026-10-05, built; not run).** `eval/results/edit-capability-20261002/self_curriculum.py`:
+  `weak` (failure rates from a TRAIN-split practice set only; refuses exam/check grades) -> `propose` (gpt-oss or
+  a LoRA writes one edit per real train function aimed at a weak class; the compiler labels same/differ) ->
+  `filter` (Absolute-Zero learnability: kept when the solver succeeds on 1..k-1 of k samples) -> `kept.jsonl`.
+  Practice sets: `logic_exam freeze --splits train --train-sample N --exclude <arm files>`. Tests in
+  `tests/test_logic_pilot.py`.
+- **Examiner + web rules (2026-10-05, built; round 1 running).** Self-curriculum extended toward an examiner/solver/
+  judge loop: `--anonymize` (tools/anonymize.py: every declared name renamed `func_8…`/`D_8…`/`unk_…`, strings
+  scrubbed, recompiled and refused unless instructions are equal up to symbol names; 200/200 real rows pass),
+  `examiner_reward` (Absolute Zero: 1 - solve rate on learnable tasks, 0 otherwise) logged per proposal, and
+  `examiner` (rejection-sampling SFT data from the examiner's own rewarded proposals, kind `examiner-propose`;
+  online examiner RL does not fit one 16 GB card). Driver `self_curriculum_round.sh`.
+  Judge pieces: `tools/leak_check.py` (verbatim / renamed / partial copies, background-idiom filter; 2% false
+  positives on 40-function same-game pages, 150/150 verbatim and 122/150 renamed copies caught) and
+  `tools/web_tool.py` (read-only search via DuckDuckGo lite + fetch; public hosts only, redirects re-checked, target
+  game refused, rate-limited, logged, results framed as untrusted data). A/B harness `web_exam.py` (anonymized
+  held-out repairs, web on/off, leaks voided) queued by `web_ab.sh`. Tests: test_anonymize, test_leak_check,
+  test_web_tool, test_logic_pilot.
+- **Sequential examiner RL (2026-10-05, queued).** `examiner_rl.py`: one server (`--continuous --admin
+  --sleep-mode`) holds `solver` + the current `examiner_<c>`; per cycle the examiner (with web research,
+  `--web on`, 2 calls, tools/web_tool.tool_loop) writes edits to anonymized train functions, the compiler checks
+  them, the solver's k=4 attempts set the reward, then POST /admin/sleep (level 2) -> `eval/pg_update.py` (one
+  on-policy GRPO step from scored samples; tool conversations train the final turn) -> /admin/wake (reloads
+  weights, unloads LoRAs; a greedy probe must match pre-sleep or the run stops) -> /admin/adapter `examiner_<c+1>`.
+  No restarts. Smoke test `.cache/recon/sleep_wake_smoke.py` gates it (`examiner_rl_queue.sh`).
+- **Several compilers + general code (2026-10-05).** `tools/compiler_recipes.py`: standalone units compiled with
+  IDO 5.3 -O2/-O1 (SBK1 flags), IDO 7.1 -O2 (recomp built from tools-src), KMC GCC 2.7.2 -O2/-O1 (SBK2's compiler,
+  its Makefile flags). `tools/general_units.py`: GENERAL C (lua, zlib, cJSON, inih, jsmn, miniz, tinyexpr,
+  linenoise; pinned commits in the receipt) preprocessed against pycparser's stand-in libc, cut into closure units
+  (C89 fixes: static helpers as extern prototypes, one typedef per name, project headers before stand-ins), one row
+  per (function, recipe): 1,095 functions -> 3,342 rows, ~75% accepted per compiler. Train data only (famous code,
+  in pretraining). `public_plant.compile_row` is the single compile entry point (recipe rows vs game builds) used by
+  logic_grade, reward_server, reading_tasks, self_curriculum, examiner_rl; prompts name each row's compiler. Reading
+  tasks on GCC rows take their line table from a `-g` build refused unless its instructions equal the plain build.
+  examiner_rl draws `--general-share` (0.5) of exams from general units and logs reward per compiler.
+- **GRPO with compiler rewards (2026-10-04, pilot).** `eval/train_grpo.py` samples a group of answers per TRAIN task
+  from the current LoRA policy, scores each through `eval/results/edit-capability-20261002/reward_server.py` (a
+  separate process running `logic_grade`: explain answers compiled in their checked context; refuses non-train
+  ids), and applies the group-relative policy gradient (no KL: the only in-process reference is the untrained base).
+  `--twin-share` targets the twin tasks SFT never learned. Driver `grpo_pilot.sh`: warm start from the logic
+  pilot's mixed adapter, then the same frozen exam, compared against base and the mixed adapter.
+  **v3 pilot continuation (2026-10-03):** withheld-type prompts name the two measured alternatives; a single
+  unchanged counterfactual is not evidence for an unrestricted unknown type. `logic_arms.py` token-filters before
+  equalizing example counts and optimizer steps. `train_source_repair.render` uses bare logic answers, retaining
+  C fences only for source repair. `logic_pilot.py` replaces the sleep/pkill shell runner: context completion ->
+  v3 export -> compiler self-check -> frozen arms/exam -> base/base_fs -> three adapters -> paired grades.
+  Incomplete inference and unequal training receipts fail closed; only the runner's own server is stopped.
+  Tests: `tests/test_logic_pilot.py`. Protocol: `eval/results/edit-capability-20261002/LOGIC_PILOT.md`.
+  The interrupted context export resumes through `recover_context.py` into new `context-v3.*` artifacts;
+  original source fields and the final output digest are checked before pilot admission. The opt-in trainer
+  completion-logit path avoids allocating vocabulary logits on masked prompt positions and is verified against
+  Qwen loss/gradients (`tests/test_completion_logits.py`). Recovery checks: `tests/test_context_recovery.py`.
+- Results: `eval/results/composed-edits-20260929/RESULTS.md`. The same 14/77 on the regression frame in
+  every arm; 0/207 on the width+control-flow frame. Stalls are ~60% budget and ~40% vocabulary. The campaign's
+  frozen `site_edits` is untouched, so `repair_queue.site_edit_profile` behaviour doesn't change until an
+  amendment.
+
+## Register protocol (September 29; main tree only, diagnostic, not wired)
+
+`solver/register_protocol.analyse(target, candidate, level5, level6, ugen, function)` runs
+`uopt_diagnosis`, then for each wrongly coloured range lists levers and checks them against the target:
+preference (a block where the range lives claims the register, via the trace's `regsused`),
+forbid-lower (every free lower colour is visibly held in the target during the range), coalesce,
+inline (desired register is a ugen temp), parameter, priority/interference (blocked), temporaries
+(ugen) and structure (split). The verdict is reachable, conditional or unreachable. The preference
+sources come from the IDO 7.1 uopt decompile (`uoptreg1.c`). Tests in `tests/test_register_protocol.py`,
+including a soundness regression on known-reachable fixtures. Census: `eval/results/register-protocol-20260929/`.
+
+## Localized typed edits (September 29; deployed as campaign amendment `20260929-site-edits`, checkpoint 35025)
+
+`solver/site_edits.py` localizes residual instructions to candidate source lines through verified IDO line
+records (`source_attribution`, the same join as `residual_sites`). At those lines it proposes a closed
+vocabulary: literal deltas taken from the diff's constant pairs (including lui+ori/addiu 32-bit constants),
+integer type swaps, retyping the single declaration of an identifier used at the site, subscript scaling from
+`sll` shift deltas, and cast removal. The same token change at several sites is also offered as one grouped
+edit. `search` ranks children lexicographically (compiled, non-register faults, register faults) and stops
+at `workspace.repair_complete`. It is an available module, not an enabled workflow. Fires tests are in
+`tests/test_site_edits.py`. Trial: `eval/results/site-edits-20260929/README.md`, 4 of 77 small near-misses
+exact (below its pre-registered bar of 5), 67 of 77 given proposals against the old rewrite pool's 17.
+
+Round 3 added `copydir` (catalog `copy-from-stored-global-keeps-address-in-a0`), `declorder` (frame-slot
+faults) and a beam of 3: 13 of 77 exact, with 0 of 13 on the larger argument-register functions out of
+sample. Campaign wiring: `repair_queue.site_edit_profile` schedules one `site_edits@<digest>` visit per
+generator revision for pending, compiled, frontend-valid nodes with at most 12 residual faults (band -1).
+`completion_campaign.execute` dispatches it to `eval/site_edit_repair.run`, which logs every compile with
+true parent edges and promotes an exact child, or a gradient-better child whose score is not lower.
+Amendment receipts, including fires_check.out (propose, copydir, scheduled, end_to_end), are in
+`eval/results/resume-pipeline-20260908/revisions/20260929-site-edits/`.
+
+Main only, not yet in the campaign: `signals.distances` and the residual packet's `instruction_distance` and
+`register_distance` fields beside `weighted_progress_score`, shown on the progress map. The packet is not in
+`evidence_key`, so adding fields does not reset scheduling. Campaign nodes show them once `residual.py` and
+`signals.py` are amended.
+
+## Review corrections (September 28, development checkout only)
+
+`eval.redraft_pilot` branch version `v6-review1` reads complete normalized dumps
+for gated invariant ranking. Per-hunk call edits and saved-register set changes
+are not additive; `distance_from_diff` remains an approximate historical diagnostic.
+Mined spelling rules now provide qualified prompt advice and logged predictions;
+they no longer suppress compilation in the equivalence arm. Normalized-diff
+transposition/ablation and optimizer-key pruning still need the review's follow-up.
+
+`toolagent.replace_source` now preserves admitted preprocessing directives and
+rejects source/assembly escapes before compilation. Whole-file reconstruction
+does not grant new include or macro authority. The dataset exporter tags game-header
+prototype use and reference-seed lineage on both endpoints, so removing an assisted
+call or introducing a recovered child cannot produce a clean record.
+
+Regression cases and remaining theory/implementation issues are documented in
+`docs/claude-review-20260928.md`. Existing frozen campaigns, historical experiment
+receipts and exported datasets have not been rewritten or redeployed.
+
+## Expanded compiler investigation (September 27)
+
+`completion_campaign --scheduler investigation-v1 --investigation-turns 12`
+binds the expanded policy. Defaults are 16 compile units and a 900-second
+deadline for admitting new actions; `--investigation-compiles` and
+`--investigation-seconds` override these. In-flight tools retain individual
+timeouts/step bounds; root preparation and final validation are separate.
+Legacy configurations retain their behavior. `fast_campaign` now dispatches
+the actual projected investigation/capability profile and imports observations
+and engineering requests; it previously bypassed the investigation selector.
+
+The tool agent exposes current actions before source context, uses action-specific
+structured responses, and disables a lookup family for the active candidate
+after two duplicate requests. Complete C replacement does not grant open-book
+source access. Ordinary frontend/object checks still decide exactness.
+Context preflight includes the response schema and answer allowance. Optional
+history/notebook views shrink before generation, retaining measured edit outcomes;
+an irreducibly oversized request stops once with a budget receipt. Full events,
+current source, target assembly and active residual remain intact.
+
+`compiler_experiment.inspect` reproduces the active candidate with its resolved
+TU compiler, then captures pre-as1 with `-S`. Phase comparability requires direct
+object correspondence. Target-internal traces remain unavailable. Each phase
+inspection reserves two compile units; full artifacts and bounded observations
+are separate.
+
+`experiment_memory.Notebook` persists per-function experiments outside private
+worker databases. Compiler/target/shared-evidence identity scopes retrieval.
+Compiler identity includes the native IDO sibling executables. Revised binary
+inputs reopen bounded investigation visits and receive distinct memory scope.
+Source hashes, unverified hypotheses, measured outcomes and rejected actions
+remain distinct. Large diagnostics are explicitly compacted; different failed
+observations retain different digests. Notebook artifacts are training-ineligible.
+
+`execution_experiment.Tools` accepts bounded synthetic register/player-memory
+inputs, executes target assembly first, and replays completed inputs on later
+candidates in that investigation. No model-authored expected outputs are accepted.
+Global writes currently decline: the panel supplies no independently admitted
+writable extents. Completed cases do not prove valid game domains. Finite passes
+retain execution debt; extra failures become counterexamples without waiving
+an existing failure or debt verdict.
+
+`capability_requests` exposes AST names of implementation APIs and pre-existing
+tests, binds engineering requests to witnessed shared issues, and queues valid
+tasks for isolated `capability_repair`. That worker requires a failing reproduction
+and separate regression/transfer checks. It cannot edit tests/verifiers or deploy
+itself. Missing reproductions remain unresolved. Stale/duplicate request decisions
+are recorded. Fast workers support these tasks even when a parked function has
+no generated candidate workspace.
+
+This version does not jointly rewrite caller/callee source or synthesize arbitrary
+emulator code. It uses existing shared hypotheses and validation, bounded input
+proposals, and requests for repairs with independently existing reproductions.
+
+Development receipts: `eval/results/investigation-loop-20260927/`. This change
+does not amend the active frozen deterministic campaign. New action plumbing
+and increased exact-match yield are measured separately.
+
+## Direct compiler evidence: paired branch defaults (September 26; main solver)
+
+`regalloc_mutations.variants` now includes `solver.branch_defaults.variants`.
+It proposes distributing two scalar literal defaults into the arms of a simple
+conditional that overrides one variable per arm. Direct pre-as1 and object
+comparisons motivated this rewrite; ordinary frontend/object certification
+controls acceptance. No prediction model participates.
+
+The motivating retained `drawControllerPakFileDeleteConfirmOptions` candidate
+went from 99.889 to object-exact. The prior evidence-gated stream did not emit
+the source. With the family wired in, isolated normal search reproduced it
+from original ancestry in two compiler calls including baseline, 0.994 seconds.
+It is a new exact against both raw ledgers, with inherited assistance. Real
+candidate fixtures test emission and normal-stream reachability; conservative
+guards decline ambiguous scalar/scope/condition contexts. Header-only macros
+remain unresolved. This main-tree change has not amended the active frozen
+campaign. Receipt: `eval/results/direct-compiler-20260926/RESULT.md`.
+
+## Compiler-effect prediction experiment (September 26; not deployed)
+
+`solver.compiler_effects` supplies source-edit features, lossy assembly-state
+vectors and a group-balanced nearest-context predictor. The sole caller is the
+staged private benchmark at `eval/results/compiler-effects-20260926/benchmark.py`;
+there is no campaign, planner or production repair route. It retains every
+proposal, abstains without two same-domain development groups, and preserves
+periodic original-order exploration. Ordinary workspace scoring owns acceptance.
+
+The prospective 40-function run logged 479 compiler attempts and parent edges.
+The 24-function evaluation produced no exact candidate; prediction error and
+gradient ranking were worse than controls. The module is not promoted. A separate
+one-generation composition probe uses now-exposed improved children as parents.
+It reproduces a known header-assisted `MusAsk` exact; the unchanged register
+search independently reproduces it in 42 calls from the original retained C.
+That source was already eligible for this unvisited campaign route. No predictor
+or additional generator was added to production for this result.
+See `eval/results/compiler-effects-20260926/RESULT.md` for the frozen boundary,
+receipts, timing and limits. No miner or KB inference path was added.
+
+## Lost and restored campaign wiring (September 19 loss; September 25 restore, amendment `20260925-census-restore`)
+
+`amend-20260919-185725` overwrote the frozen campaign tree with main-tree files. The census, ninety, frontend-fixit,
+compile-chain and regalloc wiring of September 13-15 had been written only into the frozen tree, never into main, so
+the overwrite silently removed it while its tests kept failing: the `regalloc_search` profile (184 of the run's 263
+measured exact gains), `recertify@`/`revalidate@`, `address_symbols`, `named_rodata`, `stack_layout`,
+`structural_rewrites`, `placeholder_recovery`, `draft_lowering`, `frontend_fixits`, compile-chain and the zero-model
+dedup. `eval/results/resume-pipeline-20260908/revisions/20260925-census-restore/` restores them (three-way merge plus
+a blob-provenance scan; staged suite 64 -> 33 failures, 0 newly failing; checkpoint commit 28385). Main now carries
+the same wiring and its tests (`tests/test_census_campaign.py`, `test_ninety_campaign.py`, `test_regalloc_campaign.py`,
+`test_frontend_fixits_campaign.py`, `test_draft_lowering_campaign.py`, `test_compile_chain_campaign.py`,
+`test_enabling_roots_campaign.py`), so a future main-to-frozen sync no longer deletes it. Rule: wire into main first,
+then amend the frozen tree from main.
+
+Consequence for coverage: the recorded searches of September 23-24 (population-transfer code-v10..v14) ran without
+these generators, so `eval.mechanism_roadmap` over them lists stack-frame and slot offsets as uncovered "build" holes
+although `solver/stack_layout.py` owns them. Coverage re-measured with the restored generators:
+`eval/results/restored-holes-20260925/`.
+
+## Generated capability paths and potential (September 22)
+
+`solver.capability_potential.generate` explores Boolean contract transitions with
+explicit unknown assumptions, independent branches and depth/node bounds.
+`solver.capability_operations.from_assessment` instantiates all 18 components,
+including components needed only as prerequisite suppliers. Measurement can
+enable a downstream constructor; C mutations invalidate diagnostics and compiled
+candidate state. The adapter does not invent successful compiles or missing
+representation conversions. Primitive contracts and caller declarations remain
+reviewed input; compositions and potential are generated.
+
+`TheoryOnline(..., capability_assessor=..., capability_potential=True)` stores
+per-node generated reports without additional compiler calls or priority changes.
+The default remains off. `python -m eval.capability_potential` exports a selected
+retained assessment, preserving its source/context bindings and refusing to
+overwrite earlier output. See `docs/CAPABILITY_ENVELOPE.md` and
+`eval/results/generated-potential-20260922/RESULT.md` for semantics and tests.
+
+## Opt-in machinery capability envelope (September 22)
+
+`solver.capability_contracts` declares 18 intended component contracts with hashed
+owner/test/caller references. `solver.capability_map` evaluates their domains and
+prerequisites independently of observed success, retaining unknowns and caller
+wiring separately. It records constructor expectation conflicts, candidates
+outside intended domains, and missing composition/search guarantees.
+
+`TheoryOnline` accepts an optional `capability_assessor(source, verdict)` callback
+and checks its source, full verdict and context bindings. With the callback, its
+summary retains assessments, transitions and proposal expectation conflicts.
+Default output and action ordering are unchanged; the observer adds no compiles.
+
+`python -m eval.capability_map` audits existing worlds and read-only attempt
+receipts in their native workspaces. The first export reassesses 100 observations
+in 30 worlds and retains seven known exact witnesses per arm. It identifies an
+out-of-domain scalar-member proposal for InsertTimer and a representation/wiring
+gap around wide operations for TimerInterrupt. These are investigation items, not
+new matches. See `docs/CAPABILITY_ENVELOPE.md` and
+`eval/results/capability-envelope-20260922/RESULT.md`.
+
+## Opt-in theory map and partial repair continuation (September 22)
+
+`solver.repair_theory` adds conditional goals, prerequisites and alternative
+routes alongside the observed repair graph. `solver.theory_repairs` exposes six
+existing guarded signature/member/frontend/redraft owners, using the recorded
+source-bound diagnostics. Ready routes have actual candidate sources; blocked
+routes retain their unmet guards. Theory does not certify matches or add facts.
+
+`eval.theory_planner.TheoryOnline` plugs into `run_planner` and its sequential
+replay. It can expand a noncompiling child, prefer a different ready route after
+a negative local result, and preserve a useful intake candidate independently
+of object score. Failed-parent lineage requires an explicit action-history flag.
+Observed duplicates stop; validated historical rejection suppression requires the
+same target, compiler, generator and assistance context. Missing or unavailable
+checker evidence stays inconclusive. Theory priority is opt-in, bounded, and
+subordinate to the existing model's predicted exact mass; cost remains a cap.
+
+The frozen three-arm comparison retained seven known exacts per arm and produced
+no new exacts. TimerInterrupt's redraft cleared 12 member errors but left one call
+error. InsertTimer merely exchanged four member errors for indexing errors.
+Added-route and theory-prioritized arms chose identical source sequences, so a
+selection benefit remains unmeasured. All 107 compiler calls, including seven
+independent confirmations, are audited. Main KB and production wiring are
+unchanged. See `docs/REPAIR_THEORY_MAP.md` and
+`eval/results/repair-theory-20260922/RESULT.md` for API, actual map and limitations.
+
+## Opt-in repair evidence and transition planning (September 22)
+
+`eval.repair_graph` imports original compiler worlds into concrete states keyed
+by source, target, compiler and assistance. Observed edges retain durable parent
+receipts; reload reconstructs all derived graph data from the original records.
+`solver.repair_rules` describes current residuals and guarded storage proposals.
+`eval.repair_transitions` fits target-normalized next-state counts only from
+explicitly declared development targets, with separate unknown mass.
+
+`eval.repair_planner.ActionOnline` previews the existing deterministic generator;
+`run_planner` values known routes up to two actions ahead and compiles one action.
+Every continuation must pass the guards again on actual child feedback. Unknown
+routes retain the existing depth-policy fallback. Cost only caps resources.
+Predictions never create evidence nodes or certify source.
+
+This is an opt-in laboratory API, not a campaign/default-tool change. Its
+compile-ordered `action-history` worlds cannot enter ordinary `Replay` or
+`merge_worlds`; `replay_planner` regenerates proposals and requires the exact
+recorded action sequence before supplying each compiler observation.
+
+The frozen comparison retained seven known exacts and reduced GetThreadPri from
+three compiles to two on an exposed development case. No separate case exercised
+a model-guided action: three generated follow-up drafts failed compilation, and
+five names lacked target workspaces. Predictive transfer is unmeasured. All 264
+compiles, including seven independent confirmations, are audited. Main KB,
+production TUs and model weights are unchanged. See
+`eval/results/repair-transition-20260922/RESULT.md` for interfaces and limits.
+
+## Storage repairs from compiler residuals (September 22)
+
+`solver.storage_repairs` adds three bounded families to the ordinary
+`regalloc_mutations.variants` stream: `register_storage` qualifies eligible
+locals when the candidate introduces stack accesses; `address_reuse` reuses an
+immediately established local field address; `parameter_reuse` removes a leading
+copy of an otherwise unused parameter with the identical declared type.
+Ambiguous scopes, observable storage and unsupported declarations decline.
+The compiler certificate remains the acceptance authority.
+
+The order is register storage, address reuse, then parameter reuse. A measured
+parameter-first revision lost `__osDequeueThread` by following an improving but
+unsuccessful branch. The corrected order retains all six prior exacts and solves
+`osGetThreadPri` in three calls under the experimental depth scheduler.
+`__osDequeueThread` also closes in three calls. The ordinary registered
+`regalloc-search` tool independently reaches them in 13 and 5 calls respectively,
+followed by separate compiler confirmations. No scheduler default changed.
+
+These are header-assisted development repairs. Two separate follow-up panels
+produced no additional repair-attributed exacts; the final revision repeats the
+second panel for regression checking. All 1,484 experimental compile calls,
+including failures and the rejected ordering revision, are privately logged and
+audited. Main KB and production translation units were not changed. See
+`eval/results/register-storage-20260922/RESULT.md` for ablations and limitations.
+
+## Automatic search-policy proposals and laboratory succession (September 22)
+
+`eval.search_evolution` extends the existing `search_replay`/`search_scheduler`
+experiment. It derives at most four scheduling recipes from observed research
+score-step magnitudes, evaluates complete replays, and retains every incumbent
+exact during selection. The candidate changes scheduling only. Repair generators,
+compiler recipes, certificates and model weights remain fixed.
+
+Following analysis of the first rejection, the proposer also samples the geometric
+midpoint between its two observed depth penalties. `select(..., regressions=...)`
+can require retention of explicitly wrapped development regression worlds. These
+keep their original evaluation partition and are excluded from later transfer
+measurement; they never enter the proposer or training. The separate diagnostic
+driver uses this option; the original generic driver does not load a regression
+archive automatically.
+
+Its paired gate replays source-bound certificates at equal compile ceilings,
+rejects contradictory shared expansions, excludes research tasks, and requires
+an additional exact with no losses. Later rounds also check previously accepted
+evaluation matches in a separate retention archive. Efficiency alone does not
+advance a capability generation. Compiler infrastructure exceptions have durable
+attempt receipts and an explicit error verdict; they invalidate evaluation.
+
+`eval/results/search-evolution-20260922/run.py` exercises this mechanism using
+existing generation manifests and the shared budget ledger. Proposals and
+selection are automatic. The algorithm, panels and gate are developer-authored.
+Candidate manifests freeze before evaluation; the current beam search is an
+additional control. Production code defaults and the campaign are not promoted.
+The driver permits a second lab round only after an accepted first child. Inputs
+are previously exposed SBK1 development drafts, including related vibrato
+siblings across partitions, so this is not a sealed or family-disjoint RSI test.
+The first completed candidate was rejected: 1/5 evaluation exacts versus 2/5 for
+both parent and beam. Its vibrato speedup came with a lost Wobble exact. S0 was
+retained; no second generation or production policy was activated. The completed
+run used 665 compiles, with 134 additional compiles in an aborted freeze-violation
+run. See `eval/results/search-evolution-20260922/RESULT.md` for scope and receipts.
+
+The subsequent diagnosis reproduced a salvageable scheduling gain: penalty
+1.18754 keeps the four three-call successes while recovering Wobble in 12 calls.
+On nine retrospective diagnostic cases it reaches 5/9 exacts in 152 calls versus
+breadth's 4/9 in 240. Four separate, previously exposed development cases yield
+0/4 for revised, breadth and beam; this is not a new capability generation.
+All five known exacts are retained. The 806-call follow-up has an independent
+receipt audit and remains training-ineligible, with no production activation.
+See `eval/results/search-evolution-20260922/ANALYSIS.md` for the causal traces,
+remaining failures and limitations.
+
+## Composable representation repairs (September 22)
+
+`solver.representation_repairs` adds two families to the ordinary
+`regalloc_mutations.variants` stream. `unsigned_float` collapses a narrow unsigned
+value's explicit float-conversion scaffold into a single expression, retaining
+the f32 rounding step and single evaluation. `cursor_rebase` moves an explicit
+byte-view parameter advance to an unconditional statement boundary indicated by
+the target diff, reducing every subsequent byte offset by the same amount.
+Unsupported uses, escapes, widths, and control flow decline. Both remain source
+hypotheses checked by compilation and certificates.
+
+The same stream now exposes six existing residual generators through the
+`residual_evidence` family: byte pointer steps, pointer element width, pointer
+difference scale, comparison operand order, comparison sentinels, and signed
+comparisons. Changes are confined to the selected function. Existing beam search,
+the registered `regalloc-search` tool, and experimental scheduler consumers all
+receive the expanded stream without a separate search implementation.
+
+`solver.owner_rewrites` (added later on September 22) exposes the other eighteen
+`(code, diff)` owners in `solver/rewrites.py` to the same stream, one family each
+(`owner:layout`, `owner:drop_mask`, `owner:argswap`, ...), placed after the diff-gated
+families and before the generic ones. Before it, those owners, including
+`layout_rewrites` (the `diffrepair` offset/width owner), were reachable from no
+near-miss search. Unlike `residual_evidence`, candidates may edit the draft's own
+type declarations, but never a preprocessor line. An owner that raises declines its
+own family only. Measured on all 224 compiling non-exact functions at a 32-call
+budget (`eval/results/population-transfer-20260922/`): 3 -> 8 exacts, 5 gains and
+0 losses against the unchanged stream, all five on functions no earlier experiment
+had inspected (`owner:layout` 2, `owner:drop_mask` 3). Fire test:
+`tests/test_owner_rewrites.py`. The same run found that the seven earlier
+September 22 families add 0 exacts on the 200 uninspected functions, and that four
+of them fire on no root at all.
+
+`python -m eval.machinery_card ROWS_OR_WORLDS...` measures what each mechanism
+did on every recorded application: broke the build, left the object unchanged,
+reached exact, or acted (improved / clean / introduced faults). Its first run
+(`eval/results/machinery-capability-20260922/`) found four mechanisms emitting
+uncompilable C, now fixed with tests from the recorded failures
+(`tests/test_machinery_repairs.py`): `single_use` substituted inside comments,
+`typed_index` took an interior integer term for the table, `reloc_symbol` put an
+array where a scalar was or re-declared a multi-line-declared symbol (only
+array-ness must now agree; stricter type equality lost improving candidates), and
+`pointer_table_deref` dereferenced a table of structs. Replay: 106 of 110 recorded
+refusals gone, 0 improving candidates lost; the corrected `single_use` closed
+`dispatchRacePlayerMode07CourseObject`. Measured and not yet acted on:
+`register_storage` is a no-op under the game recipe (72/72) and acts under
+libultra's (9/9); `commutative` leaves the object unchanged 89% of the time.
+
+Two mechanisms were derived rather than hand-written (September 23). Exploring
+each residual class's potential (does the diff state the fix, and does any
+mechanism convert it) located them; with four existing mechanisms hidden, the
+same analysis ranked all four targets in the top quartile and rewrote
+`global_load_signedness` source-for-source (`eval/results/retrodiction-20260922/`).
+`regalloc_mutations.variants(..., evidence=verdict)` adds them when the caller
+passes the parent's verdict:
+- `frontend_type` (`solver/frontend_type_repair.py`, first in the stream): the
+  frontend gate's diagnostic states a type fix (int/pointer cast, `(void)`
+  parameters, a prototype for an implicit call). It closed all five recorded
+  byte-exact objects the gate had rejected. The prototype rule types a
+  non-identifier argument as s32; a second round reads the gate's
+  `passing 'T *' to parameter` + note diagnostics and retypes that parameter of the
+  candidate's own prototype (pointer types only; `void *` where calls disagree).
+  That closed finishCurrentRdpTask (`eval/results/frame-size-20260923/`).
+- `evidence_site` (`solver/evidence_site.py`, after `residual_evidence`): each
+  aligned residual whose value the diff states (offset, immediate, symbol,
+  load/store width or signedness, a surplus mask/shift/cast) is applied at the
+  line `source_attribution` names, only when that attribution belongs to this
+  source. Forward on the unsolved population it improved 45% of its candidates.
+`eval.search_scheduler.Online` passes the node verdict to any generator that
+declares `evidence`; `regalloc_search.Compiled.evidence` carries it for the beam
+(`close_nearmiss`, `tool_runners` populate it). Without evidence the stream is
+unchanged. Fire tests: `tests/test_derived_mechanisms.py`. Register and branch
+residuals are not C-expressible from the diff; they need an allocator/layout model.
+
+`python -m eval.allocator_rules TRACES --out DIR` scores register-allocator rules
+against IDO 5.3's own uopt trace census, and `python -m eval.allocator_interventions
+--tree TRACE_TREE --out DIR` runs paired synthetic compiles through the traced
+compiler (protocol: `eval/results/allocator-rules-20260923/PROTOCOL.md`). First
+run: 7.1's priority ordering holds for constrained ranges only; priority is
+save / step(block span); save is +1 per read, 0 per write; `if (!x);` raises
+priority by one read with no code in leaf functions (catalog `uopt53-*`).
+
+`solver/alloc_inverter.py` (available, NOT wired into any controller; run only by
+`eval/results/alloc-inverter-20260923/run.py`) proposes C edits from a uopt
+diagnosis: `raise` (empty reads on a `blocked` range, skipping constant and
+local-copy sites), `earlier` (store order), `inline` (ugen temps). 0 exacts so far.
+Measure its action with `action_trace.py` (trace-only colour check);
+`uopt_diagnosis.diagnose` declines on most edited candidates and cannot. Tests:
+`tests/test_alloc_inverter.py`. Frame layout: catalog `ido53-frame-layout`; the
+frame-too-big inline trial is not installed (`frame-size-20260923/frame_population.py`).
+
+ugen and as1 (September 23, `eval/results/ugen-temps-20260923/`): ugen takes
+expression temporaries from a FIFO cycle t6..t9, t0..t5 minus uopt's registers
+(`python -m eval.ugen_temps`: 95.1% of 27,371 allocations order-free; all but 2 of
+1,632 functions once as1's copy-propagation gaps are allowed). `cc -S` is ugen's own
+assembly before as1 schedules and copy-propagates; assembling that text does NOT
+reproduce the object (as1 loses information), so as1 cannot be probed with
+hand-edited `.s`. `solver/strength_inverse.py` (family `index_form`) undoes loop
+strength reduction (pointer walk -> `&BASE[i]`, optionally reading later uses
+through a global the loop stored); it closed waitCourseSelectRecordsClose from the
+pre-steering source (`tests/test_strength_inverse.py`).
+
+Branch layout (September 24, `eval/results/branch-layout-20260924/`): 143 of 204 unsolved
+functions already have the target's control-flow skeleton (`census.py` rebuilds each
+candidate by applying its recorded diff to the target dump). `solver/branch_shape.py`
+holds six families, wired into `regalloc_mutations.variants` after `evidence_site`:
+`select_else` (`x = A; if (c) x = B;` -> if/else when the target has more `b`/`j`),
+`split_merge` (merge m2c's var_R / var_R_2 webs when the target keeps more `slt*`),
+`o1_register_local` (-O1 recipe only, from the verdict's `compiler_recipe`),
+`empty_then_return`, `m2c_struct_copy` (M2C_MEMCPY_ALIGNED -> struct assignment;
+note `m2c_copy.propose` is routed only through modelrepair and emits a word loop, which
+IDO compiles differently) and `dup_return_merge` (m2c's `Duplicate return node`).
+Acceptance: paired trials lost 0 exacts (code-v10, first four:
+`eval/results/branch-shape-population-20260924/`; code-v12, all six with site-ordering
+fixes: `eval/results/branch-shape-v11-20260924/`). code-v12 closed __MusIntFindChannel,
+copyGfxCommandBlockToScratch and drawTrainingCourseLessonEndMenu (378 -> 381). Tests: `tests/test_branch_shape.py`. Fire harness for any source edit
+on a real residual with the function's recorded recipe: `branch-layout-20260924/fire.py`
+(plain `build.sh` defaults to -O2 and mis-compiles -O1 functions).
+
+`strength_inverse.counter_loop_variants` (family `counter_loop`, wired after
+`index_form`) is the integer counterpart of `index_form`: derived variables stepped at a
+bottom-tested loop's tail become a counter `for` loop, and a variable stepped in lockstep
+with a `for` counter becomes that counter (H6, catalog `uopt53-derived-iv-from-counter`).
+It closes the five 99.936 siblings in fire tests; paired trial
+`eval/results/counter-loop-20260924/` (code-v13). Tests: `tests/test_counter_loop.py`.
+
+`branch_shape.at_inline` (family `at_inline`) folds m2c's `var_at` variables back into the
+test that reads them (catalog `m2c-var-at-is-a-branch-temp`). `evidence_site` silent decline
+fixed 2026-09-24: relocation operands dropped the addend (`%lo(G+4)` == `%lo(G)`), so a
+symbol-addend residual had no class; `_symbol_addend` now reads G at the target's addend
+(resumeGameTask 100.0 in the fire test). Paired trial for both: `eval/results/at-inline-20260924/`
+(code-v14).
+
+`evidence_site` also applies stated offsets and widths to member accesses of header
+types it cannot edit, writing `*(T *)((u8 *)base + OFF)`; IDO 5.3 compiles that
+identically to the member (H10, 30 of 30, `eval/results/offset-access-20260923/`).
+It closed initRaceCameraChase (SOLVED). Stack frame size is only partly modelled
+(`python -m eval.frame_size`: 61.2%; leaf frames and the outgoing-argument area hold,
+the locals/spill part does not; `eval/results/frame-size-20260923/`).
+
+`solver/edit_locality.py` maps each candidate edit to the diff: an edit touching a C
+line that a differing instruction is attributed to improved 9.2% of 11,378 recorded
+edges, one touching none 3.6%. `regalloc_mutations.variants` skips blind statement
+edits (stmt_move, stmt_order, commutative) that touch no faulty line when given a
+source-bound attribution. Population rerun: 0 exacts lost or gained; the freed
+compiles went to other blind families (`eval/results/edit-effect-atlas-20260923/`).
+
+Search budget use (September 23): restarting a 32-compile search from its best node twice matched or beat one
+96-compile search on all 224 functions (18 vs 17 exact, 0 lost; `eval/results/restart-20260923/`); prefer
+rounds-from-best when spending more budget. Merging line-disjoint improving edits of one parent
+(`eval/results/edit-effect-atlas-20260923/compose.py`) beat the best single edit 81% of the time but closed
+nothing extra. A block-by-block retrieval inverse tiles 61.5% of target blocks at shape level but 14.9% with
+constants (`eval/results/block-inverse-20260923/`).
+
+`python -m eval.mechanism_roadmap ROWS... --out DIR` turns recorded search worlds
+into the machinery's own work list, with no compiles. BUILD: residual classes the
+diff states and the source map locates but no edge ever reduced, weighted by how
+often each is the last blocker at an unsolved function's best node. NEEDS-MODEL:
+classes the diff does not state (register, branch, missing instructions). REFINE:
+machinery-card flags (breaks the build, object unchanged, acts without helping),
+with refinement packets (parent, bad candidate, refusal) for broken families.
+GATES: contexts (`solver.family_gates`: state, recipe, dominant axis) where a
+family never pays, learned cross-fitted by function halves and written as
+`proposed-gates.json`. `regalloc_mutations.variants` skips gated families only
+when given evidence. Proposed gates are installed into `solver/family_gates.json`
+only after a population rerun with them loses no exact. Code fixes stay manual:
+the packets are their input. Tests: `tests/test_mechanism_roadmap.py`.
+
+The scripted tool controller also tries `repair-mmio` after wide reconstruction.
+`solver.mmio_repair` handles an empty register-poll loop followed by an OR-tagged
+word load/store. It derives peripheral addresses and masks from encoded MIPS
+instructions, preserves volatile reads, and rejects unsupported ABI, shadowed
+symbols, interrupted evidence chains, and contradictory encodings. The action
+is bound to the workspace target and only proposes source; the controller logs
+and compiles it. It automates the two previously manual `osEPiRawReadIo` and
+`osEPiRawWriteIo` repairs with fresh ROM-backed function certificates. Three
+adjacent I/O functions remain outside its coverage. It does not admit device
+behavior or integrate a function into a production TU.
+
+On eight frozen development drafts at equal 60-compile ceilings, the expanded
+stream reaches 5/8 object-exact versus 3/8 for the previous stream, preserving
+all control successes. The two new results (`Fvibup`, `Fvibdown`) each require
+both new representation families and close in 29 calls; the control spends 60
+without a match. Public tool-controller runs and fresh isolated workspaces
+independently reproduce the results. One draft fails intake in both arms.
+This exposed panel is training-ineligible; no model or frozen campaign was
+changed. See `eval/results/repair-mechanisms-20260922/` for receipts and costs.
+
+## Replay-selected compiler search (September 22; experimental)
+
+`eval.search_scheduler.Online` exposes the existing deterministic
+`regalloc_mutations.variants` stream one compile at a time. Each node has an
+explicit parent and ordinal, source hash, compiler verdict and attempt receipt.
+Deduplication is local to a parent and its ancestors so changing the scheduler
+does not silently change the candidate stream. Failed and baseline compiles
+both consume the ceiling. Normalized score 100 is not an exact certificate.
+
+`eval.search_replay.Replay` reveals only observations reached by the current
+policy. Missing continuations invalidate replay; only recorded generator
+exhaustion closes a branch. `select_policy` compares a finite family of breadth,
+greedy, revisit-penalized and depth-penalized recipes, preserving the incumbent on ties or
+incomplete baseline coverage. Worlds bind target object, source, build/scoring
+context and generator version; incompatible worlds cannot merge. These are
+local experimental records, not authenticated or hermetic build attestations.
+
+The development driver `eval/results/dream-search-20260922/pilot.py` collects
+worlds, freezes an offline selection, then compares it with a fixed scheduler
+and the existing beam search on different exposed development functions.
+`evolve.py` brings the observed regression into calibration; `adapt.py` proposes
+and validates a depth penalty using the expanded history. It preserves two known
+calibration matches in 15 instead of 22 compiles, but ties the existing search
+with no new exacts on two further development states. Every compile is logged privately, and reported exact sources
+from calibration and comparison receive independent workspace confirmation.
+No model weights, production KB, repair generators, default scheduler, or real
+game source are changed by this lane. See that directory's `RESULT.md` for costs
+and the policy disposition; these are not sealed-test transfer measurements.
+
+## Verified residual repair (September 22)
+
+`solver.cursor_advance.variants` is now a family in `regalloc_mutations.variants`,
+so the existing `regalloc_search` and its registered tool runner can compose it
+with local-type changes. It proposes moving a pointer's final `+1` to its sole
+load, with conservative scope/use/control-flow checks. The ordinary compiler
+and certificate remain the acceptance gate.
+
+On the frozen **development** `Fdistort` state, paired searches under the same
+40-compile ceiling gave 24 compiles / 81% / nonexact without this family versus
+10 compiles / object-exact with it. The result is **header-assisted**. The family
+fires on 1 of the 17 starting dev states; this is not a held-out transfer claim.
+Two additional assistant-authored I/O repairs are schema-3 ROM-backed
+function-exact and frontend-passing. Their MMIO pattern is recorded for review,
+not wired into automatic candidate generation.
+
+Evidence and reproducible scripts: `eval/results/residual-repair-20260922/`.
+Tests: `tests/test_cursor_advance.py`, existing regalloc/search/tool-boundary
+suites. These are development repairs, not training examples or an autonomous
+RSI generation; real TU and whole-ROM integration remain separate gates.
+
+## Local compiler research panel (September 20; independent experimental lane)
+
+- `eval/progress_app.py` serves `/api/research` and same-origin
+  `/api/research/control`; `eval/progress_research.js` displays the worker and its
+  bounded results. Campaign control remains separate. `/api/health` lets the
+  launcher start the UI even when campaign data is unavailable.
+- `eval/research_control.py` launches one `eval.local_research` worker in WSL and
+  writes a run-specific stop request. `--read-only` disables these mutations.
+- `eval/local_research.py` reserves call/compile budgets, enforces a wall deadline,
+  cancels child process groups, logs all attempts and feeds prior recipe-scoped
+  observations into later prompts. The worker lock, compiler work and notebook
+  live in `/home/grant/decomp/local-research` on Linux; Windows receives a small
+  status projection under `eval/results/local-research`.
+- `eval/research_tools.py` exposes fixed local-model inspection/chat, recipe
+  resolution and synthetic C compilation operations. Native Ollama API only:
+  installed GGUF weights, no cloud models, paid fallback, downloads or arbitrary
+  commands. The existing compiler-recipe resolver and synthetic feature extractor
+  remain the authorities; miners remain LLM-free.
+- One discovery and two independent confirmation values test a preregistered
+  feature comparison. `synthetic_confirmed` is finite synthetic evidence, with
+  game transfer explicitly untested. No active pattern, KB mutation, weight
+  update or real-game promotion follows automatically. Full use and limits:
+  `docs/local-research.md`.
+- **Separate training action (September 20).** `/api/training` and
+  `/api/training/control` in the same dashboard, displayed by
+  `eval/progress_training.js`. `eval/training_control.py` launches one bounded
+  `eval.train_repair_sft` run under WSL, enforces the step/example/wall-clock
+  limits, and stops it with a process-group kill (`kill -TERM -<pgid>` through
+  `wsl.exe`) after writing the run's stop file. It is not a stage of the research
+  loop: a run is `completed` only when the trainer exits 0 and its receipt is
+  verified, and only then does the panel name an adapter -- training itself proves
+  nothing, and held-out evaluation remains separate. State and receipt live under
+  `/home/grant/decomp/local-research/training/`; the Windows projection adds
+  `training-status.json` and `training-receipt.json` to `eval/results/local-research`.
+- **Compiler-verified post-training (September 20; the lane that actually learns weights).**
+  Result and full receipts: `eval/results/local-posttraining-20260920/RESULT.md`. This is NOT the
+  panel above and NOT `eval.train_policy.py`; it is the source-repair objective the handoff asks
+  for, and it is the only path here that changes model weights and is measured against the oracle.
+  - **Problem generation.** `tools/synthetic_corpus.py` generates C per `(family, seed)`; the
+    game's own IDO recipe compiles it. That C is the HIDDEN ANSWER, its `.text` is the target, and
+    `eval/repair_mutations.py` damages a copy of it to make the candidate. Every mutation must be
+    measured to compile, to change the code, and to keep the function's identity; the catalogue
+    reports the two mutations that fire on nothing rather than claiming them.
+  - **Verification — CORRECTED 2026-09-20 after an independent audit, and the headline RE-MEASURED.**
+    `eval/repair_dataset_synth.py` used to compile the answer a SECOND time and compare
+    **`.text` sections**, because whole objects are not reproducible: IDO embeds the source path
+    and a random `asm_processor` temp filename, so the same C built twice gave 1480 and 1484-byte
+    objects. That fixed a real problem and **introduced a worse one**: `.text` excludes
+    relocations, so two functions differing only in their **callee** — `return external_a(x);`
+    versus `return external_b(x);` — produce byte-identical `.text`
+    (`27bdffe8afbf00140c000000000000008fbf001427bd001803e0000800000000`, differing relocation at
+    `0x8`) and the oracle called them equal while `solver.byte_certificate.certify()` correctly
+    called them different. Reproduced. **`.text`-only equality is not a repair verdict.**
+    Exactness now comes from `solver.byte_certificate.certify` — allocated sections AND relocation
+    expressions — everywhere: the dataset build, the evaluator's verdict and the gate. `code_image`
+    survives only as a labelled diagnostic and says so in its docstring. The `4 → 19` headline of
+    `eval/results/local-posttraining-20260920/` was **re-measured through the certificate** and is
+    unchanged (baseline 4/27, adapter 19/27, gained 15, lost 0). Across all 108 draws the count
+    where `.text` matched but the certificate rejected is **0**, so the defect did not inflate this
+    figure — structurally, because the generator emits exactly one external symbol name.
+  - **Leakage.** `leakage_check` runs per record before it is written and refuses a task whose
+    answer appears anywhere the solver was not handed it. It distinguishes shared declarations and
+    a small defect (both legitimate — the candidate IS the answer damaged) from a real leak: the
+    full source, its digest, or the source echoed into the feedback channel. **Closed (was an audit
+    finding):** the manifest is now **schema 3** and binds the dataset's bytes, every record's
+    content (whole record, solver-visible input, answer) and the panel's shape, and
+    `eval/frozen_manifest.py` re-checks all of it — plus the **final rendered prompt** for leakage —
+    before the model loads. A schema-2 manifest is refused outright rather than silently accepted.
+    Demonstrated both ways: a candidate swapped for its hidden answer after the freeze is rejected,
+    and the pre-hashing panel is refused with a "re-freeze it" error.
+  - **Splits.** Whole template families go to one side, never both; the manifest is frozen before
+    training and refuses to be overwritten. Train `if_chain`/`saved_regs`/`switch_dense`,
+    test `loop_for`/`stack_spill`/`switch_sparse`; zero assembly overlap.
+  - **Training.** `eval/train_source_repair.py`, completion-only LoRA. Publishes an adapter ONLY
+    on a clean stop that changed a weight: neither an interrupted run nor a run with
+    `steps_run: 0` may publish, and both are tests. The adapter is promoted to the published
+    directory so it is directly loadable, and the receipt records peak GPU, elapsed, examples,
+    tokens and base/adapter hashes.
+  - **Evaluation.** `eval/evaluate_source_repair.py` runs BOTH arms in ONE loaded model with the
+    adapter toggled (`disable_adapter_layers`, never `set_adapter(False)` — PEFT reads that as an
+    adapter literally named `False`). Primary outcome is **object exactness from the certificate**
+    (`solver.byte_certificate.certify`, over allocated sections AND relocation expressions); the
+    `.text` image and `score` are diagnostics only. The evaluator recompiles the target from the
+    hidden answer instead of trusting a stored digest, keeps `source` and `raw_response` for **every**
+    draw including successes, and writes per-draw artifacts (candidate C, model output, object,
+    certificate) beside the run. `eval/posttraining_gate.py` promotes only on gained≥1 and lost=0
+    over a **complete equal-budget panel** of at least 12 frozen `test` tasks with a recorded draw
+    count per task; every other outcome keeps the baseline, and a spec that declares nothing cannot
+    promote.
+  - **Dashboard training control.** `eval/training_control.py` is the panel's explicit training
+    action: it probes the trainer's own `--help` for the flags it advertises, launches the worker in
+    its own process group, and `Stop` signals the whole group so compiler children die with it. The
+    trainer's working directory is **this checkout**, not the game repo — the trainer is
+    `python -m eval.train_source_repair` and `eval` is importable from nowhere else. `--repo` was
+    the game repo and was handed to both the probe and the launch, so the probe asked an interpreter
+    for a module it could not reach and blamed the trainer; the dashboard action could never have
+    started a run. The worker also registers its process group before any early return, and sets
+    `running` when the trainer actually starts (nothing ever did, so the panel showed "starting" for
+    the whole run). Tests: `tests/test_training_control.py` — run from **Windows**
+    `python -m pytest`, because it drives `wsl.exe`.
+  - **Lineage audit of the real game data.** `eval/trajectory_audit.py` +
+    `eval/results/local-posttraining-20260920/AUDIT.md`: the KB's lineage is largely
+    UNVERIFIABLE (94.2% of parented rows store no prompt), yielding 139 verified pairs from 8,132
+    edges. The fresh collection data passes every check at 100%. Training here draws from the
+    synthetic corpus precisely because verified answers exist there and mostly do not in the KB.
+  - **Machine hygiene.** `eval/resource_limits.py` caps GPU/CPU/nice and honours a pause file;
+    the WSL VM retains GPU and RAM after jobs exit, so `wsl --shutdown` after a run.
 
 ## uopt allocation trace (September 14; diagnostic only, not wired into the campaign)
 
@@ -217,9 +1194,12 @@ Measured in `eval/results/failure-census-20260914/README.md`; deployment receipt
   - Clang range ends are exclusive.
 - **Controller:** `solver/repair_queue.next_profile`. In the FRONTEND lane, compiled nodes get a zero-model
   `frontend_fixits` profile first, once per evidence key, in visit band -1.
-  - `eval/completion_campaign.execute` passes `frontend_fixits=True` to `eval/agentrepair.run`.
-  - agentrepair scores one `agentrepair-frontend-fixits` attempt as an ordinary initial state.
-  - `modelrepair._quality` ranks frontend-passing candidates above rejected ones.
+  - Historical deployment used a separate frontend-fixits amendment. The current
+    `eval/completion_campaign.execute` calls `eval/agentrepair.run(resilient=True)`;
+    `solver/modelrepair.search` now generates and scores frontend-cast children
+    inside normalization (September 22 clean-fields loop).
+  - `modelrepair._quality` ranks frontend-passing candidates above rejected ones
+    within the same exactness/compilation tier.
 - **Not covered:** implicit function declarations and other non-type diagnostics. Uncompiled nodes still start with
   `compile_recovery`.
 - **Offline basis:** `eval/results/frontend-reloc-20260914/`, 28 of 29 passed and 1 exact. Deployment receipts:
@@ -391,6 +1371,38 @@ First use: 17.7 GB → 230 MB (102 commits, 4,501 objects), state sha256
 `eval/results/resume-pipeline-20260908/campaign-prune/`. Tests:
 `tests/test_campaign_prune.py`. Still to do: automatic retention or delta
 manifests inside `Store.save`. That is a frozen-code amendment.
+
+Second use, 2026-09-22: 15.7 GB → 0.34 GB (107 of 14,122 commits), both pointers
+verified. The same day C: reached 0 bytes again and WSL refused to start. The
+larger sink was the `fast_runtime` compile cache: it globbed `<stem>*` after each
+build, so every entry captured all earlier candidates' workspace debris (worker 2:
+141 GB, one entry 25 MB, 1.5% of entries ever re-read). `fast_runtime` now caches
+only files the build wrote (stat diff before/after), zlib+base64, and old hex
+entries still replay (`tests/test_campaign_fast.py`). The live run received this as
+recorded amendment `revisions/20260922-compile-cache-artifacts/` (commit 28383;
+3,247 unchanged pins verified; frozen suite 22 passed). `python -m eval.cache_prune
+ROOT... --budget-gb N [--apply]` bounds any `fast_runtime` cache by LRU per kind,
+skipping locked entries (`tests/test_cache_prune.py`); at 4 GB it evicted 143 GB
+and left the two healthy worker caches (~3.5 GB, 94% re-read) intact.
+`eval/campaign_hourly.ps1` now runs it every hour at 4 GB per kind; eviction removes
+only `value.json` and skips locked entries, so it is safe beside running workers.
+The Ubuntu vhdx is not sparse (WSL disables sparse VHDs without `--allow-unsafe`),
+so WSL-side deletes reach C: only after `fstrim`, `wsl --shutdown` and `diskpart`
+`compact vdisk`.
+
+`attempts.sampling` carried each attempt's per-instruction source attribution
+verbatim (~30 KB a row; 6.3 GB of the campaign DB, which exists in four copies).
+`python -m eval.attempt_compact DB [--apply] [--vacuum] [--expand]` packs
+`source_attribution.instructions` (zlib+base64, codec tag) and rewrites a row only
+if unpacking reproduces the original text byte for byte; `--expand` is the checked
+inverse, and `<db>.compact.json` makes scheduled runs read only new rows. Read the
+field with `solver.source_attribution.instructions_of`, which takes either form;
+no reader used the stored copy (`tests/test_attempt_compact.py`).
+
+The progress dashboard follows `launch.json --state` for the checkpoint and map
+(`progress_app.checkpoint_dir`) instead of the control directory's pre-relocation
+pointer, and `launch-progress.ps1` serves it from WSL because SQLite cannot lock
+over `\\wsl.localhost`.
 
 ## Recorded whole-call replay (September 13, main tree only)
 
@@ -1032,6 +2044,13 @@ Codex repair for persistent errors or a checkpoint stale for two hours. Repairs
 still require validation and recorded runtime amendments. See the run's
 `OPERATIONS.md` for controls, limits, and recovery details.
 
+When an explicit runtime amendment relocates only mutable checkpoint/database
+state to the WSL filesystem, the supervisor follows the frozen command's
+`--state` path for health, locking, rolling backup, retry decisions, and pause
+markers. The control directory, logs, frozen code, and Windows hourly-task path
+may remain at the recorded run path; this avoids repinning code merely to move
+SQLite writes off DrvFS.
+
 ## Single-precision overflow during differential execution
 
 `mips_differential._float32_bits` translates host float packing overflow into
@@ -1061,6 +2080,24 @@ recovers eight of ten `ll.o` helpers as exact objects with frontend passes.
 `__ull_divremi` and `__ll_mod` remain draft-compilation failures. The original
 game-wide run keeps its frozen code, inputs, and results; these are separate
 development repairs, eligible for a later explicit fork/replay.
+
+September 22 repair coverage follow-up: `reconstruct_helper` now also proposes
+the complete quotient/remainder pointer-store stream with a trailing halfword
+argument, and signed remainder adjusted to the divisor's sign. These are
+reconstruction recipes only; `recognize`/`infer` callee and runtime admission
+remain unchanged. `eval.tool_registry` exposes `reconstruct-wide` through
+`tool_runners.closed_wide_runtime`, gated by the workspace target ELF and exact
+`-mips3 -32` recipe. `ScriptedPolicy` selects it after the baseline compile on
+that recipe, including compiling nonexact candidates; the controller compiles
+the proposal and retains only an equal-or-better verdict. Adopted source and
+verdict hashes are synchronized before callbacks and immediate episode stops.
+
+The source-bound run in `eval/results/repair-coverage-20260922/verified/` reaches
+7/7 object-exact results with frontend passes, independently recompiled in fresh
+native WSL workspaces. Five reuse existing reconstruction coverage; two are the
+new recipes above. The regalloc-only arm reaches 0/7 and is a narrow-lane control,
+not a full-project baseline. The panel is exposed development data, excluded
+from training. No frozen campaign or production TU is changed.
 
 ## Evidence-directed orchestration (opt-in)
 
@@ -1128,6 +2165,22 @@ the campaign stores this evidence and the audit routes it to the compiler
 backend. No postprocessing command is executed. Fresh-v6 save-menu exposed a
 zero-tail trim/weak-symbol rewrite requirement. Isolated candidate applicability
 and symbol containment checks are still needed before implementing that backend.
+
+The October 2 SBK1-only recipe census (`eval/results/compiler-sbk1-20261002/`)
+resolves 212 supported C recipes covering 2,106 function metadata entries; the
+special backend boundary affects four data-only files and the seven-function
+race-setup TU. `workspace.score` now records setup/build exceptions in the ordinary
+attempt ledger before rethrowing the original stop. `sampling.compiler_failure`
+binds stage, exception, source digest, build-launch state and any
+`ObjectBackendRequired.evidence`; partial timeout output survives in the attempt's
+compiler diagnostics and raw output. Before launch compiler calls are zero;
+after launch they stay unknown, not guessed. The failed row is compiled=false,
+exact=false and explicitly training-ineligible. Ledger errors annotate the
+original exception; interrupts are not converted. Callers must supply `conn`
+and `func`; candidate-free `configure_compiler` is unchanged. Native verification:
+103 focused tests, one previously exposed exact/control frontend pass and one
+real backend stop recorded without compiler invocation. Campaign activation and
+full-TU postprocessing are unchanged; SBK2 is not an input to this SBK1 work.
 
 ## Automatic indexed workspace hypotheses
 
@@ -4310,7 +5363,7 @@ exact ROM for a replacement subset does not mean the whole game was recovered.
 | `solver/m2c_context.py` | Header context, typed-pointer assignment hypotheses, extracted literal rodata -> bounded m2c variants | Active. Includes explicit bitcast-to-union candidate lowering. |
 | `solver/project_headers.py` | Prototypes, used globals/types/callback values -> include/reconciliation variants | Active. Syntactic header context is not binary evidence. Macro calls must not be mistaken for prototypes. |
 | `solver/pipeline.py:build_prompt(declarations=True)` -> `project_headers.prompt_context` | Assembly + draft -> bounded project declarations appended to the resident prompt | **Opt-in, default off.** Wired 2026-09-16 for the admission residual: 44 of the 199 never-compiling functions fail on `'X' undefined`, and the resident prompt asked the model to invent the callee types it was not given (`suspendGameTask` invents `GameTask`, which is correct, and `common.h` includes no `game/engine/` header). Measured before wiring: blocks of 0-1,666 chars against a 131,072-token window, so capacity was never the constraint. Header-assisted tier, not capability -- report separately from SOLVED, and note `eval/zero_token_harvest.py` excludes the same module on purpose. |
-| `solver/compile_recovery.py:header_variant` | TU identity + current source -> compatible header candidate | Active on noncompiling intake. SDK TUs exclude game-shim includes; missing internal declarations/types are located in existing headers. Original candidates remain logged. |
+| `solver/compile_recovery.py:header_variant` | TU identity + current source -> compatible header candidate | Active on noncompiling intake. SDK TUs exclude game-shim includes; missing internal declarations/types are located in existing headers. When the target definition's types are already available, a differently spelled target prototype alone no longer selects a header. Explicit includes and headers needed for callees/types/globals remain; unresolved signature aliases retain the original recovery path. Clean 200-state paired replay: conflicts 144→44, IDO 16→26, IDO+frontend 12→17, exact 2→2; no regressions. Main-tree change only; receipts: `eval/results/clean-conflicts-20260922/REPORT.md`. Original candidates remain logged. |
 | `solver/globaldecl.py` + `compile_recovery.globals_variant` | Symbol addresses + cited access observations + unresolved identifiers -> extern hypotheses | Existing generator newly wired through a narrow campaign adapter. Known included declarations are not overwritten. `extern ?` with no evidence stays unresolved. Access widths do not prove full C object types or extents. |
 | `solver/compile_obligations.py:opaque_variant` + `solver/typedecl.py` + `solver/structgen.py` | Fresh dataflow parameter accesses + opaque forward tag -> padded candidate struct | Reuses existing layout rendering. Completes the named tag, not a duplicate typedef. Restricted field-name mappings; no complete header definition is replaced. Object extent beyond observed fields is unknown. |
 | `solver/dataflow.py`, `solver/cfg.py` | Target instructions -> control-flow-aware parameter/stack/value identities | Existing analysis reused for the new storage/type feed. Unresolved identities remain unresolved. No evidence-table mutation. |
@@ -4325,7 +5378,7 @@ exact ROM for a replacement subset does not mean the whole game was recovered.
 
 | Mechanism / owner | What happens | What is not established |
 |---|---|---|
-| `solver/compiler_recipe.py` | Assignment-only Makefile projection resolves per-TU compiler settings; matching helper adapter preserves guards | Unsupported conditional/postprocessing settings are not silently approximated. |
+| `solver/compiler_recipe.py` | Assignment-only Makefile projection resolves per-TU compiler settings from `tus.object_path` (legacy NULL falls back to `tus.name`); matching helper adapter preserves guards | Unsafe explicit object identities, changed workspace identities and unsupported conditional/postprocessing settings are rejected. KMC GCC recipes remain unsupported. |
 | `solver/frontend_check.py` | Project default clang C policy after text conversion, source-bound diagnostics and checker identity | Isolated candidate/header acceptance, not full-TU acceptance or semantic proof. Unavailable checker is operational debt. |
 | `solver/byte_certificate.py`, `solver/function_boundary.py` | Independent object sections/relocation expressions; optional scoped function-boundary checks | Weighted assembly score is not byte percentage. Boundary exactness alone does not certify the full object or ROM. |
 | `solver/residual.py` | Compile state, byte/instruction diagnostics and frontend report -> model packet | An informative packet is not a success verdict. |
@@ -4580,19 +5633,237 @@ Standalone tools; none is called by the pipeline yet. Receipts under `eval/resul
 | Public-decomp pair grabber with evaluation contamination guard | `tools/corpus_grabber.py`, recipes, build variants and per-file flag rules in `corpus/pair_sources.json` (ids must be in `corpus/n64_sources.json`) | `tests/test_corpus_grabber.py` | `corpus-grabber-20260916/dkr-pal-v80-receipt.json` | Blocks SBK1/SBK2 by URL and by normalized-hash/near-duplicate against their source (refuses to run without it). Never executes repository code itself. Pairs are upstream-matched, not ROM-verified. DKR `dkr@pal.v80` yields 983 pairs from 46 of 47 files. `grab` REFUSES when a recipe declares an extraction whose outputs are absent, and when a declared per-file flag rule never fires. |
 | Sandboxed repository extraction (ROM-generated headers) | `tools/sandbox_extract.py`, declared per variant in `corpus/pair_sources.json` under `extraction` | `tests/test_sandbox_extract.py` (the real run is opt-in via `GAMEDECOMP_SANDBOX_FIRE=1`) | `sandbox-extract-20260916/dkr-pal-v80.json` | Four enforced guarantees: the dump's sha1 must equal the revision the repo pins; work happens in a throwaway clone with the corpus checkout masked by a tmpfs; every command runs under `bwrap --unshare-net`; only declared output globs are copied back, and a glob containing `..` is refused. Needed because DKR's Makefile downloads binutils from GNU.org while make is still PARSING, so even `make -n` reaches the network. The dependency phase (pip from the repo's pinned requirements, `apt-get download` of named -dev packages into a local sysroot) is the only part allowed to use the network, and it runs no repository code. |
 | ROM inventory: which dump fixes which repository revision | `corpus/rom_inventory.json` (identity and role only; dumps stay in the gitignored `roms/`) | `tests/test_corpus_grabber.py::test_pal_v80_pins_the_dump_this_workspace_holds` | — | Records the sha1/md5 each project publishes, not a hash this pipeline computed. A ROM is never model input. |
-| Adaptive research search (the self-improvement loop) | `eval/research_loop.py` (`replay`, `--curriculum`, `--distill`; `LiveLoop` for the forward path) | `tests/test_research_loop.py` | `research-loop-20260916/replay-b24.json` | Off-policy replay over the logged forest: policies reallocate the SAME recorded expansions, so it measures allocation efficiency and cannot credit branches that were never born. The controller's weights are hand-set; only `SeedBook` learns, and `AdaptiveNoLearn` is the control that says whether that learning matters. `gate()` implements the stopping condition (beat fixed-seed AND random on discovery) and must pass before any weight update. Not wired into the campaign: nothing calls it yet. |
+| Adaptive research search (the self-improvement loop) | `eval/research_loop.py` (`replay`, `--curriculum`, `--distill`; `LiveLoop` for the forward path) | `tests/test_research_loop.py` | `research-loop-20260920/GATE-REVIEW.md` | Off-policy replay over the logged forest: policies reallocate the SAME recorded expansions, so it measures allocation efficiency and cannot credit branches that were never born. The controller's weights are hand-set; only `SeedBook` learns, and `AdaptiveNoLearn` is the control that says whether that learning matters. **`gate()` is at rule version 2 and tests THREE conditions**: beat fixed-seed AND random on discovery, AND beat `adaptive-nolearn` on *solved* functions as a PAIRED comparison (`n01 > n10`). Rule 1 tested only the first two — neither of which has the priority terms, so it could not separate the allocation from the learning — and on that basis passed the Sept 16 replay, which then wrote 2,639 distillation pairs. Re-run at budgets 8/24/48: `adaptive` and `adaptive-nolearn` are identical on every metric and solve **exactly the same functions** (zero discordant pairs), so **rule 2 refuses at all three**. Adaptive *allocation* still beats random allocation on discovery; the *learning* contributes nothing measurable. A follow-up measured why, and the answer is structural rather than a tuning problem: the weights **do** move (40 credits over 7,388 expansions, `unexplored` 1.0→3.00 at its ceiling, seed-term spread 0.150), and **12 of 400 forests have divergent decision sequences** — so the memory is live — but **0 functions differ in the solved set**, because at budget 48 every sane policy reaches regret 0.000, and the top-weighted seed is `unexplored`, an **empty lens** scored as `fault_total/6` (a magnitude, not a direction) that `_reseed` assigns by rule. Also half-wired: `credit()` has one call site inside a GAIN test, so weights are monotonically non-decreasing and the docstring's "decays on dead branches" cannot occur. Keep the priority terms as an allocation heuristic; the "learning research taste" claim is retired pending a search space where the budget binds. Recorded REFUTED in `patterns/hypotheses.json`. Not wired into the campaign: nothing calls it yet. |
 | Trajectory factory: manufactures the improvement data the loop closes on | `eval/trajectory_factory.py` (`--plan` to inspect, `--game`, `--objective learn\|finish`, resumable via a `.state` sidecar) | `tests/test_trajectory_factory.py` | `eval/results/trajectory-factory-20260916/` | Best-of-N over `solver/refine.FIRST_PROMPT` verbatim, every candidate compiled and linked to the attempt it refines so the edge IS the trajectory. Excludes the sealed eval functions AND the library TUs `eval/clean_set.py` already excludes (left in, the learn objective's top picks were `__cosf`/`__sinf`, built with a different recipe). Reports THREE populations with three different cures: **refusals** (model declines the target -- pick another function), **P(compiles)** (the admission gate -- fixed by deterministic lowering), **P(improves\|compiles)** (the yield -- the only one where model quality is the question). An unadmitted run reports `None`, not 0.0, plus the attempt count that would make a zero meaningful. Bugs found and pinned: a hand-rolled prompt produced 19 KB of prose (0 of 20 compiled) and `think=""` leaked the reasoning channel (0 of 20); with the project's prompt and `think="low"` the same code reached 44% compiled and produced an improving edge. The 50-attempt measurement is still not obtained: both mid-score targets refused outright, and the knowledge base records 0 refusals in 2,197 historical gpt-oss attempts, so the generation path is not yet equivalent to the campaign's. |
+| Multiple verified children per repair STATE (2026-09-20) | `eval/target_augment.py` (harvest), `eval/repair_prompts.load_task_examples(variants=…)` (join), `eval/train_source_repair.py --variants --balanced-weights` (train) | `tests/test_repair_states.py` | `multichild-20260920/`, `verified-targets.json` | A repair state is the whole conditioning tuple — target, parent source, feedback, build context, prompt context — NOT the function id; `assert_states_are_not_functions` REFUSES a grouping that collapsed to ids, because that would attach a child to a parent it was never verified against and would look healthy from outside. Children are deduplicated by NOVELTY not bytes, so cosmetic respellings cannot inflate weight. Weights balance function → state → novelty class, scale so the dataset mean is 1.0, and are only exact at `batch_size == 1` (HF's loss is a pooled token mean), which the trainer refuses rather than approximates. `target_augment` runs on the **train split only** and refuses any other, because harvesting variants of the held-out split would change the panel the evaluation is measured on. |
+| Bounded diverse repair archive (experimental search mode) | `eval/repair_archive.py` | `tests/test_repair_archive.py` | — | Keeps the best-known candidate always, plus a few that differ structurally, measured by a deterministic descriptor that ignores whitespace and identifier-only changes but NOT a changed constant, operator or control-flow keyword (each tested). It never computes exactness itself — `exact` is the caller's certificate verdict, recorded verbatim. A quality threshold here is a heuristic, not proof of correctness, and novelty is not quality. **Scope limit that matters:** an archive only changes anything if the search CHOOSES SEEDS, and the synthetic evaluator draws independent samples (`repair_passes: 0`), so this is inert until multi-round attempts exist. |
 | SBK2 KMC-GCC oracle, inventory, knowledge base | `tools/gcc_oracle.py` (`selfcheck`, `build-kb`) | `tests/test_gcc_oracle.py` | `sbk2-gcc-oracle-20260916/selfcheck.json` (2760/2760 exact) | Exact = instruction bytes AND relocations. KB `~/decomp/kb-sbk2.sqlite` omits 52 functions without a unique identity. No generation or repair path uses it yet. |
 | TU-disjoint eval split | `eval/clean_set.py freeze --tu-disjoint` | `tests/test_clean_set.py` | `eval/sets/sbk2_gcc_v1.json` | Default (non-disjoint) manifests are unchanged. |
 | Parallel-range weight fetcher | `tools/parallel_fetch.py` (`--repo`, `--url`) | exercised by real use; no unit test yet | — | Eight range requests measured 53.9 MB/s where one connection measured 0.45 MB/s, so a 7B checkpoint is minutes instead of nine hours. Verifies the LFS sha256 from the hub's 302 (`X-Linked-Etag`), NOT the final response's ETag, which is a CDN cache tag that looks identical and rejects good downloads. Skips files already present and correct. |
 | Self-test MCP server | `mcpserver/gamedecomp_server.py` (7 tools; `build_server()` needs `mcp<2`) | `tests/test_mcp_server.py` (the real-compiler call is opt-in via `GAMEDECOMP_MCP_FIRE=1`) | — | Wraps `solver/workspace.bootstrap` + `score` and `solver/signals`, so the verdict is the compiler's, never a model's. `list_functions` ranks by owned residual, and derives progress from `attempts` because the `functions` table is a COMPLETED-decomp inventory (`state='matched'`, `best_score` NULL for all 2,113 rows) -- reading progress from it silently returns nothing. Not yet wired into `LiveLoop` or any client. |
-| Policy distillation and the weight update | `eval/distill_policy.py` (technique labels, degeneracy guard, function split, gate/holdout refusals) and `eval/train_policy.py` (hand-written DPO, LoRA reference = adapter disabled) | `tests/test_distill_policy.py` | — | Datasets are the binding constraint, not the method: the replay's own preference pairs yield **42 informative** pairs from 2,639, and the knowledge base has 357 improving edges but only 251 preference pairs across 19 functions. `informative()` drops pairs whose rejected side is a non-compiling draft, which had silently made the task "prefer compiles over non-compiles" and produced a fake 1.00. `majority_baseline()` reports the constant-answer score so a degenerate dataset is visible. |
+| Policy distillation and the weight update | `eval/distill_policy.py` (technique labels, degeneracy guard, function split, gate/holdout refusals) and `eval/train_policy.py` (hand-written DPO, LoRA reference = adapter disabled) | `tests/test_distill_policy.py` | — | Datasets are the binding constraint, not the method: the replay's own preference pairs yield **42 informative** pairs from 2,639, and the knowledge base has 357 improving edges but only 251 preference pairs across 19 functions. `informative()` drops pairs whose rejected side is a non-compiling draft, which had silently made the task "prefer compiles over non-compiles" and produced a fake 1.00. `majority_baseline()` reports the constant-answer score so a degenerate dataset is visible. **This is not a C-repair trainer**; see the source-repair path below. |
+| Source-repair dataset + equal-budget evaluation (the post-training experiment) | `eval/repair_dataset.py` (audit + export), `eval/export_fresh_repairs.py` (fresh pilot → records), `eval/train_repair_sft.py` (completion-only LoRA SFT), `eval/equal_budget_eval.py` (preregistration + comparison), `eval/run_posttraining_experiment.py` (runs the arms in ONE loaded model with the adapter toggled per draw), `eval/repair_prompts.py` (the single prompt-construction site) | `tests/test_repair_dataset.py`, `tests/test_repair_training_path.py`, `tests/test_posttraining_experiment.py` | `eval/results/posttraining-m1-20260920/` (`RESULT.md`, `evaluation/PREREGISTRATION.json`, `evaluation/M0/evaluation.json`, `dataset/AUDIT.md`) | **Result 2026-09-20: BLOCKED; no M1 was trained.** Lineage and receipts are fixed and verified against production rows; the supply is not there. 265 improving edges exist and **1** survives the sealed-set, finished-function and library-TU filters; fresh generation produced 0 improving repairs in 56 attempts; the pooled dataset is 97 records of which only **9** fit a trainable context. M0 on the frozen 60-function heldout panel at 2 draws each (118 calls, 7 GB cap): **1 new byte-exact**, 14.4% compile, 0 refusals. The panel is hashed, and a mismatch refuses to run. **Update 2026-09-27 (`eval/results/refinement-data-20260927/REPORT.md`): the supply now exists.** Exported from the campaign DB (`--kb .../resume-pipeline-20260908/campaign.sqlite --build-tree ~/decomp/sbk1`): 9,178 records over 895 functions, 306 with an exact child, train 4,492 / 503 functions. Defaults changed: observed edges need only a strict score increase (`EDGE_IMPROVEMENT_EPSILON=0`; the old 0.5 dropped 55% of improving edges incl. 91 exact children), `function-has-exact-attempt` is OFF unless `--exclude-finished`, and records carry `meta.assistance`/`meta.clean` measured by identifier USE (common.h reaches game/ headers, so includes prove nothing). Only 206 records are clean: 97% use a game/-only callee prototype, 65% a game/-only type. The trainer (`eval/train_source_repair.py`) still reads the synthetic task schema and exact-only children; no adapter exists yet. |
+## Tool-action policy: observation → next action (September 21)
+
+A SECOND task format beside source-repair SFT: the model chooses the next registered action from a
+structured observation. Nothing here runs in the build path, promotes an adapter, or touches the match
+ratchet.
+
+| piece | module | what it does |
+|---|---|---|
+| the loop | `eval/tool_agent.run_episode` | syncs `context.candidate` and the remaining budget BEFORE each decision; records the controller's pre-episode compile as step -1; keeps the WHOLE verdict of every auto-compile; flattens nested runner detail; records runner exceptions and cancellations as steps; refuses an `exact` claim that did not come from the certificate |
+| the renderer | `eval/tool_agent_probe.observation` | ONE renderer for training and inference: real tool results, derived verification state, truncation stated, two ablation levels (`tool_detail`, `state_detail`) |
+| compile contract | `tool_agent_probe.compile_state` + `ScriptedPolicy` | the controller compiles the initial candidate and every transformed source; the observation says ALREADY COMPILED or UNVERIFIED; a compile against a verified source is the redundant slot the evaluation counts |
+| dataset | `eval/tool_action_dataset.py`, `eval/tool_action_collect.py`, `eval/tool_action_manifest.py` | mechanical procedural labels, execution-backed branches from independent copies, family-level splits, one target per acceptable alternative, bounded weights, manifest with sha256 |
+| training | `eval/train_tool_action_sft.py` | completion-only LoRA; trained span `ids("{") + ids(completion[1:]) + EOS`, matching inference's separate prefill |
+| evaluation | `eval/tool_action_eval.py` | arms A/B/C over held-out exercises and a real repair panel, graded by the same mechanical rules, with setup vs internal compiles and tokens reported separately |
+
+Receipts and the assessment: `eval/results/tool-action-20260921/` (`PANEL.md` pre-registration,
+`REPORT.md`, per-arm JSON, `collection-receipt.json`, `dataset-manifest.json`). Phase-1 record and its
+correction: `eval/results/tool-agent-20260920/BOUNDARY-FIX.md`.
+
+| Generation receipts for every model call | `solver/llm.GenerationReceipt` + `classify_generation` (one terminal status per call: ok / refusal / no-extract / empty / error / timeout); `solver/workspace.record_attempt(generation=...)` folds it into the attempt row | `tests/test_factory_lineage_receipts.py` | `eval/results/posttraining-m1-20260920/` | The write path already supported prompt, model, raw response, sampling and timing; no caller passed them, so 29 `factory-refine` rows had none of it. Now 172/172 rows of a real pilot carry all of it. A refused/errored/timed-out call is a stored receipt that CONSUMES the call budget, and the wall-clock budget is enforced inside each function rather than only between them. |
+| Machine-resource caps for long runs | `eval/resource_limits.py` (`apply()` before the first CUDA allocation; `paused()` reads a pause file), `.cache/recon/serve_lowfootprint.sh`, `.cache/recon/eval_m0.sh`, `.cache/recon/yield.sh {status\|pause\|resume\|stop}` | `tests/test_resource_limits.py` | — | Defaults leave the machine usable: 50% of the card, 2 of 4 threads, nice 15; the inference server reserves 42% and 2 sequences instead of 72% and 6. Every run report records the limits applied, so a resource limit is never mistaken for a capability limit. `pause` is honoured between rounds and between training steps, and stopping is safe because every scored attempt is already stored and a resumed run skips finished functions. |
 
 `tools/n64_corpus.extract_functions` skipped any function preceded by a preprocessor directive
 (119 SBK1, 18 SBK2 functions); fixed with `_after_directives`. It still abandons the rest of a
 file when conditional branches leave braces unbalanced (DKR menu.c/objects.c).
 
-## September 24: -O1 register locals (wired) and binary-derived type contexts (NOT wired)
+## Clean intake follow-up (September 22)
+
+`eval.intake_probe.SEQUENCE` now appends three existing mechanisms after `rewrite_do_while`:
+
+| Runner | Existing owner and gate |
+|---|---|
+| `eval.intake_runners.void_members` | `solver.void_field_repair.propose`; fresh complete clang source excerpts plus target assembly. Uses `frontend_diagnostics.analyse(full_diagnostics=True)`; normal diagnostic reports retain their 16 kB text cap. |
+| `eval.intake_runners.frontend_casts` | `solver.frontend_fixits.propose`; up to four rounds of casts at diagnosed expression ranges, returning a changed candidate only after frontend success. The caller still logs and compiles it. |
+| `eval.intake_runners.ido_byte_cursors` | `solver.void_pointer_units.propose`; only for a failed current IDO verdict and a fresh frontend pass. Refuses any inferred pseudo-field edits; owns byte arithmetic and pointer-comparison hypotheses. |
+
+The sequential driver passes the current adopted verdict with the current candidate, including its
+compile flag. All changed children remain subject to compiler/object adjudication. On the same 200
+post-header-fix candidates: **IDO 26→46, both IDO+frontend 17→42, object-exact 2→4**, frontend errors
+4,830→2,862, no lost passes and no state with more errors. New exact candidates are `addRenderCallback`
+and `initMenuAsciiFontTexture`; both remain in isolated experiment workspaces, with game-header
+assistance retained for the latter. Main-tree intake only; the paused frozen campaign and the separate
+trained policy catalog are unchanged. Tests: `test_intake_void_members.py`,
+`test_frontend_full_diagnostics.py`. Receipts: `eval/results/clean-members-20260922/REPORT.md`.
+
+Follow-up on those same saved candidates (`eval/results/clean-residuals-20260922/REPORT.md`):
+`void_field_repair` no longer mistakes `return p;` for a shadow declaration and can bind a narrow,
+unmodified local copy of a global pointer to binary `load(global)+offset` accesses. Unsupported
+shadow/declarator forms decline. `frontend_fixits.apply` composes nested casts using original source
+boundaries instead of corrupting an enclosing expression after an inner edit. No new stages or
+acceptance rules. **IDO 46→47, both 42→44, exact 4→4**, errors 2,862→2,608; 12 improved states and no
+ratchet losses. The same helpers serve model-repair normalization; the frozen campaign remains unchanged.
+
+### Bounded intake composition and separate object inventory (2026-09-22)
+
+`eval.intake_probe --repair-rounds 3 --repair-budget 12 --repair-beam 3` opts into
+`eval.intake_search.search`. It revisits the existing intake owners on retained candidate
+alternatives, deduplicates source hashes and action/source pairs, and stops at exactness,
+a fixed point, or its round/attempt/time budget. Every new child is compiler-scored and
+logged. The public incumbent preserves object exactness, IDO acceptance, frontend
+acceptance, similarity, and complete frontend error counts. Partial alternatives can be
+explored without replacing that incumbent. The default one-pass probe remains available.
+
+`frontend_casts` requests `frontend_fixits.propose(..., allow_partial=True)` only in this
+composition mode. A partial requires a complete original observation and a strict measured
+error reduction; ordinary model-repair callers still require a passing frontend.
+`frontend_diagnostics` now includes located header/fatal errors and marks fatal, unmatched,
+and failed-zero-error reports incomplete. Search and inventory share that completeness check.
+`tool_agent_run` forwards logging metadata so the CLI persists actual parent attempt edges.
+
+`eval.intake_blockers.inventory` separates compiler-blocked, frontend-incomplete/unavailable,
+compiled object mismatches, and exact candidates. It reports operation classes, file-aware
+source sites, conditional owner routes, actual decline traces, and `solver.signals` object
+profiles. Category counts are overlapping observations, never distances to completion.
+
+`solver.byte_view_order.propose`, through `solver.rewrites.propose`, supplies a narrow
+store-order hypothesis for generated word-sized byte-view lvalues that the existing statement
+parser cannot recognize. A pure instruction-order diff and witnessed offsets gate candidates;
+unsupported side effects and unbraced controls decline. Alias independence is not asserted:
+the ordinary compiler and object certificate adjudicate each candidate. Tests include the
+actual store pair that closes `allocTranslationOnlyFixedMatrix`.
+
+Replay receipts, complete inventories, candidate lineage, and the two-stage histogram are in
+`eval/results/clean-composition-20260922/`. Experiments use native WSL workspaces, a frozen
+read-only binary-evidence snapshot, and a separate private attempt log. They do not deploy
+changes to the paused frozen campaign or integrate candidates into the game build.
+
+
+## Confirmed campaign runtime delivery (September 26)
+
+Dashboard binding: `eval.progress_app --frontier <receipt-directory>` displays
+the bounded runner's progress and latest `batch-*/canary-controller.log` beside
+the existing native checkpoint map. Its held `frontier.lock` establishes runner
+activity; stale `progress.json` alone cannot report a live process. This mode is
+read-only and does not invoke the older campaign supervisor's pause/resume path.
+Log history resets when the selected batch log changes. Normal service-backed
+dashboard launches retain their existing behavior.
+
+The frozen completion campaign now includes the confirmed branch-default family
+and the frontend/header owner bundle described below. Scoped amendments under
+`eval/results/combined-frontier-20260926/{deployment,frontend-payload}/` installed
+the code at checkpoints 30124 and 30125 while preserving all candidates,
+attempts, inputs, and the 1003 object-exact/integrated plus 24 function-exact
+pending baseline. `repair_queue.operand_repair_digest` now explicitly includes
+`branch_defaults.py`. `agentrepair -> modelrepair.search(resilient=True)` reaches
+the diagnostic-backed frontend owners even with zero model calls. The frozen
+placeholder stage in `compile_recovery` is preserved alongside the newer
+header/scalar declaration fixes.
+
+Native copied-runtime tests passed: 139 plus one skip for the branch bundle,
+221 for the frontend bundle. No saved experiment candidate or failed predictor
+was deployed. The combined deterministic controller continuation uses the
+existing three workers and per-function budgets, with a 15-job canary followed
+by 200-job batches. Its progress and automatic stopping diagnosis are under
+`eval/results/combined-frontier-20260926/frontier/`. This delivery supersedes
+the older “main tree only” status descriptions below; standalone intake drivers
+remain separate tools.
+
+## Header-backed call repair in intake (September 22)
+
+`eval.intake_probe.SEQUENCE` now runs `frontend_abi` and `call_arity` before
+`frontend_casts`. Both adapters obtain fresh full frontend diagnostics and the
+workspace target object/assembly. `frontend_abi` exposes the existing
+`solver.frontend_repair` hypotheses, including big-endian o32 64-bit argument
+packing and witnessed representation repairs; it does not implement a second
+copy of those rules.
+
+`solver.call_arity_repair` projects excess arguments onto an unambiguous included
+header contract only for supported o32 word parameters. It retains excess
+expression evaluation through a comma expression, preserves the call result,
+and leaves declarations unchanged. Direct target call counts, diagnostic source
+locations, and supplied/expected argument counts must agree. Local callee
+shadows, callee macros, ambiguous/wide/unsupported typedefs, complex discarded
+expressions, overlapping edits, and missing arguments decline. Header assistance
+is explicit; these proposals are not recovered signatures or semantic proofs.
+
+The existing bounded intake search compiles and logs every distinct proposed
+child and protects prior compiler passes, exact objects and measured quality.
+The blocker inventory routes call-arity and supported array-assignment cases to
+these owners, while retaining their unmet evidence requirements. The frozen
+200-candidate replay and next histogram are in
+`eval/results/clean-calls-20260922/`. This changes the intake tool route, not a
+frozen campaign snapshot, production KB inference, or integrated game source.
+
+The shared `solver.rewrites.propose` catalog also offers
+`byte_pointer_offset_rewrites` for the object frontier this opens. Corresponding
+`addiu` instructions must show a positive integer scaling of the same argument
+register's offset, and the candidate must contain the matching parenthesized
+parameter-plus-literal expression. It tests a byte view of that expression only;
+wide/unknown ABI slots and parameter mutation, escape or shadowing decline. The
+ordinary object certificate adjudicates every emitted proposal.
+
+## Header signatures and global scalar views (September 22)
+
+The intake sequence now runs `global_scalars` and `header_signature` before
+`frontend_abi`. Both obtain fresh complete frontend diagnostics and require the
+native workspace's big-endian o32 target object and target assembly.
+
+`solver.global_scalar_view` binds a faulty binary operator to its adjacent bare
+operand and reported type. An unambiguous included global declaration plus
+unanimous direct zero-offset target loads supplies a scalar width and signedness
+hypothesis. It emits a typed load through the global's address. Complex operands,
+member accesses, macros, local shadows, writes and ambiguous loads decline;
+another occurrence on the diagnostic line does not authorize an edit.
+
+`solver.header_signature_view` repairs the candidate's own definition against an
+unambiguous included prototype for supported equal-width o32 parameter and return
+slots. Fresh public parameter names and typed local aliases retain the candidate
+body's views; return conversions occur at the public boundary. Unsupported ABI
+shapes and body preprocessor directives decline. These are explicitly
+header-assisted hypotheses, not recovered type/layout claims.
+
+The existing bounded search logs every proposed compile and retains its
+per-function ratchet. Blocker routes name the new owners and their prerequisites.
+Tests cover motivating emissions, diagnostic binding, shadowing and runner
+wiring. The next frozen 200-function replay lives in
+`eval/results/clean-types-20260922/`; experiment candidates and attempts remain
+separate from the production KB, integrated game and frozen campaign.
+
+The completed type round moved the same cohort from **IDO 60/frontend 58/both 57/
+exact 7** to **IDO 79/frontend 77/both 76/exact 8**. `FrandNote` is a recovered prior
+research match, independently object-certified after an existing compound-
+assignment rewrite. Header conflicts fell from 44 to 15 affected functions and
+invalid binary operands from 34 to 9. Remaining member/access-representation
+classes affect 99 distinct functions; their overlapping histogram is not a count
+of independent causes. See `eval/results/clean-types-20260922/REPORT.md` for
+the frozen implementation, per-function ratchet, attempt audit and scope.
+
+## September 22 clean-fields loop: storage proposals and campaign routing
+
+`solver/global_field_view.py` proposes byte lvalues for diagnosed named-global
+`unkHEX` accesses only when included declarations and target symbol/offset/width
+agree. `solver/stack_scalar_arrays.py` proposes contiguous indexed stack storage,
+merging supported overlapping word aliases. Both are hypotheses, not recovered
+record layouts. Intake runs `global_fields` and `stack_arrays` before later ABI
+and cast repair; bounded composition compiles/logs every child and preserves the
+incumbent ratchet. The blocker inventory names these conditional owners.
+
+`solver/modelrepair.search(resilient=True)` now refreshes complete diagnostics
+and calls those same owners plus `global_scalar_view`, `header_signature_view`,
+`call_arity_repair` and `frontend_fixits` before scoring normalization children.
+Existing void-member and frontend-ABI owners also receive the fresh diagnostic
+text. This closes the intake-only routing gap for the completion-campaign path
+through `eval/agentrepair.run`. Every changed candidate still passes through
+`workspace.score` with source-bound hypothesis receipts and a parent attempt.
+
+Validation/measurements: `eval/results/clean-fields-20260922/`. The separate
+`eval/tool_registry` / scripted tool-agent catalog is not expanded by this loop,
+and existing frozen campaign runtimes require a separate snapshot deployment.
+
+Local-web families (September 25 main tree; delivered to the frozen campaign September 26). `regalloc_mutations.pure_local_inlines`
+(`pure_inline`) removes a local assigned once from a call-free, side-effect-free value whose identifiers are never
+written, substituting the value at every read (m2c pointer temporaries live across calls take their own stack home).
+`regalloc_mutations.operand_locals` (`operand_local`) is its inverse: hoist one parenthesised operand of a simple
+statement into a new s32 local assigned just before it. Paired over 194 unsolved functions, budget 32: 3 -> 5 -> 6
+object exact, 0 lost; `field:register` reduced in 7 -> 15 functions. Tests: `tests/test_regalloc_mutations.py`
+(fire on probeControllerPak and resolveAssetTableRelativePointer shapes; decline on written operands, calls, casts,
+argument lists, braceless bodies). `eval.mechanism_roadmap.reached` counts ROM-certified function bytes as reached.
+Evidence: `eval/results/restored-holes-20260925/`.
+
+## September 24: -O1 register locals and binary-derived type context experiment
 
 **Wired:** `solver.branch_shape.o1_register_saved` is a `branch_shape.families()` member, so it reaches every caller of
 `solver.regalloc_mutations.variants`. Gate: recipe `C_OPT == -O1` and a callee-saved save (`-sw sN`) in the target
@@ -4602,17 +5873,86 @@ the family never proposes it there. Tests: `tests/test_branch_shape.py` (fires o
 -O2 and without the save). The paired population rerun that normally precedes wiring was NOT run.
 Receipts 95897/95899; `eval/results/register-o2-20260924/`.
 
-**Not wired (experiment scripts only):** binary-derived type contexts. Chain: `eval/results/struct-identity-20260924/
+**Original experiment (production wiring added September 26 below):** binary-derived type contexts. Chain: `eval/results/struct-identity-20260924/
 identity.py` (binary dataflow facts: CFG meet, table elements) -> `score.py` (union-find with structural merge,
 variant chosen on FIT) -> `eval/results/context-ablation-20260924/binary_context.py` (per-function declarations:
 `T<n>` structs at observed offsets, binary-arity prototypes, globals by ELF extent, stride arrays) -> m2c with that
 context behind a clean public prelude -> standalone compile. Capability runs 1-3 and the gate/search follow-ups are in
 `eval/results/binary-types-capability-20260924/` (recorded strategies `binary-types*-20260924:source-independent`).
-Nothing in `solver/workspace.m2c_draft`, intake or the campaign uses it yet. Wiring it means: facts regenerated from
-the ELF, a draft route next to the assembly-only one, and its own tests (fires on a known function, declines when the
-identity facts are missing).
+The September 24 experiment did not alter the production draft path. Its fixed D32 policy was selected on historical
+FIT labels; that selection history is not an unseen benchmark result.
 
-## September 25: certificate stages (wired) and the rodata owner (not wired)
+## September 26: binary-derived campaign drafts and bounded deterministic delivery
+
+`solver.binary_type_facts` regenerates observations from the target ELF; `binary_type_identity` applies the fixed
+D32 policy; `binary_type_context` emits provisional declarations with ELF, fact, algorithm and assembly hashes.
+Its content-addressed cache includes the binary extractor's implementation. Layouts and signatures remain
+compiler-tested hypotheses and do not become immutable KB evidence.
+
+`solver.binary_type_draft.variants` preprocesses only the public prelude and generated declarations, rejects game
+header dependencies, and runs bounded ordinary/valid-syntax m2c drafts with one optional stride redraft each.
+It reads neither experimental winning C nor reference labels. `completion_campaign._intake` scores this independent
+branch alongside existing intake routes. Clean roots and placeholder descendants carry source and binary-context
+hashes; later compiler repairs retain parent attempt links. Missing input produces a visible decline.
+
+The evidence scheduler offers `binary_types@<revision>` once per generating code and frozen binary/public/tool
+inputs, after existing initial deterministic repairs and before model calls. A retry rescores retained candidates,
+preserves a superior frontend-valid incumbent, and reuses semantic validation only for the identical source hash.
+Exact, integrated, function-exact and parked nodes remain closed. Existing generic `workspace.m2c_draft` and
+standalone tool-agent entry points are not rewired by this campaign-specific route.
+
+`eval.fast_campaign --deterministic-only` filters model jobs without changing stored model budgets. It refuses model
+work already in flight and skips integration/runtime capture for that process. The ordinary max-work-item bound
+still applies; the final receipt distinguishes exhausted deterministic work from globally remaining model work.
+The fast controller continues to require completed intake. Fresh intake uses `completion_campaign`.
+
+Two private normal-controller canaries (`getRaceCourseNextSurface`, `packFixedTransformMatrix`) accepted clean,
+parentless drafts with exact object certificates and passing frontend gates. They reproduce existing matches and
+add no coverage. Receipts: `eval/results/delivery-20260926/controller-canary.json`. Frozen delivery status and the
+live bounded-run ratchet are recorded separately under `revisions/20260926-delivery/`.
+The nine-file amendment applied at checkpoint 28386. Five live deterministic frontend-fixit work items then
+logged 16 attempts at checkpoint 28396, retained all 972 exact/integrated nodes and gained zero new exacts.
+Both durable pause markers were restored; whole-ROM integration was not run.
+
+## September 26: retained-candidate operand repair
+
+`repair_queue.operand_profile` offers one `operand_repair@<revision>` visit to a
+pending, compiled, frontend-valid retained candidate with observed nonzero faults
+and at most two structural faults. Census and cheap repair routes retain their
+precedence. After those visits, the operand route runs before binary redrafting
+or model calls, with priority ahead of unrelated old exhaustion bands. Closed
+exact, integrated, function-exact and parked nodes remain closed; source changes
+do not reset this visit. The revision hashes the route and its direct generator
+helpers, including `c89` and `repair_context`; other indirect owner changes require
+an explicit revision bump.
+
+`completion_campaign.execute` checks that revision and dispatches to
+`eval.operand_repair.run`. It verifies the retained file against its durable
+attempt, freshly scores the baseline, and tries at most 72 proposals in 40+16+16
+stages with eight candidates per step. The stream combines `rodata_symbol`,
+`diffrepair` and `regalloc_mutations` using the fresh compiler verdict, source
+attribution and compiler recipe. The linker map is now an immutable campaign
+input pin. A frontend-valid improvement can replace the incumbent; an exact
+result requires the ordinary object certificate. Existing frontier alternatives
+are retained, and semantic receipts transfer only with the identical source hash.
+
+`local_web_merge` is a guarded `regalloc_mutations` family: it proposes reusing a
+compatible uninitialized pointer local across mutually exclusive braced arms.
+This can transmit interference between IDO register webs while leaving the arm
+expressions intact. Ambiguous scope, shadows, address escapes and unsupported
+declarations decline. The compiler adjudicates the hypothesis; the generator
+does not assert source-level equivalence. Its motivating release-node residual
+is covered by a positive generator test and a native ordinary-controller canary.
+
+Both this route and `agentrepair._regalloc_search` persist baseline, failed and
+successful attempts in the worker database with actual parent edges. Register
+search now carries full fresh evidence into its mutation stream and uses the
+frontend plus object gate for completion. Operand result logs use `receipt_id`
+so worker imports remap them to canonical campaign IDs. Receipts and deployment
+status are under `eval/results/frontier-run-20260926/` and the separate frozen
+amendment `revisions/20260926-operand-delivery/`.
+
+## September 25: certificate stages (wired) and the rodata owner
 
 **Wired (every `solver.workspace.score` caller, i.e. the main tree; frozen campaign snapshots are unaffected until
 redeployed):** `solver/byte_certificate.certify` now has two explicit second-stage equivalences after strict equality
@@ -4627,7 +5967,8 @@ Tests: `tests/test_byte_certificate.py`.
 
 **Not wired into `regalloc_mutations.variants`:** `solver/rodata_symbol.py` (constant from binary evidence on the
 attributed line: literal or `extern` symbol). It needs the ELF and the target object, which the stream does not carry;
-used by `eval/results/operand-repair-20260925/operand_repair.py`. Tests: `tests/test_rodata_symbol.py`.
+used by `eval/results/operand-repair-20260925/operand_repair.py` and, as of September 26,
+the campaign operand route above. Tests: `tests/test_rodata_symbol.py`.
 
 **Wiring lesson:** `evidence_site` fires only with a verdict's `source_attribution`; harnesses that score outside
 `workspace.score` silently disable it (found 2026-09-25).
@@ -4635,3 +5976,429 @@ used by `eval/results/operand-repair-20260925/operand_repair.py`. Tests: `tests/
 **Ledgers:** the campaign (`runs/resume-pipeline-20260908/campaign.sqlite`, the dashboard) and the production KB
 (`eval.status`) diverge both ways: on 2026-09-25 the campaign had 952 exact and the KB 183 gate-passing exacts the
 campaign lacks (project union 1,135). Reconciling them is part of integration.
+
+**Campaign amendment `20260925-solver-refresh` (applied 2026-09-25, checkpoint commit 28384):** the running campaign's
+frozen code (`eval/results/resume-pipeline-20260908/code`) now carries the main-tree solver machinery: 20 files, 8
+replaced and 12 added (branch_shape incl. o1_register_saved, evidence_site, regalloc_search passing evidence to the
+stream, owner rewrites, certificate stages, rodata_symbol, ...). `typedecl.py` was EXCLUDED: the main-tree version
+(another session's uncommitted change) imports project_headers and regresses test_memberaccess. Staged-copy test:
+identical frozen-suite failure set (64 pre-existing), 155 main tests pass, every frozen eval module imports; on apply
+the focused suite passed 22, the amendment tests 4, and 3,240 unchanged pins were verified. No checkpoint result,
+ledger row or external match was changed or imported. **Reach limit:** the evidence-v1 scheduler's evidence key has no
+code version, so stalled functions are NOT revisited by a resume; `--fork-from` is the designed way to reset
+strategy eligibility while keeping prior bests.
+
+## September 27: redraft / branch-point tree pilot and mined IDO equivalences (NOT wired into the campaign)
+
+| mechanism | module | tests | status |
+|---|---|---|---|
+| Model redraft pilot (4 arms at equal cost: control, whole redraft, branch-point tree, tree + equivalences) | `eval/redraft_pilot.py` | `tests/test_redraft_pilot.py` | Experiment harness. Isolated repos + slim private KB under `~/decomp/experiments/redraft-pilot-20260927/`; predictions and amendments in its `manifest.json`. Arms compared at equal cost via `control_prefix` (the control's logged prefix at another arm's cost). |
+| Branch points as a tree | `solver/branch_points.py` | `tests/test_branch_points.py` | The model names choice points near the residual (JSON schema), every alternative is compiled, children are distinct OBJECTS (`object_key`) that improve; each expanded node gets its own call on its own residual; a node with no improvement is re-asked once with what IDO ignored (`tried_block`). Keeps exact/up only (neutral flats reach a match 0.06% of the time). |
+| Mined IDO spelling equivalences | `patterns/equivalences.py` -> `patterns/ido_equivalences.json` | `tests/test_equivalences.py` | 119 confirmed equivalences from 165,011 campaign edges (`python -m patterns.equivalences --db ... --min-noop 10 --min-functions 5`). Held-out TU precision 100% (3,678 skips), recall 27.7%. Family-aware: declaration reorders, commutation of variable operands and identifier swaps are never confirmed. Used only by the pilot's `--equivalences` arm; not yet by `solver.repair`/regalloc search, which is the obvious next consumer. |
+
+**Diff comparison trap.** `attempts.diff_summary` begins with `---`/`+++` lines carrying the dump file name and a
+timestamp. Compare diffs with `solver.branch_points.diff_body`, never raw: raw comparison made every compile look
+like a new object and hid 96,120 no-op steps (`eval/results/refinement-data-20260927/analysis/flat_split.out`).
+`eval/machinery_card.py` compares raw world diffs; whether its source carries the header is unchecked.
+**`llm.extract_c` deletes every include except `common.h`**; model-written full files from `solver/pipeline.py`,
+`refine.py` and `eval/trajectory_factory.py` lose their `game/` headers. The pilot uses its own `extract_source`.
+
+**Key distance is a tool-development instrument, never a decompilation signal.**
+`analysis/key_distance.py` measures an alpha-renamed token edit distance from a candidate to the reference
+decomp's body; `analysis/key_proxy.py` uses it to grade signals the pipeline CAN compute. It must not
+enter a metric, the search, ranking, admission, prompts, the KB or training data, and nothing under
+`solver/` or campaign code may import it. Use `structure=True` and pass the function name: the first
+version started at the source's first `{` (scoring the whole type context as distance) and counted
+`(*(s16 *)((u8 *)arg0 + 0x1C))` vs `arg0->x` as ~10 tokens of difference; both bugs are fixed and the old
+outputs kept as `*.v1-context-bug.out`. Findings (structural): per matched function, the closest exact
+is within 0.1 of the reference for 46%, within 0.3 for 71%, >=0.7 for 0.4% (`match_vs_key.out`); the far
+ones are the same computation in a different shape (loop vs unrolled, ternary vs if/else, temps, or
+reference-only hacks such as `& 0xFFu` chains). 43.5% of steps toward the key lowered the score. Among
+score-DOWN steps, object truth up heads toward the key 34.6% of the time vs 16.8% for truth down (base
+23.4%, score-up steps 45.3%). So `solver.invariants` is the in-pipeline signal for keeping a downhill child.
+
+**No-ops are not stepping stones (measured).** Of 96,120 same-object campaign steps, 49,170 are
+byte-identical re-runs (`*-reverify`), which produced 92% of the no-op "led to a match" rate. Of the 259
+real no-ops (C changed) with an exact descendant, undoing the no-op's edit inside the final match left it
+exact in 207 of 207 testable cases (52 not locatable): `analysis/noop_ablation.out`. Dropping no-ops before
+compiling (the optimizer-key filter) loses nothing observed.
+
+**The no-op definition, measured against object bytes** (`analysis/noop_definition_check.out`, 375 campaign
+pairs recompiled, truth = `byte_certificate.certify(parent.o, child.o)`): identical logged diffs meant
+identical objects for 197 of 200 pairs; 3 (1.5%) differ in bytes the normalized listing hides. No pair with
+a different diff had the same object. `ido_stages.optimizer_key`: same key => same object 174/174 across 8
+strategy families including register search, catching 174 of 191 same-object pairs (91%).
+
+**Where an edit lands, measured** (`analysis/edit_locality.out`, 40,000 campaign edits, parent attribution
+from `residual_sites.source_map`): editing a line that directly owns a mismatched instruction raises the
+score 11.5% of the time; editing an instruction-emitting line that owns no mismatched instruction raises it
+1.1% and lowers it 85.7%; editing lines that emit no instruction raises it 5.8%. Do NOT read the second
+class as "already-correct lines": 4,846 of its 4,853 parents were missing instructions (target-only) that
+no line can own. Owner > non-owner holds inside every strategy family with real n, but the ratio runs from
+1.9x (register search, 5.9% vs 3.1%) to ~20x (repair-d1/d2); in repair-d1/d2, no-instruction lines beat
+owner lines. Byte-changing edits to no-instruction lines are register-names-only in 1.0% of cases, so
+"declarations act through register allocation" is refuted in that strict form. Non-owner edits still carry
+~6% of the sampled edits that reached an exact. Neither register search nor the v5 deterministic
+enumeration consults this map.
+
+**Register search: keyed resolution and site ranking.** Owner approved keyed resolution 2026-09-28.
+`regalloc_search.search(key=..., rank_sites=...)`, both default off. MAIN: `eval/agentrepair._regalloc_search`
+passes `key=ido_stages.optimizer_key` and logs every resolved candidate to `model_proposals`
+(`tests/test_regalloc_attempt_logging.py`); `rank_sites` is not passed. FROZEN CAMPAIGN: not yet applied.
+Amendment `revisions/20260928-regalloc-keyed/` is built and dry-verified: four files (the frozen
+`agentrepair.py` plus one hunk, not main's copy; `regalloc_search.py`; new `ido_stages.py` and
+`compiler_experiment.py`), 118 staged-tree tests pass plus one deselected test proven to fail without the
+amendment, and `fires_check.out` shows the real key firing in the staged frozen tree. It waits on the run's
+in-flight fast work (`fast_inflight`), which only a resume-and-drain clears; then `stage.py`,
+`verify_stage.py`, `fires_check.py`, `apply_amendment.py --apply` with both pause markers set.
+APPLIED 2026-09-28 as checkpoint 33362 (match count unchanged, 1,020); campaign resumed overnight.
+
+Hardening after review (`docs/claude-review-followup-20260928.md` §2), MAIN ONLY, not deployed: a reused
+parent compiled for expansion is compared with the compile it reused by `same_object` (the campaign passes
+`byte_certificate.certify` on retained object bytes), and a seeded 2% of reuse events are audited the same
+way, charged to budget. A conclusive difference restarts the search without reuse on the remaining budget
+(the deployed 33362 code only logged it and kept the cached parent gradient and key); an unavailable
+comparison or failed compile stops reuse; children of a reused parent are ranked against its own result.
+Counters: `reuse_events`, `audited`, `audit_conclusive`, `audit_unavailable`, `expansion_checks`,
+`expansion_conclusive`, `key_violations`, `key_disabled`. Tests in `tests/test_regalloc_search.py`
+include the pruning case the audit exists for (fails to match without it, matches with it); real objects
+certify a respelling as exact and a register variant as different. DEPLOYED 2026-09-28 as checkpoint 33521
+(`revisions/20260928-regalloc-families/`, match count unchanged at 1,020) together with `scalar_coalesce`
+(on via `coalesce=True` at the campaign call) and `scoped_field` (on by default in `regalloc_mutations`).
+Selection modes stay `gradient`; `rank_sites` and the model diagnostic packet (`solver/repair_diagnostic.py`)
+were not deployed. The frozen `agentrepair.py` received only `_regalloc_search` (`agentrepair.diff`); 214
+staged-tree tests passed (one deselected, proven to fail without the amendment); `fires_check.out` shows keying,
+both families' motivating edits and their wiring firing in the staged frozen tree. The research harness was
+copied into the staged TEST tree only, never installed. `key` reuses a compile when `ido_stages.optimizer_key` matches one already made in the
+search (a reused candidate chosen to expand is compiled for real first); `rank_sites` orders variants by
+`rank_by_sites`. Harness `eval/regalloc_keyed_ab.py`; results `eval/results/regalloc-keyed-20260927/RESULTS.md`:
+on 40 register-dominant functions at budget 200, 61% of evaluations resolved by key, 0 key violations, 73%
+more candidates per budget, better best gradient in 11/40 and worse in 0, but 0 matches in either arm.
+The preregistered path-identity prediction failed in 7/40 through the phase-1/phase-2 budget split (plain's
+phase 1 is an exact prefix of keyed's in all 7), which blocks enabling it without an owner decision.
+
+## September 27: the compile admission choke point (main only; the frozen campaign is unchanged)
+
+`solver/compile_fallback.py` — `admit(source, attempt, ...)` is the one place a candidate earns
+the right to count as a compile failure. Ladder: `c89.to_c89` (now also stripping GCC register
+bindings) → `with_context` (the pipeline owns the compile context: re-attach known includes, let
+headers own duplicate declarations, drop scalar self-typedefs) → `repair_context.normalize` →
+optionally the model's convergent self-fix. The self-fix gets clang frontend diagnostics (IDO's cfe
+mostly says "Syntax Error") and the header declaring each unknown name. It loops while the error
+count falls (patience 2, cap 6), and rejects fixes that delete calls or statements. Tests:
+`tests/test_compile_fallback.py`.
+
+Wired (next frozen run picks it up):
+
+- **Campaign intake** (`eval/completion_campaign._intake`). Runs ONLY when no variant compiled
+  (before the existing compile recovery), and now also for binary-types intakes, which previously
+  got no recovery. It was first wired for every failed variant; measurement narrowed it.
+  - The 72.6% draft failure rate counts *variants*, not functions: only 28 of 2,013 functions
+    never compiled anything (`analysis/intake_losses.out`).
+  - Replayed on 146 real failed drafts, admission rescued 15, none better than the function's
+    compiling draft (`admission_replay.out`); on the 28-function tail it rescued 0
+    (`never_compiled_det.out`).
+  - The binary branch gets no reconstructed `game/` headers, and `game/`-adding rescues carry
+    `project-header` in their strategy string. Tests: `tests/test_completion_campaign.py`.
+- **Model repair** (`solver/modelrepair.normalize`). An uncompiled model child gets an
+  `admission-context` normalization variant.
+
+Not wired yet: the search's own deterministic rewrites (1–6% compile failures), `solver/pipeline.py`,
+`refine.py`, `eval/trajectory_factory.py`, and the investigation loop's `replace_source`.
+Also fixed: `solver/repair.py` declines instead of crashing when a source defines a helper
+function besides the target.
+
+**Gap, measured 2026-09-28: the admission ladder does not call `solver.compile_chain`.** On the 27
+functions where nothing ever compiled, the model self-fix replay (`compile_fallback.admit` with `fix_fn`)
+spent ~80 minutes on 2 functions and compiled neither; it was stopped. The existing deterministic chain
+(C89/linkage, do-while lowering, m2c placeholders, undefined identifiers) compiled 3 of 27 in minutes
+(`analysis/never_compiled_chain.out`: `__osCheckPackId` 83.3, `osPfsAllocateFile` 72.3, `ldiv` 39).
+The other 24 stop on missing layouts (6 `Selector requires struct/union pointer`, 3 undefined
+fields/externs, 2 pointer+pointer, 2 parameter types, 1 non-pointer dereference), header conflicts (2,
+`OSMesg` declared by both `include/game/audio/audio_engine.h` and `include/PR/os_message.h`), syntax (4;
+the placeholder fixer fires on `_Ldtob`, a second error remains) and singletons
+(`analysis/never_compiled_causes.out`). Layout failures belong to the binary-derived type route, not a
+model prompt: the model cannot fix a struct layout it is not shown.
+
+## September 28: opt-in research test suite
+
+`eval/research_suite/` is an independent experiment entry point, with no campaign dispatch or KB promotion.
+`python -m eval.research_suite` exposes `freeze`, `run`, `key-audit`, `panels`, `proposals`,
+`reconstruct`, `smoke`, and `summarize`. See `eval/research_suite/README.md` for exact inputs and commands.
+
+Frozen candidate/object/header bundles feed isolated native IDO compiles using `compiler_recipe`,
+the existing strict frontend policy, full normalized listings, and `byte_certificate.certify`.
+Only source-bound certified objects with passing frontend checks count as exact. Attempts, including
+failures, retain source, parent identity, compiler cost, and verification receipts. Environment drift
+invalidates a run. Assistance from recorded proposal lineage remains attached to winning results.
+
+Corrected after review: `production` and `production_diverse` both call the existing register search with
+`enable=True`, the optimizer key, certificate rechecks and the main-tree helper's 2% audit. The latter adds
+`diverse=True`. Both record the policy, real compiles, key calls (cost 0.14 each), reuse/audit counters and
+budget overshoot. This is the main-tree configuration, not a frozen-checkpoint replay. The old unkeyed,
+disabled `production` arm in the first smoke receipts was a deficient baseline.
+
+Other experimental arms cover simplified beam/archive/worse-step exploration,
+bounded source-only composition and type views, fixed-proposal staged/interleaved allocation,
+and static breadth/depth brackets. The paired runner reports task-seed counts and distinct function sets.
+Standalone semantic panels retain target-completed counterexamples with versioned inputs; they never
+certify an object. Key stress reports conclusive object comparisons separately from missing checks.
+These are bounded adaptations of the papers in `docs/research-map-20260928.md`, not full paper ports.
+The simplified arms remain mechanism experiments: archive/exploration need integration into the existing
+search before a campaign-policy comparison, and `types` needs a binary-types comparator. The archive's
+residual-first descriptor can exclude same-object stepping stones when full; it is a variant to preregister,
+not a justified default. Summaries now default to `production` and include actual-compile gradient progress
+as a secondary outcome. See `docs/research-suite-review-20260928.md` for cohort/design decisions and tests.
+Native controls predate this baseline correction; the next native run waits until the competing pilot ends.
+
+Mutation-selection addition (September 28, opt-in): `mutation_count` and
+`evolvability`, plus their `_diverse` variants, now run inside
+`solver.regalloc_search.search(selection=...)`. They retain the same enabling
+roots, optimizer-key callbacks, certificate checks, audits and compile-equivalent
+budget. Bounded source-neighbourhood previews can keep worse-gradient candidates;
+the latter policy additionally samples charged child evaluations and reuses them
+when expanding. The best result remains independent of expansion priority.
+Unknown preview tails stay eligible and resume on expansion; a separately logged
+finite proposal guard bounds pathological generators. Policy settings, seeds,
+sample denominators and conditional probabilities are preserved in suite results.
+See `eval/research_suite/README.md` for the fixed ordering and knobs. Tests:
+`tests/test_regalloc_evolvability.py`, existing register-search and research suites.
+These are local synthetic mechanism checks, not a native yield measurement or a
+live campaign amendment. A regression also fixes undercounting the real compile
+whose key-audit violation triggers a restart, across all selection policies.
+Failed own-source recompiles now stop that parent's expansion rather than using
+its prior reused gradient. Verification receipts and the separate Windows worker
+test failure are in `eval/results/research-suite-20260928/MUTATION-SELECTION.md`.
+
+`scalar_coalesce` is now an opt-in family in `regalloc_mutations.variants`, reached
+by `regalloc_search.search(coalesce=True)` for both normal expansion and previews,
+including restarts after key violations. The bounded source-only generator merges
+textually ordered scalar locals; differing integer types are labeled speculative
+proposals. Scope/escape/control-flow guards decline unsupported visible syntax.
+Frontend and object certification decide acceptance. The main-tree campaign
+default remains off while the family is evaluated.
+
+Research arms `production_coalesce` and `evolvability_coalesce` form a 2 x 2
+comparison with `production` and `evolvability`, preserving enabling roots, key
+costs, audits and lineage in the existing engine. Exposed motivating-case replay:
+`eval/results/coalescing-factorial-20260928/run.py`; tests:
+`tests/test_scalar_coalesce.py`. This does not change residual routing, campaign
+ledgers, or the binary-types route.
+
+Assignment-scoped field-cache elimination (September 28, main tree):
+`solver.scoped_field.variants` now feeds `regalloc_mutations.variants` under the
+`scoped_field` family. It substitutes one top-level field-load assignment's reads,
+retaining the local's conversion, declaration and other definitions. The bounded
+grammar refuses visible calls (including indirect calls), possibly aliasing
+intervening stores, escapes, volatile declarations, macros and unsupported control
+flow. Included headers are not expanded; the checks are proposal guards, not a
+semantic equivalence proof. The existing frontend and byte certificate remain
+the acceptance authorities. `scoped_fields=False` disables the family in the
+shared search, including previews/restarts, and in the research-suite arms.
+Default is on in the main tree after the exposed motivating native control;
+the already running frozen campaign has not been amended by this work.
+
+`solver.repair_diagnostic` adds an assignment/use packet to the existing compiled
+byte-repair prompt in `modelrepair.build_prompt` and `modelrepair.search`.
+Source/diff-bound compiler line records retain their direct-evidence label;
+syntax associations remain hypotheses. The packet includes bounded earlier/later
+uses of leading scalar locals, declared conversions, visible barrier locations,
+and measured sibling outcomes whose parent source and diff hashes both match.
+Truncation is explicit and prioritizes the directly implicated later region.
+This is a lexical inventory, not a CFG or instruction-ownership proof. The edit
+schema is unchanged; hypotheses must state a predicted assembly effect.
+`focused_diagnostics=False` is the prompt ablation. Specialized compile-fix,
+type-planning and semantic-repair prompts retain their separate diagnostic paths.
+
+Tests: `tests/test_scoped_field.py`, `tests/test_repair_diagnostic.py`, existing
+model-repair/register-search/research-suite tests. The motivating source-only
+generator reproduced the already known AerialTrick object match in three native
+calls (baseline plus two proposals), with frontend pass. This is one previously
+exposed function, not a new discovery. Separate six-function equal-budget trial,
+preregistration and receipts: `eval/results/scoped-field-20260928/`. All roots use
+project headers and retain unknown earlier lineage; they are development inputs,
+not clean capability or training evidence. No KB, ledger or real build-path C
+was changed.
+
+## September 30: object layer (main only; the frozen campaign is unchanged until an amendment)
+
+The normalized asm diff is `.text` only and lossy (`jtbl_*` -> `.rodata`, trailing nops dropped, relocation spelling
+collapsed). Census over 828 unsolved best candidates (`eval/results/hidden-object-20260930/`): 155 differ outside
+`.text`, none by a wrong constant. The layer turns those rows into routing, not prompt text.
+
+- **Producer (wired):** `solver.workspace.score` sets `Attempt.object` = `solver.object_discrepancy.summarize(target.o,
+  candidate.o, source, func)` on every compiled attempt and logs it in `sampling.object`. Route: `exact`, `c_edit`
+  (.text differs; hidden rows counted), `generator` (a confirmed lever's generator produces a rewrite), `certify`
+  (.text identical up to trailing zero padding and every row in `EXPLAINED`), `unexplained` (a finding).
+- **Packet (wired):** `solver.residual.ResidualPacket.object`.
+- **Routing (wired, `solver.repair_queue`):** `object_route(node)`. `generator` admits `operand_profile` even with an
+  all-zero fault vector and takes that visit first; `certify` returns no profile in the byte/environment lanes.
+- **Generators (wired into `eval.operand_repair._proposals`, which now receives the incumbent's object):**
+  `solver.rodata_symbol.address_variants` (address-taken rodata -> the target's label) and
+  `solver.file_scope_objects.variants` (unused file-scope objects when only the candidate has data). Catalog:
+  `address-taken-rodata-names-the-target-label`, `unused-file-scope-object-adds-bss`. The operand digest covers both.
+- **Tests:** `tests/test_object_discrepancy.py` (normalizer invariant over the 24 hidden-from-asm functions: none
+  routes `c_edit`/`unexplained`), `tests/test_rodata_symbol.py` (replay of six real cases),
+  `tests/test_file_scope_objects.py`, `tests/test_repair_queue.py`, `tests/test_operand_repair_campaign.py`.
+- **Limit (updated later 9/30):** the six rodata rewrites are function_exact but their `extern D_800E...` form cannot
+  link (the label is in no linker script; only a TU literal ever emitted those bytes). `prepare_integration` now carries
+  candidate-local brace typedefs, object-like `#define` aliases and plain `const char NAME[N] = "literal";` objects
+  (`_extract_preamble`; identical yields, same-name-different declines; the frontend probe sees them). Probed with the
+  certificate bypassed on the six cases' ORIGINAL inline-literal sources: **6 of 7 whole-ROM exact**
+  (`hidden-object-20260930/linking_probe.py`; func_8005C14C's own source is label-only and still fails at link).
+  Not wired into the campaign: `prepare()` still requires a source-bound exact certificate and these sources are
+  not function_exact, and `completion_campaign.integration_ready` still uses the narrow `candidate_parts`.
+- **relocation_names wired (9/30, main only):** `operand_repair._proposals` now calls `relocation_names.variants`
+  (new `field_names`: struct field -> the target's separate global; `offset_names`), but filters out `literal_names`,
+  whose `extern D_800E...` form cannot link. Measured over the 33 unsolved functions any generator reaches (of 222 with a
+  named relocation mismatch): 36 variants, all compile, all improve, 3 function-exact, 0 object-exact. Whole-ROM: the one
+  new case (updateRaceSetupPlayerCountPrompt, `field_names`) is `rom_exact` alone; fadeInRaceGameplayViewports
+  (`literal_names`) is `build_failed`. Yield is about one verified function; bundle into the next amendment.
+- **Also untracked from the same day:** `solver/diff_annotate.py` (T/C/L suffixes on repair-diff rows, wired into the
+  modelrepair prompt and `inspect_diff`).
+
+## September 30: optional m2c address-return redrafts
+
+`solver.binary_type_draft.variants(..., pointer_returns=True)` retains its ordinary
+drafts and appends at most two syntax spellings of a pointer-return alternative.
+`solver.m2c_pointer_return.propose` witnesses address flow through the existing CFG
+to every represented return after its delay slot. Named relocated addresses and
+context pointer arguments are hypotheses; no original return type, field layout,
+extent or KB fact is asserted. Calls, cycles, likely branches, missing/split delay
+slots, boundary fallthrough, mixed/scalar returns and unsupported flow decline.
+`fixed_return=True`, conflicting own declarations and another declaration in the
+preprocessed public context prevent the alternative. The generator code digest
+includes this module. Callers still compile and log each returned candidate.
+
+The default remains `pointer_returns=False`; existing campaign/profile callers
+and running frozen jobs are unchanged. The paired native DEV trial in
+`eval/results/m2c-pointer-return-20260930/` records 16 attempts on 12 frozen functions.
+Four pointer alternatives compile and pass the frontend, but their allocated
+object sections equal their baselines: zero byte-exact gains. This disproves the
+proposed return-cast explanation for the exposed heap-helper residual; it is not
+a reason to activate the option by default. Tests: `tests/test_m2c_pointer_return.py`
+and existing binary context/draft tests. No real build-path C or production KB
+was changed.
+
+## September 30: experimental m2c uncertainty guidance
+
+`solver.m2c_uncertainty.Observer` passively observes unrecovered pointer address
+additions and late pointer-store views during an isolated, single-threaded m2c
+translation. It forwards upstream operations once and records their existing
+formatted expressions. Reports bind to exact emitted C; explicit draft extraction
+retains only surviving lexical occurrences. These occurrences do not establish
+instruction ownership. Missing, synthetic, capped and stale associations remain
+visible gaps. Observation does not change ordinary m2c output.
+
+`solver.m2c_source_binding.SourceBoundObserver` registers explicit assembly
+snapshots to resolve m2c's shortened filenames. Ambiguous basenames decline.
+`verified_report` checks available annotated instruction words against the
+isolated target object's function bytes; contradictions reject the byte binding
+without changing the ordinary report. Verification establishes the byte
+association, not the original C type or layout.
+
+Only the experiment runners under `eval/results/m2c-uncertainty-20260930/` and
+`eval/results/m2c-uncertainty-byte-20260930/` connect these reports to actual
+campaign intake and `modelrepair.search`. The byte comparison uses only surviving
+expressions with independently verified target words; this currently admits
+address additions and excludes store observations, which lack an instruction
+association. The same trigger selects ordinary model repair, uncertainty-guided
+repair and one optional frozen byte-address redraft. Original seeds are retained;
+native compiler, strict frontend and object certificates check alternatives.
+All attempts and failed proposals remain in private training-ineligible receipts.
+Production callers and campaign defaults do not use this observer or guidance.
+Tests: `tests/test_m2c_uncertainty.py`; experiment receipts and audits live beside
+the runners. The preliminary comparison lacks explicit word associations and is
+reported separately from the later byte-verified comparison.
+
+### Narrow increment-and-reread construction — October 2, opt-in
+
+`solver.narrow_update.variants` composes an explicitly unsigned byte/halfword
+increment with stored-value rereads, exact-width mask removal and a bounded
+single-use index forward. It extends the existing `pure_local_inlines` mechanism;
+it uses no target names, invented offsets or reference C answers. Leading scalar
+locals and a small typed-dereference grammar provide scope and address identity.
+Visible calls, volatile syntax, escapes, nested writes, changed address bases,
+unknown aliases and unsupported control flow decline the local rewrite. A
+disjoint constant reset of the same byte-based object may remain between the
+original load and store. Bare dereferences are grouped before postfix increment.
+Included headers are not expanded; the guards are not an equivalence proof.
+
+`regalloc_mutations.variants(narrow_updates=True)` inserts this family first in
+the ordinary family order; explicit diagnostic preferences still apply. The
+shared `regalloc_search.search` flag carries it into normal expansion, previews,
+enabling-root searches and key-violation restarts. Both defaults remain false.
+Campaign entry points and the installed frozen campaign have no activation.
+Frontend and normal source-bound object certificates retain acceptance authority.
+
+Tests: `test_narrow_update.py` includes motivating fires and review regressions;
+`test_narrow_update_semantics.py` compiles the generated proposals with host Clang
+and executes every byte value and every value of each halfword counter separately.
+The focused suite passed 188 tests. This host check does not prove IDO codegen.
+The freeze-before-run native comparison and explicit exposed-panel limits are in
+`eval/results/narrow-update-20261002/`. After WSL recovery, both exposed motivating
+controls matched on the enabled arm's first child, with independent repeats;
+ordinary arms each exhausted 24 children. `native-audit.json` verifies seven
+source-bound exact receipts across 59 attempts and two separate passing
+35+1 whole-ROM unions. Sparkle required the separately logged destination type
+revision. The additional retained-source panel was empty: no new clean transfer
+yield or deployment is claimed. Earlier hand-authored causal/whole-ROM
+certificates remain separate in `eval/results/compiler-causal-20261002/`.
+
+The bounded source-independent transfer census is in
+`eval/results/narrow-update-transfer-20261002/`: zero SBK1 eligible functions,
+24 frozen SBK2 selections from 1,912 metadata-eligible functions. The historical
+exclusion inventory records 768 unreadable/partial artifacts, so its exposure
+boundary is conditional. Global ELF context declined conflicting overlay
+addresses; assembly-only drafting followed by existing `m2c_byte_view.lower`
+yielded 24 roots and one directly applicable proposal. The private baseline probe
+logged a configuration failure before any compiler invocation. It motivated the
+object-target lookup correction above (116 focused Linux tests passed), after
+which SBK2 still declined the unsupported KMC GCC Makefile recipe. The paired
+comparison has not run; this is applicability evidence, not a new exact or a
+mechanism failure. No overlay ambiguity guard was weakened.
+
+### Signed narrow temporary / retained comparison extension — October 2
+
+The same opt-in `narrow_update` family also handles an adjacent signed narrow
+increment, complete-width mask into an `s32`/`u32` local, and unsigned store to
+the identical memory view. It removes the signed temporary and emits a compound
+memory increment followed by an unsigned reread into the retained wide local.
+Later wide-local definitions, reloads, calls and comparisons remain in place.
+The signed local must have exactly the three recognized body references; gaps
+may contain only whitespace/comments and all three statements share a branch.
+The retained result must pass the shared scalar-reference guard, including
+declining every visible address escape. This protects against the memory store
+aliasing that result through an escaped byte pointer. Partial masks, width/type
+mismatches, intervening effects, shadows and unsupported control flow decline.
+
+No new entry point is activated. `regalloc_mutations` and `regalloc_search`
+retain false defaults; normal frontend and source-bound object verification
+retain authority. Tests include positive byte/halfword fires and parenthesized
+alias escape regressions. Compiled host checks cover all 65,536 halfword values
+with a synthetic global both separate from and aliasing the counter.
+
+`eval/results/ido-signed-counter-20261002/audit.json` audits 34 private scored
+attempts, eight exact receipts across two exposed SBK1 development functions,
+and six candidate-only diagnostic invocations. Shared generated edits and their
+independent repeats are exact and frontend-passing. Saved objects were
+recertified, and the frozen protocol/code, source hashes and parent edges were
+checked. The 176-test focused native suite passed. The comparison used the first
+12 ordinary children and at most four targeted proposals per case, stopping at
+the first exact; it is not an equal-budget or untouched transfer experiment.
+Project headers remain assistance. No main-KB import, campaign deployment,
+default activation, whole-ROM verification or clean transfer is claimed.
+
+## Sealed near-miss split (2026-10-02, `eval/seal.py`, `tests/test_seal.py`)
+
+Instrument for judging repair generators on functions that have a candidate; `eval.clean_set` covers never-touched
+functions only. **Built and tested, not yet frozen**: no manifest exists, so nothing is sealed. Enforcement is by
+name: the manifest is written as `eval/sets/sbk1_v*.json` with a `heldout` list, which `zero_token_harvest.heldout_names`
+and `clean_set._set_names` already read (note `clean_set` also takes `dev`). `look()` re-reads exact/score from the
+ledgers, hashes the tool files itself, requires equal compile budgets and the whole sealed set, and chains from the
+manifest digest with a look cap. Primary metric is a TU-clustered paired best-score sign test; exact counts secondary.
+Dry run on the real ledgers (both ledgers, `already_matched`, eval sets, four earlier frames excluded): pool 162;
+fraction .3 -> 28 sealed in 11 TUs, fraction .5 -> 58 in 21 TUs; min_score 80 -> 73 in 23 TUs. Needs 6 same-direction
+TUs for p<.05. Open: corpus-wide miners (rule_mine, repair_dataset, trajectory_factory) and the campaign scheduler do
+not yet read the manifest by name beyond the eval/sets convention, and the heldout50 frame is still not registered in
+eval/sets. Audited by Opus 2026-10-02; findings and fixes in that session's transcript.

@@ -169,26 +169,37 @@ functions matched — an external review caught it. Any agent reading a stale st
 reasons from a false premise, so a generated number is worth more than a careful
 sentence.
 
-Target is SBK1 (N64, IDO 5.3 `-O2`). Last generated 2026-09-01:
+Target is SBK1 (N64, IDO 5.3 `-O2`). Last generated 2026-09-24:
 
 | | |
 |---|---|
-| functions byte-exact | **188** of 439 attempted |
-| — of which SOLVED | **130** |
-| — of which header-assisted (reconstructed include/game) | 3 |
+| functions byte-exact | **393** of 1074 attempted |
+| — of which SOLVED | **278** |
+| — of which header-assisted (reconstructed include/game) | 34 |
+| — of which reference-type-assisted (a type only the target's src/ defines) | 26 |
 | — of which recovered from target source | 55 |
-| attempts logged | 21,150 |
+| attempts logged | 95,904 |
 | evidence rows | 72,845 |
 | **inference rows** | **0** |
-| tests | 619 |
+| tests | 4,118 collected (`eval.status` prints 0: its WSL collection fails; `tests/test_campaign_service.py` fails to collect) |
 
-Read the three sub-rows before quoting the headline. `recovered` is the reference
+Read the four sub-rows before quoting the headline. `recovered` is the reference
 decomp's own answers copied in and oracle-verified — legitimate for seeding the
 sibling pool, fatal to a number quoted as capability. `header-assisted` is a third
 tier added 2026-09-01: a reconstructed `include/game/**` header supplies the decomp
 team's prototype *and* struct layout, so it is neither a copied body nor something
-the pipeline could reach from binary evidence. **SOLVED is the only capability
-number.**
+the pipeline could reach from binary evidence. `reference-type-assisted` is a fourth,
+added 2026-09-21: the winning source uses a type that only the target's own `src/*.c`
+defines — no header, SDK or reconstructed. **SOLVED is the only capability number, and
+it is a lower bound on assistance, not a clean count** — see the next paragraph.
+
+**The drafts the pipeline starts from are contaminated (2026-09-21).** `solver/workspace.m2c_draft`
+prefers an existing `nonmatchings/<fn>/base.c`, and that directory belongs to the target repo: only
+3 of 2,125 drafts carry this project's own assembly-only receipt. On the 200-state intake frame, 98
+drafts use a type or field name found only in the target's `src/*.c`, and re-measuring the same
+functions from assembly-only drafts moved IDO-compiling 53 → **16** and byte-exact 3 → **2**. Set
+`GAMEDECOMP_ASSEMBLY_ONLY_DRAFTS=1` for any number meant as capability. Full account:
+`eval/results/intake-20260921/CONTAMINATION.md`.
 
 **The empty inference tier is no longer the headline — it was tested and the premise
 failed.** A paired A/B on hard_v1 dev gave one arm a KB deliberately loaded with the

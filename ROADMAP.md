@@ -3,6 +3,188 @@
 Ordering principle: **every phase ends with a number you can look at.** No phase is
 "done" because the code exists; it is done when its acceptance check passes.
 
+## Execution priority — October 2, 2026
+
+The user prioritizes high-impact long-term improvements. Choose work by its
+ability to improve unattended solving across functions, translation units, and
+games. Immediate SBK1 delivery remains useful, but the next research priority is
+reusable solver capability. This priority supersedes the delivery-first order in
+the October 1 maturity assessment and the callback follow-up in the execution
+receipts.
+
+1. **Connect compiler diagnosis to source edits.** Start with isolated instruction
+   or register residuals, where the candidate's compiler phases can distinguish
+   materialization, lifetime, and coalescing causes. Confirm an intervention's
+   effect, then implement a guarded generator. A diagnostic explanation alone is
+   not a capability gain. Prefer extending existing mechanisms over adding a new
+   forecasting subsystem; the September 26 compiler-effect predictor failed its
+   comparison with the existing proposal order.
+2. **Recover consistent binary-grounded address and ABI representations.** Work
+   on connected call, return, and memory obligations so a local type repair does
+   not introduce another error downstream. Preserve unknown layouts. Target
+   headers can support a separately labeled completion route, but cannot establish
+   binary-only recovery or clean transfer.
+3. **Expand missing statement and lifetime transformations.** Select a witnessed
+   cause from stalled candidates and build a reusable edit family. More search
+   budget or reordered proposals cannot establish a missing construction. The
+   September 29 class-focused panel reached upstream alignment in 92 of 207
+   functions without an exact; those exposed cases are development evidence.
+4. **Build trustworthy evaluation and reusable trajectories alongside research.**
+   Preserve every successful and failed attempt, source-bound parent paths, and
+   assistance ancestry. Freeze an untouched evaluation boundary before tuning;
+   exposed panels and known contaminated holdouts remain excluded. Train only
+   after eligible data and a controlled baseline justify a training experiment.
+
+Accept a new repair mechanism only when it fires on its motivating residual and
+produces additional distinct exact functions on a separate untouched panel at an
+equal compiler-call budget, while preserving existing matches. Report assistance,
+cost, and failures separately. Cross-TU results support within-game reuse;
+cross-game capability needs its own protected evaluation. Negative experiments
+are grounds to reject a mechanism, even when its theory is attractive.
+
+Keep the installed unattended campaign running under its existing gates. The
+private callback proof and remaining integration fixes are tactical follow-ups;
+they regain research priority only if they establish a broadly reusable mechanism
+or remove a prerequisite for the work above. Do not count reference-assisted
+integration gains as new clean synthesis capability.
+
+### Compiler intervention evidence — October 2, 2026
+
+The bounded [causal experiment](eval/results/compiler-causal-20261002/result.json)
+tested five exposed candidates. Ordinary search, diagnosis-guided existing edits,
+and the initial forced variants produced no exacts or better residual gradients.
+This panel does not support spending more effort on a broad diagnostic proposal
+ranker. Ten volatile-view interventions also failed; the early interpretation of
+uopt's `M` marker as memory provenance was wrong (`M` denotes a local) and is
+explicitly retracted in the accounting receipt.
+
+A missing source construction did work: increment the narrow memory value and
+reread it instead of retaining a local. It removed the incorrectly coloured local
+ranges and produced exact normal objects in `randomNextObject` on its third
+targeted trial, then `updateEndingCreditsIdleSparkle` on its first targeted trial.
+The former reconstructs a known research match; only the latter is a newly exact
+development function. Both reproduced independently. The final private union of
+37 replacements preserved the earlier 35 and built a byte-identical ROM. One
+intermediate whole-ROM build failed on function/callback declarations; a separately
+logged type-admission revision passed. Header and declaration assistance remain
+explicit, and these exposed candidates are training-ineligible.
+
+Total effort was 944 scored candidate evaluations (528 distinct source hashes,
+eight compile failures), 111 diagnostic compiler invocations, and three whole-ROM
+checks. Accumulated per-run elapsed time was 408 seconds, with parallel overlap;
+22 minutes elapsed between the first and last scored candidates, excluding prior
+setup. Neither figure measures total engineering effort. Original receipts remain
+intact; a supplemental audit reconstructs 39 diagnostic calls missed by the initial
+counter and corrects a failed-gate field that reported proposed lineage as verified.
+
+The next capability investment is a guarded increment-and-reread generator with
+a positive motivating-fire test, followed by a preregistered untouched applicable
+panel at equal compiler-call cost. The experiment establishes a narrow causal
+effect, not a general register-forcing method or clean transfer. No generator was
+activated and no private candidate was imported into the campaign.
+
+The follow-up now implements that construction as `solver.narrow_update`, opt-in
+through `regalloc_mutations.variants(narrow_updates=True)` and the shared
+`regalloc_search.search` flag. Its guards and motivating-fire tests passed, along
+with compiled host behavior checks covering all 256 byte values and all 65,536
+values of each counter separately. The related solver suite passed 188 tests.
+Review witnesses for nested writes, changed address bases, final-expression
+effects, member names and bare-dereference grouping are regression-tested.
+
+After a Windows restart restored WSL, the frozen native comparison ran both
+exposed motivating controls. Each enabled arm matched on its first child and
+reproduced independently; ordinary search exhausted 24 children per control.
+The [receipt audit](eval/results/narrow-update-20261002/native-audit.json) verifies
+59 attempts, one compile failure and seven source-bound exact certificate
+receipts covering two control functions. Three whole-ROM checks produced two
+separate passing 36-function unions preserving the earlier 35; the untyped
+Sparkle winner failed destination declarations and its separately logged type
+revision passed. This follow-up did not test a combined 37-function union.
+
+The sealed retained-source selection found zero additional applicable functions.
+That empty panel establishes neither transfer nor failure of transfer. Default
+activation and campaign deployment remain off. The bounded applicability census
+in `eval/results/narrow-update-transfer-20261002/` excluded historical
+attempt/result/set membership: SBK1 had zero eligible functions; SBK2 had 1,912,
+of which 24 were selected before drafting. The history scan retained 6,617
+exclusion names but encountered 768 partial or unreadable artifacts; eligibility
+is conditional on this recorded history and does not establish unknown exposure.
+
+ELF-context drafts failed because SBK2 overlays reuse virtual addresses. Existing
+assembly-only drafting and byte-view lowering produced 24 usable roots, one with
+a direct narrow-update proposal (`holdLevelPreviewCamera`). No compiler ran:
+the baseline viability probe first exposed a source-name/object-target routing
+bug. `compiler_recipe.prepare` now uses the explicit `tus.object_path`, retaining
+the legacy NULL fallback and rejecting unsafe paths. Its focused Linux suite
+passed 116 tests and review found no actionable issues. The corrected lookup
+then reached the existing adapter's unsupported KMC GCC recipe boundary.
+
+That census identified KMC GCC recipe support, declaration obligations and
+overlay section identity as SBK2 prerequisites. The user's subsequent instruction
+keeps the active compiler work on SBK1's own IDO toolchain and evidence; SBK2
+decompilation is not an input to SBK1. The cross-game comparison remains unrun,
+with no new clean-transfer exact or deployment claimed.
+
+### SBK1 compiler review — October 2, 2026
+
+The read-only [recipe census](eval/results/compiler-sbk1-20261002/coverage.json)
+resolved 212 supported C recipes covering 2,106 function metadata entries.
+They retain the actual per-TU MIPS I/II/III and O1/O2/O3 settings. Five C recipes
+require separate object handling: four data-only course-select files and one
+race-setup TU containing seven functions. The other 252 identities fall outside
+the adapter's C-object domain; they are not 252 failed candidate compilations.
+No reference C bodies were read by this audit.
+
+The broad reliability repair is now implemented in `workspace.score`: ordinary
+exceptions during compiler-recipe resolution, attribution setup, candidate
+projection or build launch are logged as source-bound failed attempts before the
+original exception is re-raised. Records preserve run/parent context, partial
+timeout diagnostics and resolved backend requirements. They carry false training
+eligibility; invocation counts are zero before a build and unknown after launch.
+A ledger failure adds an explicit note without replacing the original compiler
+stop. Process interrupts retain their behavior. Preconfiguration calls without a
+candidate remain outside this receipt boundary.
+
+The focused WSL suite passed 103 tests. A private replay of the exposed
+`randomNextObject` control retained its exact object and strict frontend pass;
+the actual race-setup backend stop recorded one failure before any compiler
+invocation. This is a compiler-path regression check, not a new synthesis gain.
+Next prioritize confirmed IDO diagnosis-to-source constructions using the
+existing inspection machinery. Treat the seven-function postprocessor boundary
+as a separate bounded backend task with candidate applicability and symbol
+containment checks, rather than applying the full-TU tail trim indiscriminately.
+
+### Signed counter construction — October 2, 2026
+
+The SBK1-only [private audit](eval/results/ido-signed-counter-20261002/audit.json)
+confirms a second increment-and-reread shape. Two retained, previously exposed
+roots had matching instruction shapes but five and six register residuals.
+Replacing an adjacent signed halfword temporary / full-width mask / unsigned
+store with a compound memory increment followed by a retained wide comparison
+local matched both on the first targeted child. The first 12 distinct ordinary
+children per root produced no exacts. Both hand constructions and the shared
+generator reproduced independently; eight exact receipts across 34 scored
+attempts cover two distinct development functions. Six diagnostic invocations
+found zero remaining wrongly coloured ranges, with both traced object images
+equal to their ordinary compiler objects. The manual scoring runs totaled 12.4
+seconds; this excludes setup, engineering, generator replay and tests.
+
+`solver.narrow_update` now proposes this shape under its existing opt-in flag.
+It retains later comparison assignments and calls, requires the same explicit
+unsigned memory view and a complete-width mask, and declines extra signed-local
+uses, intervening effects and escaped comparison addresses. Review supplied a
+legal byte-alias counterexample to moving the wide assignment; parenthesized
+address escapes are now regression-tested. The focused native suite passed 176
+tests, including exhaustive halfword values with counter/global aliasing.
+
+These unequal finite arms establish motivating construction effects, not
+equal-budget transfer. Project-header assistance and unknown historical ancestry
+remain explicit; every attempt is training-ineligible. No reference C body or
+SBK2 decompilation was used to construct these candidates. The rule remains off
+by default, with no main-KB import, campaign activation or whole-ROM claim.
+Next establish coverage and incremental yield on a separately frozen SBK1 panel
+before spending on broader search or activating this family.
+
 ---
 
 ## Status — 2026-08-26

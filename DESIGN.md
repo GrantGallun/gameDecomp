@@ -1,6 +1,30 @@
 # Autodecomp — Design
 
+## Expanded investigation policy (2026-09-27)
+
+An explicitly configured investigation campaign can inspect candidate compiler
+phases, submit a complete C reconstruction, retrieve failed experiments, propose
+finite target-executed inputs, and request isolated shared-tool repairs. The
+existing verifier, source champions and controller still decide acceptance.
+
+No new evidence authority is introduced: phase observations require candidate
+object correspondence; synthetic execution carries domain and execution debt;
+notebook explanations remain hypotheses. Engineering requests cite current issue
+evidence and pre-existing tests, and validated code needs a new frozen deployment.
+This extends the optional tool agent while preserving deterministic mining,
+compiler comparison and the exact-match ratchet. Wiring is in `PIPELINE_MAP.md`.
+
 ## Thesis
+
+The opt-in tool-learning laboratory adds an execution boundary around
+model-authored repair programs (`docs/tool-learning.md`). Generated Python sees
+only a candidate and compiler observations inside an isolated process. A trusted
+parent owns target objects, the compiler recipe, budgets and durable receipts;
+only its independent object certificate establishes success. Model tools cannot
+edit that authority. Development-only revisions end before frozen evaluation,
+and private retention requires full-panel coverage accounting, no lost matches,
+and total cost including tool development. The laboratory is not wired into the
+production solver or miner.
 
 This is **not** a model. It is a **knowledge base with a solver attached**.
 
@@ -42,6 +66,23 @@ These must never break. Everything else is negotiable.
    plausible field names are what training data looks like.
 
 ## Architecture
+
+The opt-in capability envelope separates intended machinery contracts from
+observed compiler success. Eighteen declared components specify domains,
+prerequisites, output kinds and caller wiring; false and unknown conditions remain
+distinct. A negative observation can identify a constructor/domain discrepancy,
+missing wiring or a composition obligation without establishing impossibility.
+Candidate generation, finite behavioral checks and exact-object decisions have
+different contracts. No complete inverse compiler or numerical matching ceiling
+is implied. See `docs/CAPABILITY_ENVELOPE.md` for the model and actual audit.
+
+`solver.capability_potential` generates bounded conditional paths from operation
+preconditions, effects and explicit preservation/invalidation rules. The adapter
+instantiates these rules from the capability assessment; primitive specifications
+remain authored while compositions and per-operation potential are computed.
+Branches keep their own assumptions, and C mutations discard stale source-bound
+feedback. Generated states are hypotheses. Neither an inferred path nor an empty
+bounded search changes compiler acceptance or establishes global solvability.
 
 The solver has two non-conflicting work lanes. The logic-first lane reconstructs
 call-connected modules and records compiling, logic-shape, and structural
