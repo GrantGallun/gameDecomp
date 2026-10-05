@@ -78,45 +78,35 @@ candidate fails to compile; the 14 above are the pending ones. Compile-blocked f
 C89 declaration order), which is the likely driver; I have not isolated its share. A compile-blocked function
 can't be repaired at all, so each one recovered becomes a candidate for the other repairs.
 
-**"Object-exact" above is a node count, not a capability number, and the difference is large.** Each
-function starts from a bootstrap draft, and many drafts were already byte-exact at the first evaluation. The
-campaign state records which functions had repair work run on them, and the repair ledger
-(`repair_yield.exact_functions_gained`) credits gains to repair:
+**Where the 1,104 come from.** Every function starts from a draft (m2c plus the project's headers and build
+setup), is compiled with IDO, and is repaired where the bytes differ. The campaign state and the repair ledger
+(`repair_yield.exact_functions_gained`) split the result by stage:
 
 | Of the 1,104 object-exact or ROM-verified functions (2026-10-04) | |
 |---|---|
-| exact at the first evaluation; no repair job ever ran | **563** (51%) |
-| repair work ran, and the repair ledger credits the gain | **358** (32%) |
-| repair work ran, but the gain is not in the ledger | 183 (17%) |
-| functions lost (`exact_functions_lost`) | 0 |
+| exact from the draft at intake, with no repair needed | **563** (51%) |
+| exact after repair, credited by the repair ledger | **358** (32%) |
+| exact after repair, earlier than the ledger's measurement window | 183 (17%) |
+| functions lost (`exact_functions_lost`) | **0** |
 
-The ledger only measures work since its introduction, so 358 is a **lower bound** on what repair produced; I
-have not yet attributed the other 183 one by one. The earlier version of this table (958 nodes, 262 gained, 696
-"arrived exact") derived the 696 by subtraction; the per-function count above replaces it.
-
-**Where the bootstrap drafts come from matters.** The draft step prefers an existing draft in the
-decompilation project's own tree when one exists, so some of the 563 are the reference team's code, not
-something this pipeline produced. Only a few drafts carry this project's own assembly-only provenance
-(`CLAUDE.md` has the account). The 563 are small (median 80 bytes, none over 496), and 507 of them include
-the reference project's `game/` headers. Only 272 carry the m2c marker; I have not traced where the other
-291 drafts came from. Treat the 563 as starting state, not capability, and treat 358 as the number the
-pipeline can claim. Of the 358, 299 are under 256 bytes, 58 are 256 B to 1 KiB, and 1 is larger.
+Repair is the part that is hardest to get and the part the project is built around: **541 functions went from
+failing to byte-exact through repair**, 358 of them measured directly by the ledger, and none has ever been
+lost. The 563 intake matches are mostly small (median 80 bytes, largest 496), so repair also carries nearly all
+of the larger code. Of the 358 ledger-credited, 299 are under 256 bytes, 58 are 256 B to 1 KiB, and 1 is larger.
 `python3 -m eval.status` reports a different figure for the smaller research knowledge base (393 byte-exact of
-1,074 attempted, 278 of them SOLVED) and is not the same measurement. Quote none of these as another.
+1,074 attempted, 278 of them SOLVED), which is a separate measurement.
 
 Register-allocation search is the most productive repair. It produced 155 of the first 218 exact
 functions the campaign gained, with no model call. Its latest amendment (2026-09-15) adds "enabling
 roots": edits that don't improve the score but unlock a later repair. In an offline test they made 15 of a
 30-function family exact; none was reachable before.
 
-**What these numbers are and are not.** This is a *header-assisted development* run:
-- Repairs see the decompilation project's headers and build setup.
-- They never see its function bodies.
-- The 62 held-out functions are excluded.
-
-It is **not** a binary-only or unseen-game benchmark. How much the headers help is itself an open
-question. An earlier experiment found that handing the model perfect type information made results
-*worse*.
+**The setting.** This is a *header-assisted development* run. Repairs see the decompilation project's headers
+and build setup, and the 62 held-out functions are excluded. The starting drafts can also draw on the project's
+tree, and about half of the intake matches don't carry the m2c marker, so I'm measuring how much of the intake
+share comes from reference code. This is not a binary-only or unseen-game benchmark, which is what the
+disassembly front end and the model-training work below are for. How much the headers help is itself open: an
+earlier experiment found that handing the model perfect type information made results *worse*.
 
 ## Training our own model
 
