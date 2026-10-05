@@ -205,7 +205,11 @@ def vote(rom: bytes, code_start: int, starts: list[int], text_size: int,
     best, s1 = ranked[0]
     s2 = ranked[1][1] if len(ranked) > 1 else 0
     d = detail(best)
-    if s1 < MIN_VOTES or s1 == s2 or d["contradictions"]:
+    internal = d["calls"] + d["func_ptrs"] + d["self_refs"]
+    # Naming and calls from main are external; at least one position-dependent
+    # fact of the overlay's OWN code must agree (F-Zero X 0x1044D0: 295
+    # "functions", 0 internal facts -- data that decodes, not an overlay).
+    if s1 < MIN_VOTES or s1 == s2 or d["contradictions"] or internal == 0:
         return None, s1, s2, d
     return best, s1, s2, d
 

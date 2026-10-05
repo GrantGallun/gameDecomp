@@ -18,20 +18,23 @@ from pathlib import Path
 from disasm import accounting, code_extent, functions, overlays, rom
 
 
-def overlay_stage(data: bytes, ov: overlays.Overlay) -> dict:
-    """Stages 2-3 on a placed overlay; its sequential split seeds stage 2."""
+def overlay_stage(data: bytes, ov: overlays.Overlay, boot_calls: set[int]) -> dict:
+    """Stages 2-3 on a placed overlay, seeded the way the boot segment is.
+
+    Seeds are evidence, not the sequential split: the overlay's first
+    function and every call from the boot image that lands on one of its
+    split starts. Stage 2's reachability and data bound decide the rest. The
+    sequential split alone over-runs into data that happens to decode
+    (F-Zero X 0xFB430: its own data loads land inside the "text").
+    """
     seg = ov.segment(f"overlay_{ov.rom_start:X}")
     code_vram = seg.vram + (ov.code_start - ov.rom_start)
-    dec = code_extent.Decoder(data, seg)
-    entries = [code_vram + s for s in ov.starts]
-    # With the load address known, absolute `j` targets count again; an entry
-    # whose walk now fails is reported, not forced.
-    walkable = [e for e in entries if dec.walk(e).end is not None]
-    ext = code_extent.find(data, seg, walkable)
+    starts = {code_vram + s for s in ov.starts}
+    entries = [code_vram] + sorted(t for t in boot_calls if t in starts and t != code_vram)
+    ext = code_extent.find(data, seg, entries)
     funcs = functions.find(data, ext)
     return {"overlay": ov, "segment": seg, "extent": ext, "functions": funcs,
-            "code_vram": code_vram,
-            "unwalkable_entries": len(entries) - len(walkable)}
+            "code_vram": code_vram, "entries": len(entries)}
 
 
 def front_end(rom_path: Path) -> dict:
@@ -41,9 +44,18 @@ def front_end(rom_path: Path) -> dict:
     ext = code_extent.find(data, seg, entries)
     funcs = functions.find(data, ext)
     found = overlays.find(data, seg, ext)
-    placed = [overlay_stage(data, o) for o in found if o.vram is not None]
+    dec = code_extent.Decoder(data, seg)
+    boot_calls = {t for f in ext.functions for t in dec.walk(f).calls}
+    placed, failed = [], []
+    for o in found:
+        if o.vram is None:
+            continue
+        try:
+            placed.append(overlay_stage(data, o, boot_calls))
+        except ValueError as e:                    # a refusal is recorded, not fatal
+            failed.append({"overlay": o, "error": str(e)})
     return {"data": data, "info": ri, "segment": seg, "extent": ext,
-            "functions": funcs, "overlays": placed,
+            "functions": funcs, "overlays": placed, "failed_overlays": failed,
             "unplaced_overlays": [o for o in found if o.vram is None]}
 
 
@@ -69,6 +81,8 @@ def ledger(fe: dict) -> accounting.Ledger:
         _segment_ledger(led, o["segment"], o["extent"], o["functions"], o["code_vram"])
     for o in fe["unplaced_overlays"]:
         led.add(o.rom_start, o.rom_end, "overlay_unplaced")
+    for f in fe["failed_overlays"]:
+        led.add(f["overlay"].rom_start, f["overlay"].rom_end, "overlay_failed")
     return led
 
 
@@ -103,7 +117,10 @@ def receipt(fe: dict, grade_repo: Path | None) -> dict:
             "vote_detail": o["overlay"].vote_detail,
             "text_end_rom": f"{o['extent'].rom(o['extent'].text_end):#x}",
             "functions": len(o["functions"]),
-            "unwalkable_entries": o["unwalkable_entries"]} for o in fe["overlays"]],
+            "entries": o["entries"]} for o in fe["overlays"]],
+        "failed_overlays": [{
+            "rom_start": f"{f['overlay'].rom_start:#x}", "vram": f"{f['overlay'].vram:#010x}",
+            "error": f["error"]} for f in fe["failed_overlays"]],
         "unplaced_overlays": [{
             "rom_start": f"{o.rom_start:#x}", "rom_end": f"{o.rom_end:#x}",
             "votes": o.votes, "runner_up": o.runner_up,
