@@ -78,23 +78,29 @@ candidate fails to compile; the 14 above are the pending ones. Compile-blocked f
 C89 declaration order), which is the likely driver; I have not isolated its share. A compile-blocked function
 can't be repaired at all, so each one recovered becomes a candidate for the other repairs.
 
-**"Object-exact" above is a node count, not a capability number, and the difference is large.** The
-cohort was seeded from the reference decompilation, so most of those functions were already exact
-before the pipeline ran. The campaign's own repair ledger (`repair_yield.exact_functions_gained`)
-separates the two:
+**"Object-exact" above is a node count, not a capability number, and the difference is large.** Each
+function starts from a bootstrap draft, and many drafts were already byte-exact at the first evaluation. The
+campaign state records which functions had repair work run on them, and the repair ledger
+(`repair_yield.exact_functions_gained`) credits gains to repair:
 
-| | 2026-09-17 | 2026-10-04 |
-|---|---|---|
-| nodes whose status is object-exact or integrated | 958 | **1,104** |
-| — **functions the repair campaign actually gained** | 262 | **358** |
-| — not credited to repair (arrived already exact, or imported) | 696 | 746 |
-| functions lost (`exact_functions_lost`) | 0 | 0 |
+| Of the 1,104 object-exact or ROM-verified functions (2026-10-04) | |
+|---|---|
+| exact at the first evaluation; no repair job ever ran | **563** (51%) |
+| repair work ran, and the repair ledger credits the gain | **358** (32%) |
+| repair work ran, but the gain is not in the ledger | 183 (17%) |
+| functions lost (`exact_functions_lost`) | 0 |
 
-So roughly two thirds of the headline is pre-existing state, and the campaign's produced capability is 358
-of 2,051 functions (17.5%). Of the 358, 299 are under 256 bytes, 58 are 256 B to 1 KiB, and 1 is larger
-than that. `python3 -m eval.status` reports a different figure for the smaller research knowledge base
-(393 byte-exact of 1,074 attempted, 278 of them SOLVED) and is not the same measurement. Quote none of
-these as another.
+The ledger only measures work since its introduction, so 358 is a **lower bound** on what repair produced; I
+have not yet attributed the other 183 one by one. The earlier version of this table (958 nodes, 262 gained, 696
+"arrived exact") derived the 696 by subtraction; the per-function count above replaces it.
+
+**Where the bootstrap drafts come from matters.** The draft step prefers an existing draft in the
+decompilation project's own tree when one exists, so some of the 563 are the reference team's code, not
+something this pipeline produced. Only a few drafts carry this project's own assembly-only provenance
+(`CLAUDE.md` has the account). Treat the 563 as starting state, not capability, and treat 358 as the
+number the pipeline can claim. Of the 358, 299 are under 256 bytes, 58 are 256 B to 1 KiB, and 1 is larger.
+`python3 -m eval.status` reports a different figure for the smaller research knowledge base (393 byte-exact of
+1,074 attempted, 278 of them SOLVED) and is not the same measurement. Quote none of these as another.
 
 Register-allocation search is the most productive repair. It produced 155 of the first 218 exact
 functions the campaign gained, with no model call. Its latest amendment (2026-09-15) adds "enabling
