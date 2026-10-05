@@ -8,6 +8,26 @@ $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $runLinux = '/mnt/c/Code/gameDecomp/eval/results/resume-pipeline-20260908'
 $pythonLinux = '/home/grant/decomp/sbk1/.venv/bin/python'
 $serviceLinux = '/mnt/c/Code/gameDecomp/eval/campaign_service.py'
+# Bound the workers' fast_runtime caches (2026-09-22: one reached 141 GB and C: filled). Eviction removes
+# only cached values, least recently used first, and skips entries a worker holds, so it is safe while
+# the campaign runs; a miss just recompiles. A failure here is logged and never blocks the health check.
+try {
+    $launch = Get-Content -LiteralPath (Join-Path $runRoot 'launch.json') -Raw | ConvertFrom-Json
+    $workerRoot = $launch.command[[array]::IndexOf($launch.command, '--worker-root') + 1]
+    $prune = & wsl.exe -d Ubuntu --cd '/mnt/c/Code/gameDecomp' -e bash -c "$pythonLinux -m eval.cache_prune $workerRoot/*/cache --budget-gb 4 --apply" 2>&1
+    ($prune -join "`n") | Set-Content -LiteralPath (Join-Path $monitorRoot "$stamp-cache-prune.jsonl") -Encoding UTF8
+} catch {
+    "cache prune failed: $_" | Set-Content -LiteralPath (Join-Path $monitorRoot "$stamp-cache-prune.jsonl") -Encoding UTF8
+}
+# Pack source attribution in attempts the campaign wrote since the last run (lossless, byte-checked,
+# reversible with --expand; see eval/attempt_compact.py). No vacuum here: freed pages are reused.
+try {
+    $dbLinux = $launch.command[[array]::IndexOf($launch.command, '--db') + 1]
+    $compact = & wsl.exe -d Ubuntu --cd '/mnt/c/Code/gameDecomp' -e $pythonLinux -m eval.attempt_compact $dbLinux --apply 2>&1
+    ($compact -join "`n") | Set-Content -LiteralPath (Join-Path $monitorRoot "$stamp-attempt-compact.json") -Encoding UTF8
+} catch {
+    "attempt compaction failed: $_" | Set-Content -LiteralPath (Join-Path $monitorRoot "$stamp-attempt-compact.json") -Encoding UTF8
+}
 # Windows never reads the live campaign checkpoint: WSL performs the read.
 if (Test-Path -LiteralPath (Join-Path $runRoot 'service.pause')) {
     $health = [pscustomobject]@{ status = 'paused'; reason = 'Durable pause marker present' }

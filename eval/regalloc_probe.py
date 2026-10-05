@@ -82,9 +82,12 @@ class Bench:
         if self.target_text is None:
             self.target_text = (self.ws / "target_object_dump_normalized.s").read_text()
         dump = self.ws / f"{name}_object_dump_normalized.s"
+        frontend = attempt.frontend or {}
         result = {"label": label, "source_sha256": key, "compiled": bool(attempt.compiled),
                   "exact": bool(attempt.exact), "score": attempt.score,
+                  "frontend_passed": frontend.get("passed"),
                   "seconds": round(time.monotonic() - started, 2)}
+        result["_frontend_command"] = (frontend.get("recipe") or {}).get("command")
         if attempt.compiled and dump.is_file():
             report = regalloc_signature.compare(self.target_text, dump.read_text())
             result.update(report.to_dict(limit=12))

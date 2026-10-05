@@ -38,6 +38,8 @@ def project(name, node, group):
     row = dict(name=name, size=size if known_size else None, address=node.get('address'),
                instructions=node.get('instruction_count'), group=group, status=status,
                category=category, score=node.get('score'), compiled=compiled,
+               instruction_distance=residual.get('instruction_distance'),
+               register_distance=residual.get('register_distance'),
                attempt_id=node.get('attempt_id'), work_items=len(jobs))
     semantic = node.get('semantic_validation') or {}
     detail = dict(row, source_sha256=node.get('source_sha256'),

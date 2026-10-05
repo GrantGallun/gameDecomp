@@ -114,10 +114,94 @@ def verify_union_receipt(records, survivors, bindings, repo):
             raise ValueError('combined manifest build input changed')
 
 
+def stale_inputs(node):
+    """Pinned certificate build inputs whose current bytes differ (or that no longer exist)."""
+    return sorted(p for p, d in (node.get('verification') or {}).get('build_inputs', {}).items()
+                  if file_digest(p) != d)
+
+
+def _score_for_recertify(repo, db, name, source, parent_attempt_id, run_id):
+    from solver import workspace
+    import sqlite3
+    ws = workspace.bootstrap(Path(repo), name)
+    with sqlite3.connect(db, timeout=600) as conn:
+        att = workspace.score(ws, Path(repo), f'{name}_recertify_{time.time_ns()}', source, conn=conn, func=name,
+                              strategy='integration-recertify', run_id=run_id, relation='recertify',
+                              parent_attempt_id=parent_attempt_id, action='re-certify under current build inputs')
+        conn.commit()
+    return att
+
+
+def recertify(state, *, repo, db, score=_score_for_recertify):
+    """Re-certify integrated and pending-integration nodes whose pinned build inputs changed.
+
+    Why (2026-09-29): every sweep re-prepares the whole integrated union and requires each certificate's pinned
+    build inputs to match byte for byte. Five members' certificates pinned a workspace build.sh and a per-function
+    compiler recipe that later maintenance replaced (the recipe code deletes superseded .compiler-* files by
+    design), so every sweep since checkpoint 22879 halted before trying anything new, while all 31 pending nodes
+    stayed marked as already attempted. Nothing re-certified integrated nodes: `next_profile` skips them.
+
+    A node keeps its place only when the SAME source (sha256 unchanged) re-scores under the current inputs as
+    object-exact or ROM-backed function-exact with a passing frontend. Its certificate and attempt are replaced,
+    and a matching `verified_source_bindings` entry moves to the new binding with a recorded receipt. Anything else
+    is recorded as a named failure and changes nothing, so the union check still halts, but visibly.
+    """
+    nodes = state['nodes']
+    history = state.setdefault('integration_sweep', {'schema_version': 1, 'policy': POLICY,
+                                                    'attempted': {}, 'verified_union': []})
+    records = []
+    run_id = f'integration-recertify-{time.time_ns()}'
+    for name in sorted(n for n, node in nodes.items()
+                       if node.get('status') in ('integrated', 'function_exact_pending_integration')):
+        node = nodes[name]
+        stale = stale_inputs(node)
+        if not stale:
+            continue
+        record = {'function': name, 'status': node['status'], 'stale_inputs': stale,
+                  'old_binding': source_binding(node)}
+        try:
+            source = Path(node['source']).read_text(encoding='utf-8')
+            if hashlib.sha256(source.encode()).hexdigest() != node['source_sha256']:
+                raise ValueError('source file no longer matches the node binding')
+            att = score(repo, db, name, source, node['attempt_id'], run_id)
+            verification = att.verification or {}
+            boundary = (verification.get('function_boundary') or {}).get('function_exact') is True
+            frontend_ok = att.frontend is None or att.frontend.get('passed') is True
+            if not (att.compiled and (att.exact or boundary) and frontend_ok and att.receipt_id is not None):
+                raise ValueError(f'current inputs do not re-certify: compiled={att.compiled} exact={att.exact} '
+                                 f'function_exact={boundary} frontend_ok={frontend_ok}')
+            if stale_inputs({'verification': verification}):
+                raise ValueError('new certificate is already stale')
+            old = source_binding(node)
+            node.update(attempt_id=att.receipt_id, verification=verification)
+            new = source_binding(node)
+            bound = history.setdefault('verified_source_bindings', {})
+            if bound.get(name) == old:
+                bound[name] = new
+            record.update(result='recertified', new_binding=new, exact=att.exact, function_exact=boundary)
+        except (OSError, ValueError, RuntimeError, KeyError, TypeError) as exc:
+            record.update(result='failed', error=f'{type(exc).__name__}: {exc}')
+        records.append(record)
+    if records:
+        history.setdefault('recertifications', []).append({'at': time.time(), 'records': records})
+    return records
+
+
 def sweep(state, *, repo, db, artifacts, checkpoint=None, on_started=None):
-    """Return changed node names; suppressed/empty selections do no build work."""
+    """Return changed node names; suppressed/empty selections do no build work.
+
+    Re-certification runs first: renewing stale members is what makes pending nodes eligible again (their
+    evidence key includes the union's bindings). Renewed nodes are returned as changed on every path: the
+    checkpoint store rewrites only nodes named in `changed`, so an unlisted renewal would be lost on resume.
+    """
     if state.get('fast_inflight') or state.get('inflight'):
         raise ValueError('integration requires drained workers under the controller lock')
+    renewed = [r['function'] for r in recertify(state, repo=repo, db=db) if r.get('result') == 'recertified']
+    changed = _sweep(state, repo=repo, db=db, artifacts=artifacts, checkpoint=checkpoint, on_started=on_started)
+    return sorted(set(changed) | set(renewed))
+
+
+def _sweep(state, *, repo, db, artifacts, checkpoint=None, on_started=None):
     nodes = state['nodes']
     history = state.get('integration_sweep', {})
     old_names = sorted(n for n, node in nodes.items() if node['status'] == 'integrated')

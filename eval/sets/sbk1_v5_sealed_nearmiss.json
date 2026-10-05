@@ -1,0 +1,3545 @@
+{
+  "schema_version": 2,
+  "kind": "sealed-near-miss-split",
+  "created_at": 1790976816,
+  "salt": "c3794712fba9c4596bf4d24a7b9d1070bce357cd1acc7a002cd40fb27154bf7b",
+  "prereg_file": "eval/results/goal-20261002/PREREGISTRATION.md",
+  "fraction": 0.5,
+  "min_score": 80.0,
+  "max_looks": 3,
+  "policy": {
+    "selection_inputs": "ledger metadata and best score only; no source or residual read",
+    "split": "tu-disjoint, salt = sha256(pre-registration file)",
+    "enforcement": "saved under eval/sets/sbk1_v*.json with a heldout list, read by existing exclusion code",
+    "primary_metric": "paired best-score sign test, clustered by TU; exact counts secondary",
+    "exposure": "sealed from freeze date forward; prior_attempts is a covariate"
+  },
+  "exclusion_counts": {
+    "already_matched": 858,
+    "eval_sets": 580,
+    "frame.json": 50,
+    "frame_names.json": 19,
+    "frame-A.json": 77,
+    "frame-B.json": 319
+  },
+  "power": {
+    "sealed_tus": 29,
+    "min_same_direction_tus": 6,
+    "note": "need 6 TUs all improving with 0 worsening to reach p<.05"
+  },
+  "dev": [
+    {
+      "function": "blendRaceMotionJointAnimation",
+      "tu": "build/src/race/motion/race_motion.o",
+      "tier": "large",
+      "best_score": 92.975,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 288820,
+        "source_sha256": "3d0ed899932eb00eac16a6b55176673ac7fec8691d555fe975bcedeb86d9a558"
+      },
+      "prior_attempts": 647,
+      "prior_strategy_count": 30,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "compactRelocatableHeap",
+      "tu": "build/src/engine/relocatable_heap.o",
+      "tier": "small",
+      "best_score": 87.692,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 203972,
+        "source_sha256": "6d814f0411ff0acc53eafa290b76f91900f2b13bac5800d9c5fc9e0efd1d9e29"
+      },
+      "prior_attempts": 887,
+      "prior_strategy_count": 24,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "dmaReadRom",
+      "tu": "build/src/engine/system_runtime.o",
+      "tier": "medium",
+      "best_score": 87.558,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 328279,
+        "source_sha256": "e4f670abdc869aec4ae911db2ca78e843aba652ede1823bcaf60fe9dbc342c24"
+      },
+      "prior_attempts": 717,
+      "prior_strategy_count": 163,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawCharacterSelectLimitedCourseListOptions",
+      "tu": "build/src/menu/character_select/character_select_course_ui.o",
+      "tier": "large",
+      "best_score": 95.538,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 222350,
+        "source_sha256": "2913c3f513a586dee7757d2314afd542d9e2b0a9b1608ea57a38e3aa949b4d5c"
+      },
+      "prior_attempts": 610,
+      "prior_strategy_count": 20,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawControllerPakRaceRecordSaveStatusMessage",
+      "tu": "build/src/menu/controller_pak/controller_pak_race_record_save_ui.o",
+      "tier": "medium",
+      "best_score": 99.118,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 139347,
+        "source_sha256": "3888e3bbc23329c82a45ef761e7e1c3da28f644f8440c5101b90b33d96908e57"
+      },
+      "prior_attempts": 491,
+      "prior_strategy_count": 107,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawEndingObjectSpriteDebugViewer",
+      "tu": "build/src/ending/ending_credits_ui.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 258702,
+        "source_sha256": "c07d6fbed6f5dad52229c95ae45a910cd60d52884fe76f014ea2a63edeb40c3c"
+      },
+      "prior_attempts": 117,
+      "prior_strategy_count": 26,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawRaceSplitscreenSelectEntryFee",
+      "tu": "build/src/menu/splitscreen_select/race_splitscreen_select_ui.o",
+      "tier": "medium",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 127016,
+        "source_sha256": "f7145b594ac5239571ae60f922fabeb36ff96ab00a91150ac42eb2b074d036ac"
+      },
+      "prior_attempts": 40,
+      "prior_strategy_count": 9,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawRaceSplitscreenSelectPlayerCountIcons",
+      "tu": "build/src/menu/splitscreen_select/race_splitscreen_select_ui.o",
+      "tier": "medium",
+      "best_score": 98.086,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 184615,
+        "source_sha256": "b32e214a53623e1e8451ea8ae5478029d07b8df898d879fd543012649c41084d"
+      },
+      "prior_attempts": 778,
+      "prior_strategy_count": 32,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawRaceTypeSelectOption3Frame",
+      "tu": "build/src/menu/race_type_select/race_type_select_ui.o",
+      "tier": "large",
+      "best_score": 91.912,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 174560,
+        "source_sha256": "c655cf544cfe8536cf1430d5e4bda2cb1a2b4e96ad9bcb346b0be1f8da0b7e34"
+      },
+      "prior_attempts": 364,
+      "prior_strategy_count": 24,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawRaceTypeSelectOptionIcons",
+      "tu": "build/src/menu/race_type_select/race_type_select_ui.o",
+      "tier": "medium",
+      "best_score": 98.086,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 184914,
+        "source_sha256": "a9fce4587c8b31a9e7aceb71d35c37d2cd40c93c53b6023f720eaf18eefc3f46"
+      },
+      "prior_attempts": 785,
+      "prior_strategy_count": 32,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawScoreAttackChallengeLabels",
+      "tu": "build/src/race/ui/race_hud.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 250404,
+        "source_sha256": "a16ce50b890a5baf64862c0ff763563d32e48fb6303229c511eca965ac7f0d97"
+      },
+      "prior_attempts": 77,
+      "prior_strategy_count": 10,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawTargetTimeChallengeLabels",
+      "tu": "build/src/race/ui/race_hud.o",
+      "tier": "medium",
+      "best_score": 87.241,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 250429,
+        "source_sha256": "8fe345f32b7988bbaf4a613312c859e937f21d0aeff04c9a4ce58510a11290f1"
+      },
+      "prior_attempts": 91,
+      "prior_strategy_count": 13,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawTexturedMainMenuSceneModel",
+      "tu": "build/src/menu/main_menu/main_menu_scene_model.o",
+      "tier": "medium",
+      "best_score": 89.414,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 166219,
+        "source_sha256": "a143c0d4e3a79dc9a2cf1e6abb99db802fdee70ff0eb225e58415aa92b361fae"
+      },
+      "prior_attempts": 114,
+      "prior_strategy_count": 24,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawTimeTrialHud",
+      "tu": "build/src/race/ui/race_hud.o",
+      "tier": "large",
+      "best_score": 96.338,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 290248,
+        "source_sha256": "9757c58ad3a9f297a5fc06159a85be73f83d9a778f6b3c4b9fa185493ef94b17"
+      },
+      "prior_attempts": 788,
+      "prior_strategy_count": 130,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawTrickAttackChallengeLabels",
+      "tu": "build/src/race/ui/race_hud.o",
+      "tier": "tiny",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 250087,
+        "source_sha256": "f26872a1227c038fa47e945c0c2cfc9282f9d5ac070337c17db02855c2a71550"
+      },
+      "prior_attempts": 71,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "exitCourseSelectMenu",
+      "tu": "build/src/menu/course_select/course_select_menu.o",
+      "tier": "medium",
+      "best_score": 88.911,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 18741,
+        "source_sha256": "39c64da76520d7a882e9cd66297792398cf466c3140d30edf46fd3b23fc1ad8f"
+      },
+      "prior_attempts": 106,
+      "prior_strategy_count": 21,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "fadeOutCharacterSelectCourseMenu",
+      "tu": "build/src/menu/character_select/character_select_course_menu.o",
+      "tier": "medium",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 41501,
+        "source_sha256": "deacab6a5e79f7d52c41758ec7b8414cca4c3fb0e449563cebb5dd449533f951"
+      },
+      "prior_attempts": 28,
+      "prior_strategy_count": 11,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "finishMainMenuDemoRaceIntro",
+      "tu": "build/src/demo/main_menu_demo_race_intro.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 110874,
+        "source_sha256": "39e5325c97441bfb9b8d6a40f2ace3b35710e37106a003962179da933927a19b"
+      },
+      "prior_attempts": 53,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "finishRaceStartTransition",
+      "tu": "build/src/race/effects/race_start_transition.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 4784,
+        "source_sha256": "b33b97e03c8a9f8f72c1e389f7f8d7389704170a59e1acfb1dbfbd6d047ac806"
+      },
+      "prior_attempts": 25,
+      "prior_strategy_count": 10,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_80057E90",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 95.703,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 44656,
+        "source_sha256": "36ab382df705e9aaaea839a1afefa3de013ee41c419b6940fe0163ede424c648"
+      },
+      "prior_attempts": 166,
+      "prior_strategy_count": 49,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_80058360",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 97.468,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 291194,
+        "source_sha256": "7e823b0b4fc429588de1dbb1c6b4a52f07b9b584c64813700df8297308ab9727"
+      },
+      "prior_attempts": 289,
+      "prior_strategy_count": 29,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_80058610",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "large",
+      "best_score": 93.115,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 233629,
+        "source_sha256": "772b4fc55adebf61bf4f7a11f672d8093a0871a84017df867f00924b7365e503"
+      },
+      "prior_attempts": 648,
+      "prior_strategy_count": 21,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_80058C00",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "large",
+      "best_score": 97.814,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 168923,
+        "source_sha256": "3038de7cdd8b6a9f25c9e9413684a357323eed74fb286e9a2eba281afc9155c7"
+      },
+      "prior_attempts": 552,
+      "prior_strategy_count": 54,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_80059518",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "large",
+      "best_score": 94.846,
+      "start": {
+        "ledger": "kb",
+        "attempt_id": 9488,
+        "source_sha256": "9f6739ad61378a3d7c5e8e1c52bbdea2e5fb95d42d5eb89c157b6646888a5f06"
+      },
+      "prior_attempts": 335,
+      "prior_strategy_count": 31,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005AAE4",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 94.773,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 333485,
+        "source_sha256": "a6643b5d11cc3afa7c3a06e47f921ac71e3609e345ae58d8bd708bb1ba0e5aeb"
+      },
+      "prior_attempts": 129,
+      "prior_strategy_count": 22,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005AE1C",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 251370,
+        "source_sha256": "f580cc9c9337b1f69d8de7fd7441e5506e23031b1cba41ffe3f9b084362c4652"
+      },
+      "prior_attempts": 71,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005C64C",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "large",
+      "best_score": 91.311,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 11656,
+        "source_sha256": "3d80de265b4a4c8e415e47788a925da33b9a2888836a85748194a8547b5a1760"
+      },
+      "prior_attempts": 82,
+      "prior_strategy_count": 13,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005CE4C",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 95.5,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 9215,
+        "source_sha256": "7d4c996a914ef07a5563200ce647593cdcff1bb9f334ddee91c7bfcff262bcfe"
+      },
+      "prior_attempts": 475,
+      "prior_strategy_count": 193,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005D860",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 94.94,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 291213,
+        "source_sha256": "3bce782ccf2d26fd0c83b3eaaa0c621463480020e9209e17f02d7141195c968d"
+      },
+      "prior_attempts": 289,
+      "prior_strategy_count": 28,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005DB3C",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 251380,
+        "source_sha256": "3b9e46a322532b4c3022783f68fa203b2b9a951e243342a9290204b5aebdd8cd"
+      },
+      "prior_attempts": 71,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005EFFC",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 89.713,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 140215,
+        "source_sha256": "b6cc61727643ad9a406265406d0dfd92c05c90f33f9d83c52cdcc636c4e8087e"
+      },
+      "prior_attempts": 120,
+      "prior_strategy_count": 29,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005F174",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 99.452,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 9436,
+        "source_sha256": "463aa11218b0e419e45f845565551fa52e5bedb187af6d0be780b0a187d11142"
+      },
+      "prior_attempts": 113,
+      "prior_strategy_count": 18,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005F2DC",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 88.293,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 257039,
+        "source_sha256": "d8d3752f41e7190c869ae3d80e7eb9ae1bdfb3148424e4e7194f710a8c700953"
+      },
+      "prior_attempts": 225,
+      "prior_strategy_count": 52,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005F448",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 88.444,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 143296,
+        "source_sha256": "acf51d512e7954a0b2c1b33d82139977d244ba4df4547eba799e32d5a5a8c333"
+      },
+      "prior_attempts": 164,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005F5C8",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 92.527,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 171471,
+        "source_sha256": "f9e34fbc72abc2801f3a36adccc15d0eea01487a1fad4e7189d4f88f32b252dc"
+      },
+      "prior_attempts": 430,
+      "prior_strategy_count": 21,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_8005F6A4",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 92.76,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 220511,
+        "source_sha256": "d598d2485c287d9ae7b8d820d52357342ad30cf9ac80bdf745023df035267fb7"
+      },
+      "prior_attempts": 515,
+      "prior_strategy_count": 63,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_80060544",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 90.059,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 125186,
+        "source_sha256": "d0dd70085c85f0cc9b199ac9b48191e2e631a7ef114dae3151ca2759c6874baf"
+      },
+      "prior_attempts": 835,
+      "prior_strategy_count": 137,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_800622B0",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 92.273,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 219102,
+        "source_sha256": "a971e132eccf061b3710c3ebb9189fa40d5eb49545d61b10aae0d322be0ff561"
+      },
+      "prior_attempts": 525,
+      "prior_strategy_count": 54,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_800647E0",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 99.697,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 128663,
+        "source_sha256": "0caf61f6b4db04045ed6e37b91cc23404c758b932a820b9fcfb12fd05e3a5abb"
+      },
+      "prior_attempts": 886,
+      "prior_strategy_count": 287,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_80064B28",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 97.037,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 136881,
+        "source_sha256": "082a527e5774e0a0ef5a477212a57cc5336eb50fefcfc270b36ac784e224979b"
+      },
+      "prior_attempts": 866,
+      "prior_strategy_count": 30,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "func_80064D88",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 99.589,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 157388,
+        "source_sha256": "e1224b692509b5a53e476a1b6fef3f8ce2c7ec7c9ea4d0075d44cef3811f3ad0"
+      },
+      "prior_attempts": 944,
+      "prior_strategy_count": 177,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "getRaceCourseProgressPosition",
+      "tu": "build/src/race/motion/race_motion.o",
+      "tier": "medium",
+      "best_score": 89.492,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 277391,
+        "source_sha256": "faa9eb9719aabd41d81fa385bf27cbc6709791121c2979abe886f26154b3e09c"
+      },
+      "prior_attempts": 601,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCallbackTaskScheduler",
+      "tu": "build/src/engine/callback_task_scheduler.o",
+      "tier": "medium",
+      "best_score": 98.578,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 160862,
+        "source_sha256": "97cf70bb90a958d234dd1557e594c187b9b83ac122ae423a08fdfab9efeeb308"
+      },
+      "prior_attempts": 830,
+      "prior_strategy_count": 36,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initControllerPakRaceRecordSaveExitMessage",
+      "tu": "build/src/menu/controller_pak/controller_pak_race_record_save_ui.o",
+      "tier": "tiny",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "kb",
+        "attempt_id": 96020,
+        "source_sha256": "d3fd9cbcbd08bca5f0d101844f6c332023e88925ca4239212a24f10e1f98f2ed"
+      },
+      "prior_attempts": 43,
+      "prior_strategy_count": 11,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCourseSelectCourseDetailsMenu",
+      "tu": "build/src/menu/course_select/course_select_menu.o",
+      "tier": "medium",
+      "best_score": 98.378,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 23581,
+        "source_sha256": "b5789b843eaf2e71a574ea6d00cabff67d930541f4f925a88757ec262a1158ec"
+      },
+      "prior_attempts": 816,
+      "prior_strategy_count": 109,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCourseSelectMenu",
+      "tu": "build/src/menu/course_select/course_select_menu.o",
+      "tier": "large",
+      "best_score": 86.067,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 111315,
+        "source_sha256": "048811cf51df0ca8268a4a85c62b57478d37ed37128cef85bc8c7b52130af9b3"
+      },
+      "prior_attempts": 613,
+      "prior_strategy_count": 42,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCourseSelectPreview",
+      "tu": "build/src/menu/course_select/course_select_menu.o",
+      "tier": "medium",
+      "best_score": 94.571,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 42750,
+        "source_sha256": "72cea7cd66d8916c85a1d0a47e7e6044674c35648dc538381dce28710528785a"
+      },
+      "prior_attempts": 181,
+      "prior_strategy_count": 33,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initEndingCreditsSlash",
+      "tu": "build/src/ending/ending_credits_slash.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "kb",
+        "attempt_id": 96041,
+        "source_sha256": "174757cdc0717f5e6e637b5286a45f9cc287bdd30f3c352f16fc6479373235a7"
+      },
+      "prior_attempts": 38,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initMainMenuDemoRaceIntro",
+      "tu": "build/src/demo/main_menu_demo_race_intro.o",
+      "tier": "large",
+      "best_score": 87.906,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 288036,
+        "source_sha256": "2631a38054da051bed58553abe49b94428573e9f5e02cf75d056fb995828210e"
+      },
+      "prior_attempts": 536,
+      "prior_strategy_count": 22,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initMainMenuModePreviewRace",
+      "tu": "build/src/menu/main_menu/main_menu_race_flow.o",
+      "tier": "large",
+      "best_score": 85.436,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 327625,
+        "source_sha256": "d8914de71d6f4648409ab18c3460ad89acfb126d409cb909f21e69349f06b5dd"
+      },
+      "prior_attempts": 262,
+      "prior_strategy_count": 38,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initMainMenuModePreviewRaceSelectionMenu",
+      "tu": "build/src/menu/main_menu/main_menu_race_flow.o",
+      "tier": "medium",
+      "best_score": 99.889,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109025,
+        "source_sha256": "a576244bb487d66494dbfcfe315998dfcdc84a8d6083aa80ebe890f110b80cc8"
+      },
+      "prior_attempts": 160,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initRaceCourseCoinMarkers",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "small",
+      "best_score": 93.429,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 281178,
+        "source_sha256": "7cedc0edc3d9e329cb785e20c961afa203edf414044ed6d0e0ed56062fcc09ba"
+      },
+      "prior_attempts": 499,
+      "prior_strategy_count": 39,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initRaceCourseRankModel",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 95.329,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 41953,
+        "source_sha256": "003344e5b79caa2c06cc1915a96e13f68fe6f45c9c942e70c535b86ac35db657"
+      },
+      "prior_attempts": 147,
+      "prior_strategy_count": 25,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initRaceHud",
+      "tu": "build/src/race/ui/race_hud.o",
+      "tier": "medium",
+      "best_score": 88.769,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 110932,
+        "source_sha256": "bf9e8d024a6ff3e588b6b6a35b2cfea836e50e1060f8f120af87af236cea6fa9"
+      },
+      "prior_attempts": 335,
+      "prior_strategy_count": 27,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initRacePlayerHitEffect",
+      "tu": "build/src/race/items/race_item_effects.o",
+      "tier": "medium",
+      "best_score": 92.661,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 115890,
+        "source_sha256": "a16f0b31c029a3b053c3d6165a4fc617d9eb33866437d0ba47c080543adfa5e5"
+      },
+      "prior_attempts": 645,
+      "prior_strategy_count": 25,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initRelocatableHeap",
+      "tu": "build/src/engine/relocatable_heap.o",
+      "tier": "small",
+      "best_score": 95.909,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 289368,
+        "source_sha256": "b01c3ea876ae48d29004e2bf3d3c540da4ca9896865da93b113cb34a21378751"
+      },
+      "prior_attempts": 1171,
+      "prior_strategy_count": 54,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "projectRaceCourseSurfaceProgress",
+      "tu": "build/src/race/motion/race_motion.o",
+      "tier": "medium",
+      "best_score": 90.441,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 247593,
+        "source_sha256": "7f9e547c92a8de9d746912f26f047f9c00ebe1e84becea0a5a44401d4f0b9dea"
+      },
+      "prior_attempts": 1282,
+      "prior_strategy_count": 29,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "renderRaceCourseRankModel",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 97.168,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 232524,
+        "source_sha256": "9713b632d355fcbe574c84698d85e599b503068bdc06db288d6d1b579b4923aa"
+      },
+      "prior_attempts": 801,
+      "prior_strategy_count": 52,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "returnToCourseSelectModeMenu",
+      "tu": "build/src/menu/course_select/course_select_menu.o",
+      "tier": "large",
+      "best_score": 97.721,
+      "start": {
+        "ledger": "kb",
+        "attempt_id": 12337,
+        "source_sha256": "797ade37c7c09f14af34899adec4fedf8b56b9a7178ab9bcac305668b7fa7608"
+      },
+      "prior_attempts": 558,
+      "prior_strategy_count": 85,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "setMainMenuSceneModelAnimation",
+      "tu": "build/src/menu/main_menu/main_menu_scene_model.o",
+      "tier": "small",
+      "best_score": 87.794,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 166447,
+        "source_sha256": "42fc17eec62de0ef180f3f94dc40fda6587b8ebde73268943c7118439f757c5f"
+      },
+      "prior_attempts": 266,
+      "prior_strategy_count": 50,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "spawnRaceItemBreakParticles",
+      "tu": "build/src/race/items/race_item_effects.o",
+      "tier": "medium",
+      "best_score": 99.211,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 170995,
+        "source_sha256": "26c5684b16baec30bb76d267173ba6433888425ea565e69a75170f45aa3c7be7"
+      },
+      "prior_attempts": 390,
+      "prior_strategy_count": 111,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCharacterSelectCourseStatsBadge",
+      "tu": "build/src/menu/character_select/character_select_course_ui.o",
+      "tier": "medium",
+      "best_score": 93.471,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 155487,
+        "source_sha256": "8b4541c69642d63351c0f84da938a4f5caebcd664a16a6f3dd664ec2543f50d8"
+      },
+      "prior_attempts": 83,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCharacterSelectCourseSubmenu",
+      "tu": "build/src/menu/character_select/character_select_course_menu.o",
+      "tier": "large",
+      "best_score": 91.667,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 12034,
+        "source_sha256": "04f0e12a55f84d65378c3982dbf1d5f05958071aa2bf8eee748deb96f54a5d76"
+      },
+      "prior_attempts": 400,
+      "prior_strategy_count": 18,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCharacterSelectCourseSubmenuFrame",
+      "tu": "build/src/menu/character_select/character_select_course_ui.o",
+      "tier": "medium",
+      "best_score": 99.679,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 110038,
+        "source_sha256": "ce963a201563c33e0bb862c1b02a902293d78b8653295f0fd2800fe55471ef88"
+      },
+      "prior_attempts": 427,
+      "prior_strategy_count": 93,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCharacterSelectCourseTitleCursor",
+      "tu": "build/src/menu/character_select/character_select_course_ui.o",
+      "tier": "medium",
+      "best_score": 92.256,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 10026,
+        "source_sha256": "97891be4e66083d1c2b449b3864e17a9cd8b01bf1172ffa905630ce5a22fd5a5"
+      },
+      "prior_attempts": 82,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateControllerPakContinuePromptFlow",
+      "tu": "build/src/menu/controller_pak/controller_pak_continue_prompt_flow.o",
+      "tier": "medium",
+      "best_score": 88.157,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 10119,
+        "source_sha256": "ac4f409f5c91ebbccaa4f62d30942872f8f41c314655655e9958b86e7d233953"
+      },
+      "prior_attempts": 45,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateControllerPakRaceRecordSaveFlow",
+      "tu": "build/src/menu/controller_pak/controller_pak_race_record_save_flow.o",
+      "tier": "huge",
+      "best_score": 98.838,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 226011,
+        "source_sha256": "076c19583ffc1da193f15be6cde5a9dfa5c74694cb42e95ca7ba2f5ddc35f4e6"
+      },
+      "prior_attempts": 1077,
+      "prior_strategy_count": 20,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCourseSelectPreviewClose",
+      "tu": "build/src/menu/course_select/course_select_menu.o",
+      "tier": "medium",
+      "best_score": 99.308,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 112848,
+        "source_sha256": "09e038376da12a327f6db14555ee8836383b5fe2ebcb0da068a7a2094154d936"
+      },
+      "prior_attempts": 391,
+      "prior_strategy_count": 85,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCourseSelectPurchasePrompt",
+      "tu": "build/src/menu/course_select/course_select_menu.o",
+      "tier": "large",
+      "best_score": 99.085,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 249424,
+        "source_sha256": "d29a1c1b163e2e2aff2826a22527c9cbc63b782a3f44db450d8a108992ae93ef"
+      },
+      "prior_attempts": 708,
+      "prior_strategy_count": 22,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingCreditsTransitionSnowboardIconExpandSpin",
+      "tu": "build/src/ending/ending_credits_effects.o",
+      "tier": "small",
+      "best_score": 91.872,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 17470,
+        "source_sha256": "417b694a16be05c3d12e160d34508d37eb1706d53fbb49df3ab9037685126ff0"
+      },
+      "prior_attempts": 117,
+      "prior_strategy_count": 21,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingCreditsTransitionSnowboardIconFinalSpin",
+      "tu": "build/src/ending/ending_credits_effects.o",
+      "tier": "small",
+      "best_score": 91.105,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 17451,
+        "source_sha256": "9920591c10186695aa6e8cc4e9b937d4f61c6e066dafb739accab0e5044bc097"
+      },
+      "prior_attempts": 179,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingCreditsTransitionSnowboardIconSecondSpin",
+      "tu": "build/src/ending/ending_credits_effects.o",
+      "tier": "small",
+      "best_score": 84.83,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 17624,
+        "source_sha256": "0740976ac576a691d62e2ce67b4d093fdaea308bd9295dbf91ff2382f1bc1974"
+      },
+      "prior_attempts": 245,
+      "prior_strategy_count": 28,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingCreditsTransitionSnowboardIconSlowSpin",
+      "tu": "build/src/ending/ending_credits_effects.o",
+      "tier": "small",
+      "best_score": 86.028,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 118141,
+        "source_sha256": "b5d457510d03d239273b32010eed92b8c5d1e84769969d19f94d16929120d8a3"
+      },
+      "prior_attempts": 122,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingCreditsTransitionSnowflakeIconIdle",
+      "tu": "build/src/ending/ending_credits_effects.o",
+      "tier": "small",
+      "best_score": 92.765,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 264803,
+        "source_sha256": "2c08593dc8d76b9a16b417373453c9eefe025d2ee20a6fc5ed5b6b2980abb197"
+      },
+      "prior_attempts": 115,
+      "prior_strategy_count": 20,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingLindaSlideLeftFromFarRight",
+      "tu": "build/src/ending/ending_credits_linda.o",
+      "tier": "medium",
+      "best_score": 93.077,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 204268,
+        "source_sha256": "69a8b90dac6be997a57012722d26e2934da06057a187b4848179d4ed71015dcf"
+      },
+      "prior_attempts": 411,
+      "prior_strategy_count": 18,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingSlashDiagonalSlideSetPhase24",
+      "tu": "build/src/ending/ending_credits_slash.o",
+      "tier": "small",
+      "best_score": 93.684,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 63723,
+        "source_sha256": "23f46af2a90e18920417c4da4b7ff0122b8fb78142c5b6db08ccd747b3fda344"
+      },
+      "prior_attempts": 397,
+      "prior_strategy_count": 155,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingSlashFinalPose",
+      "tu": "build/src/ending/ending_credits_slash.o",
+      "tier": "small",
+      "best_score": 95.12,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 5652,
+        "source_sha256": "2146421346a7f4deee84c467f62ce18dd4d4f6b660e502eabb5b00afd8ef9ce2"
+      },
+      "prior_attempts": 506,
+      "prior_strategy_count": 193,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingSlashHopLeftAnim",
+      "tu": "build/src/ending/ending_credits_slash.o",
+      "tier": "small",
+      "best_score": 98.444,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109256,
+        "source_sha256": "510f79ab07f923138538405926e363a3ff718d453aeb75c6bb62bd22d5b3373a"
+      },
+      "prior_attempts": 589,
+      "prior_strategy_count": 178,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingSlashTumbleToPhase3C",
+      "tu": "build/src/ending/ending_credits_slash.o",
+      "tier": "medium",
+      "best_score": 97.686,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 287219,
+        "source_sha256": "32945dfe9b9257825a0893ce0ed1aa87ef634197d5baf65bdb98009b29358008"
+      },
+      "prior_attempts": 419,
+      "prior_strategy_count": 180,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateGhostSlowdownImpact",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 94.16,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 11093,
+        "source_sha256": "878def6cb51ad6d39d9b704c4e50be542689afd5392dcf58c43b7e9e769c026e"
+      },
+      "prior_attempts": 219,
+      "prior_strategy_count": 53,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateIceCourseBumper",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 98.606,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 19085,
+        "source_sha256": "0b9e3872cea9efb52502026e5ddb5131eda5d1b05ae57eb28599aa278abc98e6"
+      },
+      "prior_attempts": 482,
+      "prior_strategy_count": 120,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceCameraFinishOrbit",
+      "tu": "build/src/race/camera/race_camera.o",
+      "tier": "large",
+      "best_score": 80.204,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 196483,
+        "source_sha256": "557703adf1c9b983d663e61aacc2a46eafc057566cbea8c52eb2bea8cfc8e215"
+      },
+      "prior_attempts": 90,
+      "prior_strategy_count": 18,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceCameraMenuPreview",
+      "tu": "build/src/race/camera/race_camera.o",
+      "tier": "tiny",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "kb",
+        "attempt_id": 96187,
+        "source_sha256": "b8ea59da1b69173ac206ccc09c13860932637749cf8467c0b28e43f155b4e2a7"
+      },
+      "prior_attempts": 7,
+      "prior_strategy_count": 7,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceCourseCoinMarkers",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "medium",
+      "best_score": 99.941,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 304740,
+        "source_sha256": "e2d3aa0f5af0beb9e5594351ca30f15bc9ccad83b03ab817c6a95cbc01596af4"
+      },
+      "prior_attempts": 726,
+      "prior_strategy_count": 205,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceCourseProgressMeter",
+      "tu": "build/src/race/ui/race_hud.o",
+      "tier": "medium",
+      "best_score": 96.167,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 118402,
+        "source_sha256": "6cb45a7b6b24a2802e763cfb11053e457722c40b655fba84458abf05f3742d46"
+      },
+      "prior_attempts": 218,
+      "prior_strategy_count": 25,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceCourseScrollingTexture",
+      "tu": "build/src/race/ui/race_ui_effects.o",
+      "tier": "small",
+      "best_score": 98.804,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 27445,
+        "source_sha256": "53bfc11f6d7a3f4ee9d10d204963605e843c7d8bcd82fd7932b27034437b7c2e"
+      },
+      "prior_attempts": 964,
+      "prior_strategy_count": 188,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerRumble",
+      "tu": "build/src/race/player/race_player_rumble.o",
+      "tier": "medium",
+      "best_score": 95.983,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 308621,
+        "source_sha256": "ea7ab6ea316a79102a8c030d5c94984104b11d9fbf58407906e9595dcb0e33fb"
+      },
+      "prior_attempts": 771,
+      "prior_strategy_count": 130,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceSplitscreenSelectArrowPrompt",
+      "tu": "build/src/menu/splitscreen_select/race_splitscreen_select_ui.o",
+      "tier": "medium",
+      "best_score": 97.571,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109803,
+        "source_sha256": "7d171d96a1fa24c982dfe6cf3ae37713c16ffe2ee371ceb937d73ad72471fa12"
+      },
+      "prior_attempts": 82,
+      "prior_strategy_count": 13,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceSplitscreenSelectCornerSprites",
+      "tu": "build/src/menu/splitscreen_select/race_splitscreen_select_ui.o",
+      "tier": "medium",
+      "best_score": 99.032,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 290011,
+        "source_sha256": "d77951045a0377b0ff4151b016050f1018364b5cf4e7eff3ce8089ecd9f1a039"
+      },
+      "prior_attempts": 82,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceSplitscreenSelectCursor",
+      "tu": "build/src/menu/splitscreen_select/race_splitscreen_select_ui.o",
+      "tier": "medium",
+      "best_score": 96.479,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 310937,
+        "source_sha256": "ade432e5be1227a777762696766760ffe9442a2a9b14e8f146c9754163dfa0ec"
+      },
+      "prior_attempts": 406,
+      "prior_strategy_count": 98,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceTypeSelectArrowPrompt",
+      "tu": "build/src/menu/race_type_select/race_type_select_ui.o",
+      "tier": "medium",
+      "best_score": 97.952,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 148845,
+        "source_sha256": "9735c06bffbd622bad02eeda93f6ed74aef6e087642472312f507b99f6f894c5"
+      },
+      "prior_attempts": 84,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceTypeSelectCornerSprites",
+      "tu": "build/src/menu/race_type_select/race_type_select_ui.o",
+      "tier": "medium",
+      "best_score": 97.571,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109890,
+        "source_sha256": "ffba739250c2f38c1a1d31c5ca6d9ebb60f965a767edae73bbf81f9048422949"
+      },
+      "prior_attempts": 81,
+      "prior_strategy_count": 13,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceTypeSelectEntryFee",
+      "tu": "build/src/menu/race_type_select/race_type_select_ui.o",
+      "tier": "medium",
+      "best_score": 97.571,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109896,
+        "source_sha256": "afd95dc16ff5ab6bbcf7e39bbea269ba1039f2c39ac308cea3fb7a5eaa11ffd4"
+      },
+      "prior_attempts": 78,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceTypeSelectPortrait",
+      "tu": "build/src/menu/race_type_select/race_type_select_ui.o",
+      "tier": "medium",
+      "best_score": 97.571,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109902,
+        "source_sha256": "1eb038330c1499f5613cf6f60c22fca48086eee3e8c6e3650ae73e96eeebfd24"
+      },
+      "prior_attempts": 77,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateTrainingCourseDialog",
+      "tu": "build/src/menu/training/training_course_ui.o",
+      "tier": "large",
+      "best_score": 99.384,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 297315,
+        "source_sha256": "434b96b7dbe06344ef7dcf6fe7085f1c14cd23ecc20a1dc340bdb8efca14a05f"
+      },
+      "prior_attempts": 1192,
+      "prior_strategy_count": 83,
+      "unknown_exact_rows": 0
+    }
+  ],
+  "sealed": [
+    {
+      "function": "addEndingActorShadowRenderCallback",
+      "tu": "build/src/ending/ending_credits_tommy.o",
+      "tier": "tiny",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "kb",
+        "attempt_id": 95907,
+        "source_sha256": "01cd2742bcf466ff6d97c80f24c445736b2fb254909983642c6b5a95edaf7788"
+      },
+      "prior_attempts": 54,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "closeRaceRecordSettingsFlow",
+      "tu": "build/src/race/flow/race_flow.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "kb",
+        "attempt_id": 96247,
+        "source_sha256": "bb9fe989e46b42c1acb60fb69e7eb7024a33bdea3364fc7a74ec565cd6f1816c"
+      },
+      "prior_attempts": 34,
+      "prior_strategy_count": 11,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "configureMenuViewport",
+      "tu": "build/src/engine/viewport_manager.o",
+      "tier": "large",
+      "best_score": 85.873,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 937,
+        "source_sha256": "3e8fe12e5a4523843d86651fc793edee214d8a58f619fddf037848eabaf74d0f"
+      },
+      "prior_attempts": 199,
+      "prior_strategy_count": 18,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "configureRaceViewport",
+      "tu": "build/src/engine/viewport_manager.o",
+      "tier": "large",
+      "best_score": 86.25,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 74902,
+        "source_sha256": "31a256621dcbb277c760f44dc861dd47d8c079a298412dd9cdb08ef33d7abd80"
+      },
+      "prior_attempts": 193,
+      "prior_strategy_count": 17,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "configureViewport",
+      "tu": "build/src/engine/viewport_manager.o",
+      "tier": "large",
+      "best_score": 85.952,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 169,
+        "source_sha256": "74791c73b4c1bdd4aa965cc289e522a45899b715afc0e4bf7f07d522147573ee"
+      },
+      "prior_attempts": 177,
+      "prior_strategy_count": 18,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawCharacterSelectPlayerCursorMarkers",
+      "tu": "build/src/menu/character_select/character_select_ui.o",
+      "tier": "medium",
+      "best_score": 83.371,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 124604,
+        "source_sha256": "a83e9edcfa399c7610179f58339593c11009c79bf31062f8c9e3f7eaed15b8da"
+      },
+      "prior_attempts": 100,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawControllerPakFileDeleteMainOptions",
+      "tu": "build/src/menu/controller_pak/controller_pak_ui.o",
+      "tier": "medium",
+      "best_score": 95.061,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 124197,
+        "source_sha256": "7daf1d4e74a62ee75b21202adc05b6fbb83e019d4d7d54189f13fd3fe56010b2"
+      },
+      "prior_attempts": 184,
+      "prior_strategy_count": 34,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawCoursePreviewCloseSparkles",
+      "tu": "build/src/menu/course_select/course_select_shop_ui.o",
+      "tier": "medium",
+      "best_score": 96.685,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 221542,
+        "source_sha256": "cfd0c02fbd88e446f8d32e8d8a85b1b5ce9c3e4e7101c1f4b2e59b0dfb6c0c8e"
+      },
+      "prior_attempts": 707,
+      "prior_strategy_count": 34,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawCourseSelectCompletePanels",
+      "tu": "build/src/menu/course_select/course_select_ui.o",
+      "tier": "large",
+      "best_score": 99.978,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 186000,
+        "source_sha256": "10964d18505b74b86d85ecaf1e844fa6c47aca725acdda2337dc1857bed78063"
+      },
+      "prior_attempts": 420,
+      "prior_strategy_count": 21,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawMainMenuModeSelectIcons",
+      "tu": "build/src/menu/main_menu/main_menu_panel_ui.o",
+      "tier": "large",
+      "best_score": 89.553,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 29395,
+        "source_sha256": "c7efe4a3d30604a5d99be6792eaac07cfefbf0c3ef83ab90f489c10a3a85f83c"
+      },
+      "prior_attempts": 639,
+      "prior_strategy_count": 24,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawMainMenuRotatingBoardModel",
+      "tu": "build/src/menu/renderer/menu_screen_effects.o",
+      "tier": "medium",
+      "best_score": 90.648,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 300268,
+        "source_sha256": "2acf3789b96c49c878b30c5598f1758249fb2484cf99533ae97986d8417fa390"
+      },
+      "prior_attempts": 121,
+      "prior_strategy_count": 33,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawMainMenuStaticBoardModel",
+      "tu": "build/src/menu/renderer/menu_screen_effects.o",
+      "tier": "medium",
+      "best_score": 92.468,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 263773,
+        "source_sha256": "9d2001ac7c266ba43d1f0b604daf5327316684b2490ceb9f65eeebb5ca9ed4c9"
+      },
+      "prior_attempts": 450,
+      "prior_strategy_count": 38,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawMenuFillRectangle",
+      "tu": "build/src/menu/renderer/menu_render_utils.o",
+      "tier": "large",
+      "best_score": 88.187,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 182260,
+        "source_sha256": "5b315f69fc0028fb7839bcbf03178a0a719378cfb9ef989ba35a4392d8a12a70"
+      },
+      "prior_attempts": 1011,
+      "prior_strategy_count": 27,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawRaceMotionAnimationDebugViewerMotionNumber",
+      "tu": "build/src/race/motion/race_motion_animation_debug_viewer.o",
+      "tier": "tiny",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 26891,
+        "source_sha256": "a925864d7c79915b860ac1967b195c7b684ae91b88b627cdea8ad499294ab741"
+      },
+      "prior_attempts": 44,
+      "prior_strategy_count": 9,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawRacePlayerModel",
+      "tu": "build/src/race/player/race_player_model_renderer.o",
+      "tier": "huge",
+      "best_score": 98.449,
+      "start": {
+        "ledger": "kb",
+        "attempt_id": 9420,
+        "source_sha256": "7d3003d311ff0ee990356edc7acfcb4afa8c7ae9c83b2404a77852539285ff00"
+      },
+      "prior_attempts": 925,
+      "prior_strategy_count": 41,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawRaceSetupBackdropModels",
+      "tu": "build/src/menu/renderer/menu_screen_effects.o",
+      "tier": "medium",
+      "best_score": 91.787,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 112329,
+        "source_sha256": "a5d89788ed0a49c1f3c55b00961ab1050b2c512090c995dcd5001881ad081290"
+      },
+      "prior_attempts": 93,
+      "prior_strategy_count": 17,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawRaceSetupCourseBackdrop",
+      "tu": "build/src/menu/renderer/menu_screen_effects.o",
+      "tier": "medium",
+      "best_score": 94.726,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 263737,
+        "source_sha256": "ff92698738d41ed06801fd070600e2d651c848ae780431e5b415cb1369034390"
+      },
+      "prior_attempts": 574,
+      "prior_strategy_count": 53,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawRaceSetupFourPlayerOption",
+      "tu": "build/src/menu/race_setup/race_setup_ui.o",
+      "tier": "large",
+      "best_score": 96.401,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 239035,
+        "source_sha256": "878f42a442ce2fea5cdaacaf077a6d46953077cc149f6c606da5b171397019cf"
+      },
+      "prior_attempts": 694,
+      "prior_strategy_count": 89,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawRaceSetupSavePanelIcons",
+      "tu": "build/src/menu/race_setup/race_setup_ui.o",
+      "tier": "large",
+      "best_score": 82.543,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 282779,
+        "source_sha256": "c96c924e09ac544eb8ab5ffec66be7703e56153820bbaa75558f1415ee0af3db"
+      },
+      "prior_attempts": 379,
+      "prior_strategy_count": 26,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawRaceSetupThreePlayerOption",
+      "tu": "build/src/menu/race_setup/race_setup_ui.o",
+      "tier": "large",
+      "best_score": 96.401,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 239348,
+        "source_sha256": "f8c5e596ecbc7fa53be0f0e8adf4ecf0c5bc3b488a604bdaf996030860e8b92e"
+      },
+      "prior_attempts": 690,
+      "prior_strategy_count": 89,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawShopMenuModeChoiceRows",
+      "tu": "build/src/menu/course_select/course_select_shop_ui.o",
+      "tier": "medium",
+      "best_score": 98.086,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 185405,
+        "source_sha256": "62ba8d5bdcf4fb222864b37d8dc092d154c23643c2fb20cef69329f8901fda11"
+      },
+      "prior_attempts": 787,
+      "prior_strategy_count": 37,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawShopMenuMoneyPanel",
+      "tu": "build/src/menu/course_select/course_select_shop_ui.o",
+      "tier": "medium",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 127034,
+        "source_sha256": "82c3fcb2013b88d3af0ef5e56dc9bfbe7b86a648335e1bcb630146c6a932af77"
+      },
+      "prior_attempts": 48,
+      "prior_strategy_count": 13,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "drawTitleScreenStartPrompt",
+      "tu": "build/src/menu/renderer/menu_screen_effects.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 83904,
+        "source_sha256": "be47930b2240a5ee34ab4df80452e880b54b2ba1f0ef978975f4fe7d79f73189"
+      },
+      "prior_attempts": 35,
+      "prior_strategy_count": 13,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "fadeInTrainingCourseLessonEndMenu",
+      "tu": "build/src/menu/main_menu/training_course_race_flow.o",
+      "tier": "small",
+      "best_score": 95.812,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 8170,
+        "source_sha256": "ba1f4b76d5988ad408f34502529eee63fa0a21b6616e80e873e4bed0451853b9"
+      },
+      "prior_attempts": 487,
+      "prior_strategy_count": 112,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "fadeOutMultiplayerCourseSelectMenu",
+      "tu": "build/src/menu/course_select/multiplayer_course_select_menu.o",
+      "tier": "medium",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 8335,
+        "source_sha256": "0af9612a87603b8c3ffd6fe96ad6b58651aa67b8418357b8354c7f5d1d6d730b"
+      },
+      "prior_attempts": 26,
+      "prior_strategy_count": 11,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "finishTrainingCourse",
+      "tu": "build/src/menu/main_menu/training_course_race_flow.o",
+      "tier": "small",
+      "best_score": 99.13,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 111011,
+        "source_sha256": "eb84d6c2900ec3f37aebe3ba85ae3ba765727a5cec0c8abf77d50ab5a6cc365d"
+      },
+      "prior_attempts": 244,
+      "prior_strategy_count": 76,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "getRaceInputTimerDecrementBonus",
+      "tu": "build/src/race/player/race_player_input.o",
+      "tier": "small",
+      "best_score": 97.938,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 113704,
+        "source_sha256": "753cea3dd4910308c606cd2ce6f7c717de7837ca967bf2521ad06e19b5434876"
+      },
+      "prior_attempts": 251,
+      "prior_strategy_count": 35,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCharacterSelectPlayerCursorMarkers",
+      "tu": "build/src/menu/character_select/character_select_ui.o",
+      "tier": "medium",
+      "best_score": 84.746,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 50607,
+        "source_sha256": "2d0f8e584849cfdcc0508e64b1a0c39b48b996c4b6ae267aad234a7e54bf0730"
+      },
+      "prior_attempts": 89,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCharacterSelectRosterIcons",
+      "tu": "build/src/menu/character_select/character_select_ui.o",
+      "tier": "medium",
+      "best_score": 86.942,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 212517,
+        "source_sha256": "af7a39d3dd395dbcce7593cb3e6cb067d8d00d52eeabb9cf3a03786249a1bea0"
+      },
+      "prior_attempts": 553,
+      "prior_strategy_count": 18,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCourseGateObject",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "medium",
+      "best_score": 81.264,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 112690,
+        "source_sha256": "00a90afea835863c2df57c91572a32db16203fe96cad59ddd9731fffdb1b90f9"
+      },
+      "prior_attempts": 131,
+      "prior_strategy_count": 21,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCoursePreviewCloseSparkles",
+      "tu": "build/src/menu/course_select/course_select_shop_ui.o",
+      "tier": "medium",
+      "best_score": 87.151,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 121915,
+        "source_sha256": "799325d314ddbcf7d97c0cb27300932cbeb1c890bc4280cc7d5c3acdc2569be2"
+      },
+      "prior_attempts": 599,
+      "prior_strategy_count": 24,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCourseSelectPlayerPanels",
+      "tu": "build/src/menu/course_select/course_select_ui.o",
+      "tier": "medium",
+      "best_score": 97.256,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 147763,
+        "source_sha256": "2684bf158a0baaf2d448c0ef31d9eaf4059272b9ec382adca5ce225cfcc0cd1d"
+      },
+      "prior_attempts": 210,
+      "prior_strategy_count": 43,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCourseSelectPreviewModelIn",
+      "tu": "build/src/menu/course_select/course_select_ui.o",
+      "tier": "medium",
+      "best_score": 81.167,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 279315,
+        "source_sha256": "e0b1be53559f581ac5f7cf76c30ba861505c5d505355fc47d48b97106b2a4cbf"
+      },
+      "prior_attempts": 427,
+      "prior_strategy_count": 36,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCourseTextureMarkers",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "medium",
+      "best_score": 85.518,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 18392,
+        "source_sha256": "9919d90c652f3b181ab5a6719f1f99f74c4ef6b1ce0e09adafd2b94f6372f642"
+      },
+      "prior_attempts": 131,
+      "prior_strategy_count": 29,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initCourseTriggerVolume",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "medium",
+      "best_score": 86.324,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 67663,
+        "source_sha256": "253839c84a3573af29b3f1c1bb852205ced33944f975fb8cea8d7e5f01a36365"
+      },
+      "prior_attempts": 140,
+      "prior_strategy_count": 29,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initEndingCreditsFlow",
+      "tu": "build/src/ending/ending_credits_flow.o",
+      "tier": "large",
+      "best_score": 85.612,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 108968,
+        "source_sha256": "60a90804acdb1b36fd66ebce94373aa322a2c80165527248bdaff34f8ab0123e"
+      },
+      "prior_attempts": 110,
+      "prior_strategy_count": 26,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initEndingCreditsNancy",
+      "tu": "build/src/ending/ending_credits_nancy.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "kb",
+        "attempt_id": 96036,
+        "source_sha256": "c9211bdfed1d5222f76f2ed8d6d5db5bce233c7dd89dcfb7cf1f20512a6de8ae"
+      },
+      "prior_attempts": 38,
+      "prior_strategy_count": 11,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initFallingMenuSnowflake",
+      "tu": "build/src/menu/renderer/menu_screen_effects.o",
+      "tier": "large",
+      "best_score": 95.691,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 205998,
+        "source_sha256": "d95d9e6034b51247d8bb6b99db72f34baf88e7515955fd580a043959d7d7f93e"
+      },
+      "prior_attempts": 683,
+      "prior_strategy_count": 17,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initGameTaskScheduler",
+      "tu": "build/src/engine/game_task_scheduler.o",
+      "tier": "medium",
+      "best_score": 98.067,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 225337,
+        "source_sha256": "f47fe637510006e6439cc56afdab20b9b9a100a656c96b74fe75faf018daaaf2"
+      },
+      "prior_attempts": 344,
+      "prior_strategy_count": 45,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initMainMenuBoardModels",
+      "tu": "build/src/menu/renderer/menu_screen_effects.o",
+      "tier": "tiny",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "kb",
+        "attempt_id": 96052,
+        "source_sha256": "1997b5a4ee7e718d3b641982acf8a08fe0476fd2b25c716cf53e92430aea3e14"
+      },
+      "prior_attempts": 45,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initMainMenuModeSelect",
+      "tu": "build/src/menu/main_menu/controller_main_menu_flow.o",
+      "tier": "medium",
+      "best_score": 99.896,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109149,
+        "source_sha256": "0dadaa388bf7785df48d3d922e9453903459ace46275abbd0393c4ee29660161"
+      },
+      "prior_attempts": 94,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initMainMenuSettings",
+      "tu": "build/src/menu/main_menu/controller_main_menu_flow.o",
+      "tier": "medium",
+      "best_score": 99.888,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109074,
+        "source_sha256": "ed9de634deb504f7b906f3bc30a1dd487db4829678870f569bcc2d70fe68db51"
+      },
+      "prior_attempts": 83,
+      "prior_strategy_count": 21,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initMenuAssetHandles",
+      "tu": "build/src/menu/renderer/menu_render_utils.o",
+      "tier": "tiny",
+      "best_score": 91.667,
+      "start": {
+        "ledger": "kb",
+        "attempt_id": 31121,
+        "source_sha256": "8bbcdbe640c2a5cd9c04371f4833ab4691fb6fbc30cf9ab5241503adcb9bc482"
+      },
+      "prior_attempts": 583,
+      "prior_strategy_count": 73,
+      "unknown_exact_rows": 8
+    },
+    {
+      "function": "initPatrolCourseObject",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "small",
+      "best_score": 91.158,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 266120,
+        "source_sha256": "076318ac8b52a5b2e6c21a4ee7e71274a973a9996b65b3500d6b2b7ad160b24c"
+      },
+      "prior_attempts": 851,
+      "prior_strategy_count": 228,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initRaceCourseSceneryObjects",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "medium",
+      "best_score": 88.097,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 46669,
+        "source_sha256": "7d352301d40d94c1d421ce944012cda5c276a84f80695f8c603d0bed42fbfdc2"
+      },
+      "prior_attempts": 863,
+      "prior_strategy_count": 32,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initRaceIntroAnimatedBillboards",
+      "tu": "build/src/race/effects/race_intro_effects.o",
+      "tier": "medium",
+      "best_score": 85.518,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 18437,
+        "source_sha256": "cee8501aa380da8726ebc4d845b527655744cbd6b84cd362470443e2cc620de5"
+      },
+      "prior_attempts": 125,
+      "prior_strategy_count": 28,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initRaceIntroModelMeshes",
+      "tu": "build/src/race/effects/race_intro_effects.o",
+      "tier": "medium",
+      "best_score": 85.578,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 124230,
+        "source_sha256": "dd7ebeea69ff626e598b442efbfdb6adb935cf1b950e7cd845dc0fc225d7b478"
+      },
+      "prior_attempts": 438,
+      "prior_strategy_count": 29,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initRacePickup",
+      "tu": "build/src/race/course/race_course_props_and_pickups.o",
+      "tier": "medium",
+      "best_score": 96.178,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 123662,
+        "source_sha256": "0cab2c1cae4a3e87865e4df3db2ca83f42a23daf56443a1e36370e29e3945c02"
+      },
+      "prior_attempts": 101,
+      "prior_strategy_count": 25,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initRacePlayer",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "huge",
+      "best_score": 81.504,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 255269,
+        "source_sha256": "34154861538bbd210b1ec3921c84b4b173d24bd680bb21bacef950ca5aff08b0"
+      },
+      "prior_attempts": 437,
+      "prior_strategy_count": 53,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "initTrainingCourseRace",
+      "tu": "build/src/menu/main_menu/training_course_race_flow.o",
+      "tier": "large",
+      "best_score": 89.206,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109143,
+        "source_sha256": "f792b15f5568b7a5b9dd35457a89c52603da5b7241d2a5ff67264bf380e29c09"
+      },
+      "prior_attempts": 128,
+      "prior_strategy_count": 25,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "loadRaceCharacterAssets",
+      "tu": "build/src/race/scene/race_scene_setup.o",
+      "tier": "medium",
+      "best_score": 87.385,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 194814,
+        "source_sha256": "15b156ddb13cdb8d35e19c216d92b45deb29aeb45f7f47bb4d82771dd5705fcc"
+      },
+      "prior_attempts": 1155,
+      "prior_strategy_count": 47,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "playRaceInputHistoryFrame",
+      "tu": "build/src/race/player/race_player_input.o",
+      "tier": "large",
+      "best_score": 94.669,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 223831,
+        "source_sha256": "63fb12b56064f26fe1fcac2f68421fcc72e12a47c8a7c7a861d3f549b781c957"
+      },
+      "prior_attempts": 695,
+      "prior_strategy_count": 18,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "readControllerPakSave",
+      "tu": "build/src/menu/main_menu/controller_main_menu_flow.o",
+      "tier": "large",
+      "best_score": 84.91,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 35793,
+        "source_sha256": "185b01a10ae3ef478dc40e08d2444ba374b27aff6728d22114c21f9ec2f2d203"
+      },
+      "prior_attempts": 430,
+      "prior_strategy_count": 37,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "recordRaceInputHistoryFrame",
+      "tu": "build/src/race/player/race_player_input.o",
+      "tier": "large",
+      "best_score": 94.984,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 15914,
+        "source_sha256": "7bf3a2866a5615f6f6360df824b899d8ff2beb0a155da9fd75f28e9f5d5af3b2"
+      },
+      "prior_attempts": 58,
+      "prior_strategy_count": 16,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "renderCourseGateObject",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "large",
+      "best_score": 91.626,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 271626,
+        "source_sha256": "434bc57e6c74e0430cec6101697facf0e1879ec0b0304aa039ae75e6094da024"
+      },
+      "prior_attempts": 879,
+      "prior_strategy_count": 33,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "renderLaunchRampCourseObject",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "medium",
+      "best_score": 81.557,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 155573,
+        "source_sha256": "52fc8a2f28e7c9b10a683690b8cc21f9b60cf5da43cc653f322bcbff83b891b7"
+      },
+      "prior_attempts": 149,
+      "prior_strategy_count": 33,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "renderRaceCoursePropModels",
+      "tu": "build/src/race/course/race_course_props_and_pickups.o",
+      "tier": "medium",
+      "best_score": 90.109,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 161815,
+        "source_sha256": "15417b0b6f9b2e4a7845da3fd52e2e1fcd1bbb1aa98968ceb6c8e6269094bf0a"
+      },
+      "prior_attempts": 320,
+      "prior_strategy_count": 25,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "renderRaceCourseSceneryObjects",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "medium",
+      "best_score": 87.559,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 18967,
+        "source_sha256": "309100fb14e26d02f3db2dcd83a2f6a70c77d053738c868a84810038eff26e4a"
+      },
+      "prior_attempts": 123,
+      "prior_strategy_count": 29,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "renderSnowboardTrailEffect",
+      "tu": "build/src/race/effects/snowboard_trail_effects.o",
+      "tier": "medium",
+      "best_score": 88.522,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 166811,
+        "source_sha256": "1b5c2c683a1a7e0483f336cb7f77dc612b99770375d4948614a827ab24d853ac"
+      },
+      "prior_attempts": 174,
+      "prior_strategy_count": 63,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "renderSpiralCourseObject",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "medium",
+      "best_score": 80.779,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 110681,
+        "source_sha256": "e4a3eb39fb7d826f6dd5016317db240a8e40f55b116c38419badae7ee8f458c9"
+      },
+      "prior_attempts": 135,
+      "prior_strategy_count": 26,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "renderThrownPickupModel",
+      "tu": "build/src/race/course/race_course_props_and_pickups.o",
+      "tier": "medium",
+      "best_score": 84.837,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 31789,
+        "source_sha256": "073a82a8cb0db5e1d8ed6f5870c0626ad22f3f9d1fcb3030ea6c3a9e16c16d44"
+      },
+      "prior_attempts": 147,
+      "prior_strategy_count": 29,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "returnToMainMenuFromTrainingCourse",
+      "tu": "build/src/menu/main_menu/training_course_race_flow.o",
+      "tier": "tiny",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 4082,
+        "source_sha256": "dfbe20fe24ba5418aa1a2be67b431cb00cc7bdf3d80a393c7edf4f9c1055ffd5"
+      },
+      "prior_attempts": 31,
+      "prior_strategy_count": 8,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "runTrainingCourseUntilLessonEnd",
+      "tu": "build/src/menu/main_menu/training_course_race_flow.o",
+      "tier": "medium",
+      "best_score": 99.891,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 10339,
+        "source_sha256": "e894746391276700c316a56f75a6e419600ba70df150b11ce4dda448814f69a3"
+      },
+      "prior_attempts": 92,
+      "prior_strategy_count": 19,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "saveRaceReplayCourseGridEntry",
+      "tu": "build/src/race/flow/race_flow.o",
+      "tier": "medium",
+      "best_score": 81.413,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 201913,
+        "source_sha256": "4b9f05fc0ac68e88144ad725c389971aea89496cda0a63d181e2eef34db0c5d4"
+      },
+      "prior_attempts": 409,
+      "prior_strategy_count": 25,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "serviceRumbleMotorRequest",
+      "tu": "build/src/menu/main_menu/controller_main_menu_flow.o",
+      "tier": "medium",
+      "best_score": 96.413,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 125476,
+        "source_sha256": "55002aaf2c9bf65455d8c902790e7e9cb98b9fab486b34c28ee309bbf289efa0"
+      },
+      "prior_attempts": 916,
+      "prior_strategy_count": 67,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "spawnPickupShardParticle",
+      "tu": "build/src/race/course/race_course_props_and_pickups.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 2205,
+        "source_sha256": "f147ed81ccfd1effa58644a1bc56a778842b46b8834206f9f5741dd126c2d66c"
+      },
+      "prior_attempts": 34,
+      "prior_strategy_count": 11,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCharacterSelectConfirmationBanner",
+      "tu": "build/src/menu/character_select/character_select_ui.o",
+      "tier": "medium",
+      "best_score": 91.525,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 122346,
+        "source_sha256": "c9766acb9fb7bbab16bfc5ac6faa9228bcf6933b01fcd8a7dc700b81f31d348e"
+      },
+      "prior_attempts": 291,
+      "prior_strategy_count": 17,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCharacterSelectPlayerCursorMarkers",
+      "tu": "build/src/menu/character_select/character_select_ui.o",
+      "tier": "medium",
+      "best_score": 89.065,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 122336,
+        "source_sha256": "ad30dc3c82753fd92a3ba054c6ea782d540163ebc56612ec7657703c5a89e359"
+      },
+      "prior_attempts": 192,
+      "prior_strategy_count": 26,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCharacterSelectPlayerStatsPanels",
+      "tu": "build/src/menu/character_select/character_select_ui.o",
+      "tier": "medium",
+      "best_score": 97.353,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 58102,
+        "source_sha256": "55c2e84bcc33fa9a38a776bb411c41b46b3033a1c24615b83309622f4efe082a"
+      },
+      "prior_attempts": 729,
+      "prior_strategy_count": 28,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateControllerPakFreeSpaceInfo",
+      "tu": "build/src/menu/main_menu/controller_main_menu_flow.o",
+      "tier": "small",
+      "best_score": 99.615,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 196626,
+        "source_sha256": "051123592c7c28f119c61f2fceda18600091b98f0493e5a46d63396d74e79c92"
+      },
+      "prior_attempts": 468,
+      "prior_strategy_count": 126,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCourseCollectibleSprites",
+      "tu": "build/src/race/course/race_course_props_and_pickups.o",
+      "tier": "large",
+      "best_score": 99.818,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 128560,
+        "source_sha256": "954e6f24db4cc1a96afdb0f292b5eba135bffd28c93fce9fa00bc9e5fb2a6f09"
+      },
+      "prior_attempts": 568,
+      "prior_strategy_count": 116,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCoursePreviewCloseSparkles",
+      "tu": "build/src/menu/course_select/course_select_shop_ui.o",
+      "tier": "medium",
+      "best_score": 88.25,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 272454,
+        "source_sha256": "846643aade43311f69f6feb3f5defb923617c2f9fc0a3ac9b1b12b854b1ea621"
+      },
+      "prior_attempts": 801,
+      "prior_strategy_count": 26,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCourseSelectCourseStats",
+      "tu": "build/src/menu/course_select/course_select_ui.o",
+      "tier": "medium",
+      "best_score": 97.935,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109859,
+        "source_sha256": "8c507f52bda36c29b4fc4bb0ea3da1a3930d7a353f968b02422bfcc9effcd0ec"
+      },
+      "prior_attempts": 78,
+      "prior_strategy_count": 13,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCourseSelectExtraCourseBadge",
+      "tu": "build/src/menu/course_select/course_select_ui.o",
+      "tier": "medium",
+      "best_score": 96.591,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109853,
+        "source_sha256": "f4e9eb906ac2a9c9493bd73ab7228bf23e32ca963987d9d38eaeb673562ff4f1"
+      },
+      "prior_attempts": 400,
+      "prior_strategy_count": 62,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateCourseTextureMarkers",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "medium",
+      "best_score": 99.214,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 9316,
+        "source_sha256": "9976316e9d695802b3e1f1c74d878f9860599cd4c73210d4b3a9001131fa466a"
+      },
+      "prior_attempts": 928,
+      "prior_strategy_count": 131,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingJamDiagonalSlideSetPhase22",
+      "tu": "build/src/ending/ending_credits_jam.o",
+      "tier": "small",
+      "best_score": 94.651,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 112259,
+        "source_sha256": "28d13fee821b36575c4a841a0ef7c0b0dfc3abf26a7b2839147111632b618adc"
+      },
+      "prior_attempts": 460,
+      "prior_strategy_count": 173,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingJamHopRightToIdle",
+      "tu": "build/src/ending/ending_credits_jam.o",
+      "tier": "small",
+      "best_score": 98.478,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 108318,
+        "source_sha256": "af11a9a456b179a4fc85f7a50c20daf665c012ef56a4adb59635da221c8742d3"
+      },
+      "prior_attempts": 598,
+      "prior_strategy_count": 163,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingJamHopRightToPose",
+      "tu": "build/src/ending/ending_credits_jam.o",
+      "tier": "small",
+      "best_score": 98.444,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 108293,
+        "source_sha256": "18a8dbfae670f156c8148266ee95efaa32bf58be33ca3963b076d2ac3f567b60"
+      },
+      "prior_attempts": 597,
+      "prior_strategy_count": 181,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingJamSlideRightToMarker",
+      "tu": "build/src/ending/ending_credits_jam.o",
+      "tier": "small",
+      "best_score": 93.548,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 285185,
+        "source_sha256": "6c3a88189f10e395ed46a0b5ccdc786c63c1bcc451b11510a06977dc66ac40e5"
+      },
+      "prior_attempts": 470,
+      "prior_strategy_count": 134,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingJamSlideRightToPhase27Start",
+      "tu": "build/src/ending/ending_credits_jam.o",
+      "tier": "small",
+      "best_score": 93.333,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 285126,
+        "source_sha256": "02d2f8fca5bfef24a232b70a8f4526c09a5d559bfa6a030c74b98747d020dc11"
+      },
+      "prior_attempts": 195,
+      "prior_strategy_count": 77,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingNancyRunRightThenPhase2A",
+      "tu": "build/src/ending/ending_credits_nancy.o",
+      "tier": "small",
+      "best_score": 93.939,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 295678,
+        "source_sha256": "2065b1f9b80e2d930fb9e8fa4abc9929fdb861b8a9d5c32c9906af34909a5df7"
+      },
+      "prior_attempts": 181,
+      "prior_strategy_count": 63,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingNancySlideRightToPose",
+      "tu": "build/src/ending/ending_credits_nancy.o",
+      "tier": "small",
+      "best_score": 93.103,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 296164,
+        "source_sha256": "7117f9458ee144846abee1f136c7642e00a4e38304b54ba38f8198cdda092fc3"
+      },
+      "prior_attempts": 182,
+      "prior_strategy_count": 84,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateEndingNancyTumbleToPhase3C",
+      "tu": "build/src/ending/ending_credits_nancy.o",
+      "tier": "small",
+      "best_score": 98.864,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 107796,
+        "source_sha256": "8f215738c1059a588b007de0f748393700999a10b4570b4f0388e846fe894ada"
+      },
+      "prior_attempts": 722,
+      "prior_strategy_count": 198,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateFallingMenuSnowflakeDrift",
+      "tu": "build/src/menu/renderer/menu_screen_effects.o",
+      "tier": "medium",
+      "best_score": 92.167,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 181999,
+        "source_sha256": "74743f0991b03e4b748c7a08cbaea819b3b7b875b9eaf189b1063c5ac3b64f55"
+      },
+      "prior_attempts": 121,
+      "prior_strategy_count": 22,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateLaunchRampCourseObjectArc",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "medium",
+      "best_score": 99.297,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 17954,
+        "source_sha256": "169caecafd642398ff52a28ac54b5ac914fd4ff0767be2be400df076198c704b"
+      },
+      "prior_attempts": 710,
+      "prior_strategy_count": 160,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceGhostReplayFlow",
+      "tu": "build/src/race/flow/race_flow.o",
+      "tier": "medium",
+      "best_score": 99.882,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 228789,
+        "source_sha256": "bf28bc91bc10a77f52411c995bdb7c979b19101f4d416c77a575e85e02c5185d"
+      },
+      "prior_attempts": 750,
+      "prior_strategy_count": 109,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceMotionAnimationDebugViewer",
+      "tu": "build/src/race/motion/race_motion_animation_debug_viewer.o",
+      "tier": "medium",
+      "best_score": 94.773,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 9483,
+        "source_sha256": "2d00058448c2260cf1cce675a671353af2e9a13669429f58ebb7e3dc5cd5e8da"
+      },
+      "prior_attempts": 412,
+      "prior_strategy_count": 100,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePickupRespawn",
+      "tu": "build/src/race/course/race_course_props_and_pickups.o",
+      "tier": "medium",
+      "best_score": 98.947,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 17823,
+        "source_sha256": "5437b32dc612d5176cc0e073011e5ef671e475ea16339a3d246bf11795649710"
+      },
+      "prior_attempts": 768,
+      "prior_strategy_count": 290,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode04Spinout",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 99.643,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 124865,
+        "source_sha256": "f5c69a6b7d9479be3b3b56dcd891ec2931620742294c7e82cd236673c8670bb5"
+      },
+      "prior_attempts": 790,
+      "prior_strategy_count": 164,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode05SpinoutStun",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "large",
+      "best_score": 90.123,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 138012,
+        "source_sha256": "f913847c1d104bb739faa10762c69db70924a2b29d2390dbb7c022f4d2c47751"
+      },
+      "prior_attempts": 194,
+      "prior_strategy_count": 18,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode06TerrainFall",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "large",
+      "best_score": 94.615,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 241202,
+        "source_sha256": "7c6a507bffbb850b3a24ef2472091fd904298847c614da73a46568ce7b5a1f75"
+      },
+      "prior_attempts": 850,
+      "prior_strategy_count": 20,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode07LaunchRampSpin",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 85.861,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 253432,
+        "source_sha256": "532cd462cfe7b80418a8f49e0066a3c061a52624a7d1c7230ec6ff5b7818823f"
+      },
+      "prior_attempts": 415,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode07LaunchRampTakeoff",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 87.349,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 28524,
+        "source_sha256": "51bdfd3a14b1c19ad628869e0a09f9ecf710bb90fb6144f9aa4a04fdd621253b"
+      },
+      "prior_attempts": 92,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode07SpiralExit",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "large",
+      "best_score": 86.119,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 20864,
+        "source_sha256": "37da3b71b881769cc768ac4f92761272cb54ded35a90d8abe3fdd551b6835ca1"
+      },
+      "prior_attempts": 311,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode10TerrainCrashSlide",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "large",
+      "best_score": 92.794,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 238045,
+        "source_sha256": "8974584dfdcca3dd62e857131d6d58d46be2ef308b3e8cda1724917865082bda"
+      },
+      "prior_attempts": 643,
+      "prior_strategy_count": 18,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode23ItemSteal",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 99.651,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 124772,
+        "source_sha256": "5240c92ed38042c29057d8b79e096a6defe3c1862deb33b03d9cfef658d0b68f"
+      },
+      "prior_attempts": 515,
+      "prior_strategy_count": 153,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode25SpinHit",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "large",
+      "best_score": 97.772,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 163171,
+        "source_sha256": "3c2a98bfb42c35a38112c1e3b18f41870592634bfff6026887f4194620d98e52"
+      },
+      "prior_attempts": 353,
+      "prior_strategy_count": 16,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode30AttackResolve",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "small",
+      "best_score": 92.409,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 7958,
+        "source_sha256": "6f4ec0984a6ea071129680d1bd9b39e359e173dba38662173f15ee5d58a8ff5e"
+      },
+      "prior_attempts": 336,
+      "prior_strategy_count": 53,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode34AerialTrick",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 99.712,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 124842,
+        "source_sha256": "86e32e979058b6e424768c29438f969429ae61c06b115e5670813a4d1458ba7c"
+      },
+      "prior_attempts": 597,
+      "prior_strategy_count": 115,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode39AerialTrick",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "large",
+      "best_score": 93.484,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 11788,
+        "source_sha256": "a44d36d40b091000ef6dd6e69320e6f56c22c5c9f24712098b4cbebbde019544"
+      },
+      "prior_attempts": 141,
+      "prior_strategy_count": 23,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode41AerialTrick",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 89.884,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 9871,
+        "source_sha256": "a8496ec1250161e09627eaf2876ada1c5d7ac713a6590930780638089d6cedac"
+      },
+      "prior_attempts": 178,
+      "prior_strategy_count": 25,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode42AerialTrick",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 89.884,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 9878,
+        "source_sha256": "174485df3766c9c1a5fadc326534322b3f3aa0f2b249eb5996d71563ac5b318c"
+      },
+      "prior_attempts": 186,
+      "prior_strategy_count": 24,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode49AerialTrick",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 90.114,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 9993,
+        "source_sha256": "b44224c8d91c3093c3f59c360b20c2cc77df1a65bf63ee2fcdb3167c95ef87d4"
+      },
+      "prior_attempts": 164,
+      "prior_strategy_count": 24,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode56AerialTrick",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 99.461,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 137905,
+        "source_sha256": "077fa2135cae9cefb273b39e69ac9e71e4c95d439aee8a3b1df37485e43a1630"
+      },
+      "prior_attempts": 733,
+      "prior_strategy_count": 161,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerMode57AerialTrick",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 90.114,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 10000,
+        "source_sha256": "89bde4b730198733439040b7b1aece1e9e8cbe0de2f3a6eaaff8a7da0c81f36d"
+      },
+      "prior_attempts": 184,
+      "prior_strategy_count": 24,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerPostUpdate",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 97.794,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 103879,
+        "source_sha256": "4e1f349376a961ff7708db55ba293d89db0ce7b58755d0acb4e94be3097fe522"
+      },
+      "prior_attempts": 551,
+      "prior_strategy_count": 25,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerPostUpdateAttack",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "small",
+      "best_score": 100.0,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 5350,
+        "source_sha256": "e3b8f7aa644e88738218b8070829eefffcae142c65b05855401cd5a8b2b5a0f5"
+      },
+      "prior_attempts": 5,
+      "prior_strategy_count": 5,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerProjectedPosition",
+      "tu": "build/src/race/player/race_player_movement.o",
+      "tier": "small",
+      "best_score": 87.879,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 126438,
+        "source_sha256": "2bcf98eadb8bd28a98abc28a55465b25215dfb66ee7760f11bd395e079d9acaa"
+      },
+      "prior_attempts": 482,
+      "prior_strategy_count": 48,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRacePlayerTrickSubstateHold",
+      "tu": "build/src/race/player/race_player_update.o",
+      "tier": "medium",
+      "best_score": 93.614,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 9883,
+        "source_sha256": "b7f8c8e1391b8c7e076071cb99c96266078e16d90acca26b73bff80358123172"
+      },
+      "prior_attempts": 77,
+      "prior_strategy_count": 12,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceSetupOnePlayerOption",
+      "tu": "build/src/menu/race_setup/race_setup_ui.o",
+      "tier": "medium",
+      "best_score": 98.205,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 114294,
+        "source_sha256": "c29bca4e3bec22a648c9574bf56131018e4c87e1d67bf91534b9a297d9a31dc0"
+      },
+      "prior_attempts": 158,
+      "prior_strategy_count": 19,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceSetupThreePlayerOption",
+      "tu": "build/src/menu/race_setup/race_setup_ui.o",
+      "tier": "medium",
+      "best_score": 97.487,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 9554,
+        "source_sha256": "677273c2b960c59d288e0ed2e63ebfffcd47564269e269b4c6a8e8f03e4213cb"
+      },
+      "prior_attempts": 148,
+      "prior_strategy_count": 18,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceSetupTwoPlayerOption",
+      "tu": "build/src/menu/race_setup/race_setup_ui.o",
+      "tier": "medium",
+      "best_score": 97.947,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 161999,
+        "source_sha256": "d57c2a76cb4692bbe738d55e44b6270535d442e206165c262e9a9badb6ad7adb"
+      },
+      "prior_attempts": 98,
+      "prior_strategy_count": 16,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateRaceStartPlayerEffectActive",
+      "tu": "build/src/menu/renderer/menu_screen_effects.o",
+      "tier": "medium",
+      "best_score": 93.098,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 249038,
+        "source_sha256": "e9848896591eb1034291bf3f6c222a17513e254e4d26e3b06fb7a6fbbe57029d"
+      },
+      "prior_attempts": 553,
+      "prior_strategy_count": 28,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateShopMenuDescriptionText",
+      "tu": "build/src/menu/course_select/course_select_shop_ui.o",
+      "tier": "medium",
+      "best_score": 99.671,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 110015,
+        "source_sha256": "a446ba95da37b35ff6c4690057115be17d503df62e4e280701a1a53ca7fa8b60"
+      },
+      "prior_attempts": 177,
+      "prior_strategy_count": 38,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateShopMenuModeCursor",
+      "tu": "build/src/menu/course_select/course_select_shop_ui.o",
+      "tier": "medium",
+      "best_score": 99.896,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 210472,
+        "source_sha256": "c2fac40c59eb35cb0c690a69ee38e4c2205a2a3ddcaf30c9660785968dc635e2"
+      },
+      "prior_attempts": 118,
+      "prior_strategy_count": 34,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateShopMenuMoneyPanel",
+      "tu": "build/src/menu/course_select/course_select_shop_ui.o",
+      "tier": "medium",
+      "best_score": 97.571,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109966,
+        "source_sha256": "f2d559be9234133e8ee3bc7f03fa56abb66e2efa0c2d6c17cfbcdf39ebd8c23c"
+      },
+      "prior_attempts": 89,
+      "prior_strategy_count": 17,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateShopMenuMoneyPanelForCourseSelectReturn",
+      "tu": "build/src/menu/course_select/course_select_shop_ui.o",
+      "tier": "medium",
+      "best_score": 99.603,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 109972,
+        "source_sha256": "478e5cd40b6e28ccc430c2a02b4c6ee4822a59fb6dcee03b07fe2677e61e0099"
+      },
+      "prior_attempts": 164,
+      "prior_strategy_count": 36,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateShopMenuPromptPanel",
+      "tu": "build/src/menu/course_select/course_select_shop_ui.o",
+      "tier": "medium",
+      "best_score": 99.365,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 295135,
+        "source_sha256": "2e94a0d498403c25fe7fff104c271bdc35cb5cbe8b950e0c4950330c2b9c9422"
+      },
+      "prior_attempts": 87,
+      "prior_strategy_count": 17,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "updateSpiralCourseObjectTurn",
+      "tu": "build/src/race/course/race_course_effects.o",
+      "tier": "medium",
+      "best_score": 99.868,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 230641,
+        "source_sha256": "c0ae59b626b47629ac48c824a2ccc0a3bc518651f98d911d3c1fde4dc1491021"
+      },
+      "prior_attempts": 525,
+      "prior_strategy_count": 27,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "validateControllerPakSaveData",
+      "tu": "build/src/menu/main_menu/controller_main_menu_flow.o",
+      "tier": "large",
+      "best_score": 97.554,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 206008,
+        "source_sha256": "b46c2e71c4057180a83a53b1c60d77ee9bcf2c1ebd983314adfdb998a20bf93f"
+      },
+      "prior_attempts": 469,
+      "prior_strategy_count": 32,
+      "unknown_exact_rows": 0
+    },
+    {
+      "function": "waitForTitleDemoRaceIntroStart",
+      "tu": "build/src/demo/title_demo_race_intro.o",
+      "tier": "small",
+      "best_score": 99.714,
+      "start": {
+        "ledger": "campaign",
+        "attempt_id": 7070,
+        "source_sha256": "52d56d95330011fe8912637e0cfae6e2bd9243ef61a7096c2e5cfec714a157f4"
+      },
+      "prior_attempts": 55,
+      "prior_strategy_count": 8,
+      "unknown_exact_rows": 0
+    }
+  ],
+  "heldout": [
+    {
+      "function": "addEndingActorShadowRenderCallback",
+      "tier": "tiny"
+    },
+    {
+      "function": "closeRaceRecordSettingsFlow",
+      "tier": "small"
+    },
+    {
+      "function": "configureMenuViewport",
+      "tier": "large"
+    },
+    {
+      "function": "configureRaceViewport",
+      "tier": "large"
+    },
+    {
+      "function": "configureViewport",
+      "tier": "large"
+    },
+    {
+      "function": "drawCharacterSelectPlayerCursorMarkers",
+      "tier": "medium"
+    },
+    {
+      "function": "drawControllerPakFileDeleteMainOptions",
+      "tier": "medium"
+    },
+    {
+      "function": "drawCoursePreviewCloseSparkles",
+      "tier": "medium"
+    },
+    {
+      "function": "drawCourseSelectCompletePanels",
+      "tier": "large"
+    },
+    {
+      "function": "drawMainMenuModeSelectIcons",
+      "tier": "large"
+    },
+    {
+      "function": "drawMainMenuRotatingBoardModel",
+      "tier": "medium"
+    },
+    {
+      "function": "drawMainMenuStaticBoardModel",
+      "tier": "medium"
+    },
+    {
+      "function": "drawMenuFillRectangle",
+      "tier": "large"
+    },
+    {
+      "function": "drawRaceMotionAnimationDebugViewerMotionNumber",
+      "tier": "tiny"
+    },
+    {
+      "function": "drawRacePlayerModel",
+      "tier": "huge"
+    },
+    {
+      "function": "drawRaceSetupBackdropModels",
+      "tier": "medium"
+    },
+    {
+      "function": "drawRaceSetupCourseBackdrop",
+      "tier": "medium"
+    },
+    {
+      "function": "drawRaceSetupFourPlayerOption",
+      "tier": "large"
+    },
+    {
+      "function": "drawRaceSetupSavePanelIcons",
+      "tier": "large"
+    },
+    {
+      "function": "drawRaceSetupThreePlayerOption",
+      "tier": "large"
+    },
+    {
+      "function": "drawShopMenuModeChoiceRows",
+      "tier": "medium"
+    },
+    {
+      "function": "drawShopMenuMoneyPanel",
+      "tier": "medium"
+    },
+    {
+      "function": "drawTitleScreenStartPrompt",
+      "tier": "small"
+    },
+    {
+      "function": "fadeInTrainingCourseLessonEndMenu",
+      "tier": "small"
+    },
+    {
+      "function": "fadeOutMultiplayerCourseSelectMenu",
+      "tier": "medium"
+    },
+    {
+      "function": "finishTrainingCourse",
+      "tier": "small"
+    },
+    {
+      "function": "getRaceInputTimerDecrementBonus",
+      "tier": "small"
+    },
+    {
+      "function": "initCharacterSelectPlayerCursorMarkers",
+      "tier": "medium"
+    },
+    {
+      "function": "initCharacterSelectRosterIcons",
+      "tier": "medium"
+    },
+    {
+      "function": "initCourseGateObject",
+      "tier": "medium"
+    },
+    {
+      "function": "initCoursePreviewCloseSparkles",
+      "tier": "medium"
+    },
+    {
+      "function": "initCourseSelectPlayerPanels",
+      "tier": "medium"
+    },
+    {
+      "function": "initCourseSelectPreviewModelIn",
+      "tier": "medium"
+    },
+    {
+      "function": "initCourseTextureMarkers",
+      "tier": "medium"
+    },
+    {
+      "function": "initCourseTriggerVolume",
+      "tier": "medium"
+    },
+    {
+      "function": "initEndingCreditsFlow",
+      "tier": "large"
+    },
+    {
+      "function": "initEndingCreditsNancy",
+      "tier": "small"
+    },
+    {
+      "function": "initFallingMenuSnowflake",
+      "tier": "large"
+    },
+    {
+      "function": "initGameTaskScheduler",
+      "tier": "medium"
+    },
+    {
+      "function": "initMainMenuBoardModels",
+      "tier": "tiny"
+    },
+    {
+      "function": "initMainMenuModeSelect",
+      "tier": "medium"
+    },
+    {
+      "function": "initMainMenuSettings",
+      "tier": "medium"
+    },
+    {
+      "function": "initMenuAssetHandles",
+      "tier": "tiny"
+    },
+    {
+      "function": "initPatrolCourseObject",
+      "tier": "small"
+    },
+    {
+      "function": "initRaceCourseSceneryObjects",
+      "tier": "medium"
+    },
+    {
+      "function": "initRaceIntroAnimatedBillboards",
+      "tier": "medium"
+    },
+    {
+      "function": "initRaceIntroModelMeshes",
+      "tier": "medium"
+    },
+    {
+      "function": "initRacePickup",
+      "tier": "medium"
+    },
+    {
+      "function": "initRacePlayer",
+      "tier": "huge"
+    },
+    {
+      "function": "initTrainingCourseRace",
+      "tier": "large"
+    },
+    {
+      "function": "loadRaceCharacterAssets",
+      "tier": "medium"
+    },
+    {
+      "function": "playRaceInputHistoryFrame",
+      "tier": "large"
+    },
+    {
+      "function": "readControllerPakSave",
+      "tier": "large"
+    },
+    {
+      "function": "recordRaceInputHistoryFrame",
+      "tier": "large"
+    },
+    {
+      "function": "renderCourseGateObject",
+      "tier": "large"
+    },
+    {
+      "function": "renderLaunchRampCourseObject",
+      "tier": "medium"
+    },
+    {
+      "function": "renderRaceCoursePropModels",
+      "tier": "medium"
+    },
+    {
+      "function": "renderRaceCourseSceneryObjects",
+      "tier": "medium"
+    },
+    {
+      "function": "renderSnowboardTrailEffect",
+      "tier": "medium"
+    },
+    {
+      "function": "renderSpiralCourseObject",
+      "tier": "medium"
+    },
+    {
+      "function": "renderThrownPickupModel",
+      "tier": "medium"
+    },
+    {
+      "function": "returnToMainMenuFromTrainingCourse",
+      "tier": "tiny"
+    },
+    {
+      "function": "runTrainingCourseUntilLessonEnd",
+      "tier": "medium"
+    },
+    {
+      "function": "saveRaceReplayCourseGridEntry",
+      "tier": "medium"
+    },
+    {
+      "function": "serviceRumbleMotorRequest",
+      "tier": "medium"
+    },
+    {
+      "function": "spawnPickupShardParticle",
+      "tier": "small"
+    },
+    {
+      "function": "updateCharacterSelectConfirmationBanner",
+      "tier": "medium"
+    },
+    {
+      "function": "updateCharacterSelectPlayerCursorMarkers",
+      "tier": "medium"
+    },
+    {
+      "function": "updateCharacterSelectPlayerStatsPanels",
+      "tier": "medium"
+    },
+    {
+      "function": "updateControllerPakFreeSpaceInfo",
+      "tier": "small"
+    },
+    {
+      "function": "updateCourseCollectibleSprites",
+      "tier": "large"
+    },
+    {
+      "function": "updateCoursePreviewCloseSparkles",
+      "tier": "medium"
+    },
+    {
+      "function": "updateCourseSelectCourseStats",
+      "tier": "medium"
+    },
+    {
+      "function": "updateCourseSelectExtraCourseBadge",
+      "tier": "medium"
+    },
+    {
+      "function": "updateCourseTextureMarkers",
+      "tier": "medium"
+    },
+    {
+      "function": "updateEndingJamDiagonalSlideSetPhase22",
+      "tier": "small"
+    },
+    {
+      "function": "updateEndingJamHopRightToIdle",
+      "tier": "small"
+    },
+    {
+      "function": "updateEndingJamHopRightToPose",
+      "tier": "small"
+    },
+    {
+      "function": "updateEndingJamSlideRightToMarker",
+      "tier": "small"
+    },
+    {
+      "function": "updateEndingJamSlideRightToPhase27Start",
+      "tier": "small"
+    },
+    {
+      "function": "updateEndingNancyRunRightThenPhase2A",
+      "tier": "small"
+    },
+    {
+      "function": "updateEndingNancySlideRightToPose",
+      "tier": "small"
+    },
+    {
+      "function": "updateEndingNancyTumbleToPhase3C",
+      "tier": "small"
+    },
+    {
+      "function": "updateFallingMenuSnowflakeDrift",
+      "tier": "medium"
+    },
+    {
+      "function": "updateLaunchRampCourseObjectArc",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRaceGhostReplayFlow",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRaceMotionAnimationDebugViewer",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePickupRespawn",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerMode04Spinout",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerMode05SpinoutStun",
+      "tier": "large"
+    },
+    {
+      "function": "updateRacePlayerMode06TerrainFall",
+      "tier": "large"
+    },
+    {
+      "function": "updateRacePlayerMode07LaunchRampSpin",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerMode07LaunchRampTakeoff",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerMode07SpiralExit",
+      "tier": "large"
+    },
+    {
+      "function": "updateRacePlayerMode10TerrainCrashSlide",
+      "tier": "large"
+    },
+    {
+      "function": "updateRacePlayerMode23ItemSteal",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerMode25SpinHit",
+      "tier": "large"
+    },
+    {
+      "function": "updateRacePlayerMode30AttackResolve",
+      "tier": "small"
+    },
+    {
+      "function": "updateRacePlayerMode34AerialTrick",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerMode39AerialTrick",
+      "tier": "large"
+    },
+    {
+      "function": "updateRacePlayerMode41AerialTrick",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerMode42AerialTrick",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerMode49AerialTrick",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerMode56AerialTrick",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerMode57AerialTrick",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerPostUpdate",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRacePlayerPostUpdateAttack",
+      "tier": "small"
+    },
+    {
+      "function": "updateRacePlayerProjectedPosition",
+      "tier": "small"
+    },
+    {
+      "function": "updateRacePlayerTrickSubstateHold",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRaceSetupOnePlayerOption",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRaceSetupThreePlayerOption",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRaceSetupTwoPlayerOption",
+      "tier": "medium"
+    },
+    {
+      "function": "updateRaceStartPlayerEffectActive",
+      "tier": "medium"
+    },
+    {
+      "function": "updateShopMenuDescriptionText",
+      "tier": "medium"
+    },
+    {
+      "function": "updateShopMenuModeCursor",
+      "tier": "medium"
+    },
+    {
+      "function": "updateShopMenuMoneyPanel",
+      "tier": "medium"
+    },
+    {
+      "function": "updateShopMenuMoneyPanelForCourseSelectReturn",
+      "tier": "medium"
+    },
+    {
+      "function": "updateShopMenuPromptPanel",
+      "tier": "medium"
+    },
+    {
+      "function": "updateSpiralCourseObjectTurn",
+      "tier": "medium"
+    },
+    {
+      "function": "validateControllerPakSaveData",
+      "tier": "large"
+    },
+    {
+      "function": "waitForTitleDemoRaceIntroStart",
+      "tier": "small"
+    }
+  ],
+  "manifest_digest": "540ca87622b7fd8eddf26931d07f405b5f1cf124699445181d6a42ffb4ba7048"
+}

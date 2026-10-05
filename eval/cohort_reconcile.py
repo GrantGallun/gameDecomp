@@ -79,6 +79,27 @@ def cohort_nodes(results: Path, pattern: str = "failure-coverage-fresh-paired-*.
     return out
 
 
+def tier_strategy(prefix: str, repo: Path, name: str, source: str) -> tuple[str, str]:
+    """(strategy, ceiling) -- the attempt's label must carry the tier its SOURCE supports.
+
+    `eval/status.py` decides SOLVED vs header-assisted from the winning attempt's strategy string
+    (`like '%project-header%'`), so a reconcile that logs a neutral label silently counts a
+    header-assisted match as capability. Measured 2026-09-17 over the whole matched set: 143 of 261
+    labelled-SOLVED functions dereference a member through a header-declared type.
+
+    The fix is at the POINT OF LOGGING, not in the report: decide the ceiling from the source that is
+    about to be compiled -- the same text the object will accept -- and put it in the label. That is a
+    measurement, not a relabelling, and it means a future cohort's contribution is split honestly the
+    moment it lands instead of being corrected by hand afterwards.
+
+    `header-assisted` must keep the substring `project-header` for the existing rule to read it.
+    """
+    from eval import match_claim_audit
+    ceiling = match_claim_audit.audit(repo, name, source)["tier_ceiling"]
+    suffix = ("project-header-assisted" if ceiling == "header-assisted" else "source-independent")
+    return f"{prefix}:{suffix}", ceiling
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--results", type=Path, default=ROOT / "eval/results")
@@ -125,8 +146,12 @@ def main(argv: list[str] | None = None) -> int:
             continue
         try:
             ws = workspace.bootstrap(REPO, name)
+            strategy, ceiling = tier_strategy(f"cohort-reconcile:{item['ledger']}", REPO, name,
+                                              item["source"])
+            row["source_ceiling"] = ceiling
+            row["strategy"] = strategy
             att = workspace.score(ws, REPO, name, item["source"], conn=conn, func=name,
-                                  strategy=f"cohort-reconcile:{item['ledger']}", iteration=0,
+                                  strategy=strategy, iteration=0,
                                   run_kind="cohort-reconcile")
             row.update(compiled=bool(att.compiled), exact=bool(att.exact), score=att.score,
                        receipt=att.receipt_id)
@@ -142,6 +167,8 @@ def main(argv: list[str] | None = None) -> int:
 
     summary = {"population": len(nodes), "recorded": len(state),
                "status_counts": dict(collections.Counter(r.get("status") for r in state.values())),
+               "source_ceilings": dict(collections.Counter(
+                   r.get("source_ceiling") for r in state.values() if r.get("source_ceiling"))),
                "reproduced_exact": sorted(n for n, r in state.items()
                                           if r.get("status") == "REPRODUCED-EXACT")}
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")

@@ -122,8 +122,14 @@ def _pool(conn: sqlite3.Connection, low: int, high: int,
 
 def freeze(conn: sqlite3.Connection, *, project_root: Path, sets_dir: Path,
            out: Path, per_stratum: int = 3,
-           seed: int = 20260901) -> dict:
-    """Create balanced fresh DEV/heldout names from metadata only."""
+           seed: int = 20260901, tu_disjoint: bool = False) -> dict:
+    """Create balanced fresh DEV/heldout names from metadata only.
+
+    With ``tu_disjoint`` every translation unit belongs to exactly one side
+    before any function is drawn. Functions in one TU share structs, globals
+    and idioms, so a DEV function whose sibling is held out leaks that TU into
+    whatever DEV tuning or data generation reads.
+    """
     if per_stratum <= 0:
         raise ValueError("per_stratum must be positive")
     attempted = _attempted_names(conn)
@@ -135,21 +141,36 @@ def freeze(conn: sqlite3.Connection, *, project_root: Path, sets_dir: Path,
     dev: list[dict] = []
     heldout: list[dict] = []
     shortfalls: list[dict] = []
+    heldout_tus: set[str] = set()
+    tu_of: dict[str, str] = {}
+    if tu_disjoint:
+        tu_of = dict(conn.execute(
+            "SELECT f.name, t.name FROM functions f JOIN tus t ON t.id=f.tu_id"))
+        tus = sorted(set(tu_of.values()))
+        rng.shuffle(tus)
+        heldout_tus = set(tus[:len(tus) // 2])
 
     for tier, low, high in TIERS:
         for leaf in (1, 0):
             pool = _pool(conn, low, high, leaf, excluded)
             rng.shuffle(pool)
+            if tu_disjoint:
+                sides = (
+                    [n for n in pool if tu_of[n] not in heldout_tus][:per_stratum],
+                    [n for n in pool if tu_of[n] in heldout_tus][:per_stratum])
+            else:
+                chosen = pool[:per_stratum * 2]
+                sides = (chosen[:per_stratum], chosen[per_stratum:])
             wanted = per_stratum * 2
-            chosen = pool[:wanted]
-            if len(chosen) < wanted:
+            available = len(sides[0]) + len(sides[1])
+            if available < wanted:
                 shortfalls.append({
                     "tier": tier, "leaf": bool(leaf),
-                    "wanted": wanted, "available": len(chosen),
+                    "wanted": wanted, "available": available,
                 })
-            for index, name in enumerate(chosen):
-                row = {"function": name, "tier": tier, "leaf": bool(leaf)}
-                (dev if index < per_stratum else heldout).append(row)
+            for split, names in zip((dev, heldout), sides):
+                for name in names:
+                    split.append({"function": name, "tier": tier, "leaf": bool(leaf)})
 
     manifest = {
         "schema_version": 1,
@@ -181,6 +202,11 @@ def freeze(conn: sqlite3.Connection, *, project_root: Path, sets_dir: Path,
         "heldout": heldout,
         "shortfalls": shortfalls,
     }
+    if tu_disjoint:
+        # Recorded so later data generation can exclude whole held-out TUs,
+        # not only held-out functions.
+        manifest["policy"]["split"] = "tu-disjoint"
+        manifest["heldout_tus"] = sorted(heldout_tus)
     manifest["manifest_digest"] = _json_digest(manifest)
     return manifest
 
@@ -223,6 +249,8 @@ def main() -> None:
     freeze_parser.add_argument("--out", type=Path, required=True)
     freeze_parser.add_argument("--per-stratum", type=int, default=3)
     freeze_parser.add_argument("--seed", type=int, default=20260901)
+    freeze_parser.add_argument("--tu-disjoint", action="store_true",
+                               help="assign whole translation units to one side")
     audit_parser = sub.add_parser("audit")
     audit_parser.add_argument("--db", type=Path, required=True)
     audit_parser.add_argument("--project-root", type=Path, default=Path("."))
@@ -236,7 +264,8 @@ def main() -> None:
         manifest = freeze(
             conn, project_root=args.project_root.expanduser().resolve(),
             sets_dir=args.sets_dir.expanduser().resolve(), out=out,
-            per_stratum=args.per_stratum, seed=args.seed)
+            per_stratum=args.per_stratum, seed=args.seed,
+            tu_disjoint=args.tu_disjoint)
         _atomic_json(out, manifest)
         print(json.dumps({
             "manifest_digest": manifest["manifest_digest"],

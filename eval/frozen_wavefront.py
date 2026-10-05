@@ -38,20 +38,29 @@ def code_paths(project: Path) -> list[Path]:
     return paths
 
 
-def verify_files(expected: dict) -> None:
-    changed = []
-    for name, digest in expected.items():
-        try:
-            # Hash every byte each time. A single open avoids redundant path
-            # metadata queries; descriptor validation rejects nonregular files.
-            descriptor = os.open(name, os.O_RDONLY | getattr(os, 'O_NONBLOCK', 0) |
-                                 getattr(os, 'O_BINARY', 0))
-            with open(descriptor, 'rb') as stream:
-                if (not stat.S_ISREG(os.fstat(stream.fileno()).st_mode) or
-                        hashlib.sha256(stream.read()).hexdigest() != digest):
-                    changed.append(name)
-        except OSError:
-            changed.append(name)
+def _unchanged(name: str, digest: str) -> bool:
+    try:
+        # Hash every byte each time. A single open avoids redundant path
+        # metadata queries; descriptor validation rejects nonregular files.
+        descriptor = os.open(name, os.O_RDONLY | getattr(os, 'O_NONBLOCK', 0) |
+                             getattr(os, 'O_BINARY', 0))
+        with open(descriptor, 'rb') as stream:
+            return (stat.S_ISREG(os.fstat(stream.fileno()).st_mode) and
+                    hashlib.sha256(stream.read()).hexdigest() == digest)
+    except OSError:
+        return False
+
+
+def verify_files(expected: dict, retries: int = 2, retry_delay: float = 1.0) -> None:
+    changed = [name for name, digest in expected.items() if not _unchanged(name, digest)]
+    # A failed read on a Windows-mounted tree is not a change. On 2026-09-14 one
+    # read of an untouched pinned file (same bytes and mtime) killed a campaign
+    # batch. Re-read only the failing files; a real change fails every time.
+    for _ in range(retries):
+        if not changed:
+            break
+        time.sleep(retry_delay)
+        changed = [name for name in changed if not _unchanged(name, expected[name])]
     if changed:
         raise FrozenInputChanged("frozen input changed: " + ", ".join(changed[:5]))
 

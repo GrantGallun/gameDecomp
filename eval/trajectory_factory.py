@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import hashlib
 import json
 import sqlite3
 import time
@@ -149,7 +150,15 @@ def require_ready(spec: GameSpec) -> None:
 # --- what to work on ----------------------------------------------------------
 
 def sealed_functions(sets_dir: Path | None = None) -> set[str]:
-    """Function names in any frozen eval set. Never generated against, whatever the budget says."""
+    """Function names in any frozen eval set. Never generated against, whatever the budget says.
+
+    All four key shapes are read. The first version read only `dev` and `heldout`, which
+    silently left out every manifest that names its members differently -- and those are not
+    hypothetical: `logic_first_connected_dev_v*.json` use `cluster` and
+    `principle_openbook_dev_v1.json` uses `panel`. A holdout that is not read is not a
+    holdout, and the failure is invisible from outside: generation succeeds, the data looks
+    fine, and the benchmark has been trained on.
+    """
     directory = sets_dir or ROOT / "eval" / "sets"
     sealed: set[str] = set()
     for path in sorted(directory.glob("*.json")):
@@ -157,7 +166,9 @@ def sealed_functions(sets_dir: Path | None = None) -> set[str]:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             continue
-        for key in ("dev", "heldout"):
+        for key in ("dev", "heldout", "cluster", "panel"):
+            if key == "dev" and payload.get("kind") == "sealed-near-miss-split":
+                continue            # its dev side is for generator development, not sealed
             for row in payload.get(key, []) or []:
                 name = row.get("function") if isinstance(row, dict) else row
                 if name:
@@ -247,33 +258,183 @@ def candidates(spec: GameSpec, limit: int, min_attempts: int = 1,
     return out[:limit]
 
 
-# --- the loop -----------------------------------------------------------------
+# --- the generation contract --------------------------------------------------
+#
+# THE BUG THIS SECTION EXISTS TO KILL (found in review, 2026-09-19, reproduced here).
+#
+# `run_function` kept ONE prompt across all rounds -- the asm/m2c leaf prompt from
+# `make_context` -- while moving `parent` to whichever candidate scored best. So round 2
+# asked exactly the question round 1 asked, but the resulting attempt was written with
+# round 1's winner as its parent and `relation="refine"`. A local probe reproduced
+# identical prompts with recorded parents moving 42 -> 101.
+#
+# Three separate things were wrong at once and it is worth naming each, because fixing
+# two of three leaves a dataset that still lies:
+#
+#   1. INDEPENDENT DRAWS WERE LABELLED AS REFINEMENTS. Best-of-N samples from one prompt
+#      are independent roots. `TRAINING.md` distinguishes "best-of-N samples are
+#      independent roots" from real edges, and the review's whole point is that this
+#      distinction is the product.
+#   2. NO REPAIR WAS EVER REQUESTED. A repair needs the parent's C AND its compiler
+#      outcome in the prompt. The factory had both in hand and sent neither, so even the
+#      attempts it called refinements contained no view of the parent.
+#   3. THE MODEL INTERACTION WAS DISCARDED. `OllamaGenerator.sample` returned `list[str]`
+#      and dropped meta; `WorkspaceScorer.score` had nothing to store. 29 `factory-refine`
+#      attempts in the KB have no prompt, no model and no raw response.
+#
+# A repair that was not requested is not a repair that failed. It is not a data point.
+
+REPAIR_ACTIONS = ("fix-compile", "fix-diff", "no-op")
+
+ACTION_DIRECTIVES = {
+    # Recorded per attempt for analysis. NOT injected into the prompt: the project's own
+    # DIFF_PROMPT/COMPILE_FAIL_PROMPT already state the reasoning, and `refine_one`'s
+    # history is that hand-rolled prompt text produced 19 KB of prose and 0% compiled.
+    "fix-compile": "the candidate did not compile; the compiler's own error is the input",
+    "fix-diff": "the candidate compiled with a residual; the instruction diff is the input",
+    "no-op": "nothing to repair: no parent attempt was available",
+}
+
+
+@dataclass
+class RepairState:
+    """What the model is shown when the action is a repair.
+
+    Holding the state as a first-class object rather than as loose arguments is what
+    makes the provenance checkable: the C in the prompt, the C in `source_code` on the
+    parent row, and the C the diff was produced against are then the same string by
+    construction instead of by convention.
+    """
+
+    source: str
+    compiled: bool = False
+    score: float = 0.0
+    exact: bool = False
+    diff: str = ""
+    compiler_stderr: str = ""
+    attempt_id: int | None = None
+
+    @property
+    def action(self) -> str:
+        if not self.source:
+            return "no-op"
+        return "fix-diff" if self.compiled else "fix-compile"
+
+    def feedback(self) -> str:
+        """Exactly the text handed to the model, recorded as the edge's feedback."""
+        if self.action == "fix-compile":
+            return self.compiler_stderr or ""
+        return self.diff or ""
+
+    def digest(self) -> str:
+        return hashlib.sha256(self.source.encode("utf-8")).hexdigest()
+
+
+def render_repair_prompt(state: RepairState, asm: str, *, history: str = "",
+                         hints: str | None = None) -> str:
+    """The project's own repair prompt, driven by the recorded state.
+
+    Reuses `solver/refine.py`'s `COMPILE_FAIL_PROMPT` / `DIFF_PROMPT` verbatim rather than
+    writing a third prompt. `refine_one` already learned this lesson in production: anchor
+    on the BEST attempt and hand over the real diff, never a summary.
+    """
+    from solver.refine import COMPILE_FAIL_PROMPT, DIFF_PROMPT, catalog_hints
+    if state.action == "fix-compile":
+        return COMPILE_FAIL_PROMPT.format(code=state.source,
+                                          errors=state.compiler_stderr)
+    if state.action == "no-op":
+        raise ValueError("a no-op state has nothing to repair and must not be rendered")
+    return DIFF_PROMPT.format(asm=asm, score=state.score, code=state.source,
+                              diff=(state.diff or "")[:4000], history=history,
+                              hints=catalog_hints(state.diff or "") if hints is None
+                              else hints)
+
+
+@dataclass
+class Proposal:
+    """One model call and everything it must leave behind.
+
+    `receipt` is a `solver.llm.GenerationReceipt` for the real generator and may be None
+    for a fake. `parent` is set ONLY for a repair: a best-of-N draw is an independent root
+    and has no candidate parent, which is requirement one of the handoff.
+    """
+
+    source: str = ""
+    prompt: str = ""
+    action: str = "independent"
+    parent: RepairState | None = None
+    receipt: object | None = None
+    error: str = ""
+
+    @property
+    def status(self) -> str:
+        if self.receipt is not None:
+            return getattr(self.receipt, "status", "ok")
+        if self.error:
+            return "error"
+        return "ok" if self.source else "empty"
+
+    @property
+    def lineage(self) -> str:
+        """`root` for an independent draw, `observed` for a requested repair."""
+        return "observed" if self.parent is not None else "root"
+
+    @property
+    def has_parent(self) -> bool:
+        return self.parent is not None and self.parent.attempt_id is not None
+
 
 class Generator(Protocol):
-    def sample(self, prompt: str, n: int, temperature: float) -> list[str]: ...
+    """A proposer. `draw` is the contract the factory needs.
+
+    `role` is `"independent"` or `"repair"` and is passed so a generator can apply
+    different settings to the two populations -- a repair is a different task from a
+    draft, and `refine.BASE_TEMP` already distinguishes them.
+    """
+
+    def draw(self, prompt: str, n: int, temperature: float, *,
+             role: str = "independent", deadline: float | None = None) -> list[Proposal]: ...
 
 
 class Scorer(Protocol):
-    """Returns (compiled, score, exact, diff) and must record the attempt with its parent."""
-    def score(self, func: str, source: str, parent_attempt_id: int | None) -> dict: ...
+    """Compiles a proposal and records it with its parent. Returns the outcome dict."""
+
+    def score(self, func: str, proposal: Proposal) -> dict: ...
 
 
 @dataclass
 class Outcome:
     func: str
-    attempts: int = 0
+    attempts: int = 0            # model calls made, including failures and refusals
     admitted: int = 0            # reached the oracle: the build did not refuse it
     refusals: int = 0            # the model declined the target outright
-    improving: int = 0
+    improving: int = 0           # IMPROVING ROUNDS -- prefer the child counts below
+    improving_children: int = 0  # every child that beat its baseline, not just the round winner
+    repair_requests: int = 0     # model calls that carried a parent's C and feedback
+    independent_requests: int = 0
+    errors: int = 0              # calls that raised or timed out
+    no_extract: int = 0          # calls that returned text with no C in it
+    dropped_calls: int = 0       # calls that produced no scorable candidate at all
     best_before: float = 0.0
     best_after: float = 0.0
     stopping_note: str = ""
     exact: bool = False
     stopped: str = ""
+    prompt_hashes: list[str] = field(default_factory=list)
+    parent_ids: list[int] = field(default_factory=list)
 
     @property
     def improved(self) -> bool:
         return self.best_after > self.best_before + 1e-9
+
+    @property
+    def distinct_prompts(self) -> int:
+        return len(set(self.prompt_hashes))
+
+    @property
+    def independent_prompt(self) -> bool:
+        """True when every draw asked the same question -- the old bug's signature."""
+        return self.distinct_prompts <= 1
 
 
 @dataclass
@@ -288,9 +449,13 @@ class Factory:
     improvement_epsilon: float = 0.5
     game: str = "sbk1"
     compiler: str = "ido-5.3"
+    repair_from_round: int = 1
     normalizer: Callable[[str], tuple[str, list[str]]] = normalize
     state_path: Path | None = None
     log: list[dict] = field(default_factory=list)
+    # A callable returning True when a human wants the machine back. Checked between rounds.
+    should_stop: Callable[[], bool] = staticmethod(lambda: False)
+    pause_note: Callable[[], str] = staticmethod(lambda: "")
 
     def describe(self, func: str, fault: dict, plateau: str) -> str:
         """The technique label recorded with an attempt. Analysis, not prompt text.
@@ -322,55 +487,225 @@ class Factory:
                     f"last began: {heads[-1][:160]!r}")
         return "the generator returned nothing and recorded no reason"
 
-    def run_function(self, item: dict, budget: list[int]) -> Outcome:
-        """One function's trajectory: best-of-N over the project's own prompt.
+    def repair_state(self, current: dict | None, seed_id: int | None,
+                     seed_score: float) -> RepairState | None:
+        """The state to repair: the best candidate seen so far, or nothing.
 
-        `budget` is a one-element list so a run can stop mid-function without losing the work.
+        The FIRST round has no candidate of its own, so it repairs whatever the knowledge
+        base already recorded as this function's best attempt. When that row carries no
+        stored source -- and most historical rows do not -- there is no repair to request
+        and the round is an independent draw. Returning None rather than inventing a
+        state is the point: `TRAINING.md` says never infer a pair from adjacent rows.
+
+        Deliberately NOT implemented: fetching the parent's source out of the KB when only
+        an id is known. The source WOULD have to come from the same row the score came
+        from, and `candidates()` already reads that row's score, so a fallback that reads
+        the text too is straightforward -- it is left out because this run's own candidates
+        are the ones whose prompts and receipts are complete, and mixing in a reconstructed
+        prompt from a row whose original prompt is lost would reintroduce exactly the
+        provenance ambiguity this rewrite removes.
         """
-        outcome = Outcome(item["name"], best_before=item["best_score"], best_after=item["best_score"])
+        if current is not None and current.get("source"):
+            return RepairState(
+                source=current["source"], compiled=bool(current.get("compiled")),
+                score=float(current.get("score") or 0.0), exact=bool(current.get("exact")),
+                diff=current.get("diff") or "",
+                compiler_stderr=current.get("compiler_stderr") or "",
+                attempt_id=current.get("attempt_id"))
+        return None
+
+    def run_function(self, item: dict, budget: list[int], *,
+                     deadline: float | None = None,
+                     on_proposal: Callable[[dict], None] | None = None) -> Outcome:
+        """One function's trajectory: independent draws plus REQUESTED repairs of the best.
+
+        Round 0 asks the project's leaf prompt N times. Those N draws are independent
+        roots and are recorded with no candidate parent. Every later round asks the repair
+        prompt, built from the best compiled candidate so far and carrying that candidate's
+        own compiler outcome, and the resulting attempt is recorded against that candidate's
+        receipt id with the exact feedback text used as the edge's `feedback`.
+
+        `repair_from_round` is when repairs may begin. It is 1 -- repairs start after the first
+        round of independent draws have been compiled -- and that default is load-bearing for
+        an UNSEEN function: `item["best_attempt_id"]` names a row in the knowledge base, and a
+        function with no attempts has no such row, so a repair cannot be requested before this
+        run has produced a compiled candidate of its own. A caller that only wants the
+        independent draws (the equal-budget evaluation is exactly that) sets it beyond
+        `rounds` and gets pure best-of-N with no repair prompt at all.
+
+        `budget` is a one-element list so a run can stop mid-function without losing work.
+        `deadline` is a monotonic wall-clock instant; a call that cannot start before it is
+        not started. `on_proposal` is called after EVERY proposal is scored, so an
+        interruption loses at most one candidate rather than a whole function.
+        """
+        outcome = Outcome(item["name"], best_before=item["best_score"],
+                          best_after=item["best_score"])
+        # Told, not inferred. A generator derives a per-draw seed from the function identity so
+        # that draws are independent while the run stays reproducible; a generator that had to
+        # reconstruct the function name from the prompt would be guessing.
+        if hasattr(self.generator, "begin_function"):
+            self.generator.begin_function(item["name"])
         context = self.context_for(item["name"])
-        prompt = context["prompt"]
-        parent = item.get("best_attempt_id")
+        asm = context.get("asm", "")
+        current: dict | None = None
         for _round in range(self.rounds):
             if budget[0] <= 0:
                 outcome.stopped = "attempt budget"
                 break
+            if deadline is not None and time.monotonic() >= deadline:
+                outcome.stopped = "time budget"
+                break
+            if self.should_stop():
+                # Checked between rounds, so a pause costs at most the candidates already
+                # scored and stored. The run is resumable, so stopping here loses nothing.
+                outcome.stopped = "paused"
+                outcome.stopping_note = self.pause_note()
+                break
+            repairing = _round >= self.repair_from_round
+            state = (self.repair_state(current, item.get("best_attempt_id"),
+                                       item["best_score"]) if repairing else None)
+            if repairing and state is None:
+                # No compiled candidate to repair builds a repair request out of nothing.
+                # Stop honestly and say so instead of silently repeating round 0.
+                outcome.stopped = "no repair state"
+                outcome.stopping_note = (
+                    "round 0 produced no compiling candidate to repair; a repair prompt "
+                    "needs the parent's C and its compiler outcome, and neither exists")
+                break
+            if state is None:
+                prompt, role = context["prompt"], "independent"
+            else:
+                prompt = render_repair_prompt(state, asm)
+                role = "repair"
             wanted = min(self.samples, budget[0])
             before_refusals = getattr(self.generator, "refusals", 0)
-            proposals = self.generator.sample(prompt, wanted, self.temperature)
-            outcome.refusals += getattr(self.generator, "refusals", 0) - before_refusals
-            if not proposals:
-                # No extractable C at all is an extraction finding, not a model failure, and it is
-                # the failure mode that made the first version of this module produce prose. The
-                # generator's own reason is carried out with it.
-                outcome.stopped = "no extractable C"
-                outcome.stopping_note = self.generator_detail()
-                break
-            scored = []
-            for source in proposals:
-                if budget[0] <= 0:
+            if hasattr(self.generator, "draw"):
+                proposals = self.generator.draw(prompt, wanted, self.temperature,
+                                                role=role, deadline=deadline)
+                # A generator that returns NOTHING is making no claim about the target. Its
+                # calls are unaccounted for, so this is the one case where the count is
+                # unknown rather than zero, and saying so is the honest report.
+                if not proposals:
+                    outcome.stopped = "no candidates returned"
+                    outcome.stopping_note = self.generator_detail()
                     break
+                # Refusals on this path are counted from each proposal's own status below.
+                # Adding the generator's internal counter as well would double every refusal,
+                # which is how a fix for one accounting defect becomes another one.
+            else:
+                # A generator written against the two-argument `sample` contract: it
+                # returned a bare string per call, so each string IS one call and each call
+                # is counted even when the string is empty. Detection is by CAPABILITY, not by
+                # catching TypeError -- a TypeError raised inside a real `draw` would
+                # otherwise be swallowed and re-run as `sample`, turning a generator bug into
+                # a duplicate round of silent calls.
+                raw = self.generator.sample(prompt, wanted, self.temperature)
+                proposals = [Proposal(source=s, prompt=prompt, action=role) for s in raw]
+                # This path carries no per-proposal status, so the generator's own refusal
+                # counter is the only evidence the calls were refusals.
+                outcome.refusals += getattr(self.generator, "refusals", 0) - before_refusals
+            if role == "repair":
+                outcome.repair_requests += len(proposals)
+            else:
+                outcome.independent_requests += len(proposals)
+            outcome.prompt_hashes.append(
+                hashlib.sha256(prompt.encode("utf-8")).hexdigest())
+            scored = []
+            for proposal in proposals:
+                if budget[0] <= 0:
+                    outcome.stopped = "attempt budget"
+                    break
+                if deadline is not None and time.monotonic() >= deadline:
+                    outcome.stopped = "time budget"
+                    break
+                # A refused, errored or empty call CONSUMES the budget. It used to be free,
+                # which made a refusal loop look cheaper than a working target and made the
+                # budget a promise the run did not keep. EVERY call is counted, including the
+                # ones with nothing to compile, because a counter that only counts successes
+                # cannot size a campaign.
                 budget[0] -= 1
                 outcome.attempts += 1
-                lowered, applied = self.normalizer(source)
-                result = self.scorer.score(item["name"], lowered, parent)
+                if not proposal.source:
+                    outcome.dropped_calls += 1
+                if proposal.action == "independent":
+                    proposal.action = role
+                if proposal.status == "refusal":
+                    outcome.refusals += 1
+                elif proposal.status in ("error", "timeout"):
+                    outcome.errors += 1
+                elif proposal.status == "no-extract":
+                    outcome.no_extract += 1
+                if not proposal.source:
+                    # Counted, budgeted, receipted -- and not compiled. There is no C to
+                    # compile, and handing prose to IDO is how 19 KB of reasoning once became
+                    # a "model error" instead of the extraction failure it was.
+                    continue
+                if state is not None:
+                    # The repair is against the state the prompt was rendered from, and that
+                    # state's receipt id is the edge's parent. Assigning it here rather than
+                    # trusting the generator keeps parentage a property of the REQUEST.
+                    #
+                    # A generator that attaches NO parent object must still get an edge, so the
+                    # state itself is attached. Measured 2026-09-20: `ServeGenerator` returned
+                    # proposals with `parent=None` for repair draws, and the collection pilot
+                    # stored eight repairs with `parent_attempt_id` NULL and no `attempt_edges`
+                    # row -- prompts that correctly quoted the parent's C and score, recorded as
+                    # though no parent had ever existed. An unlinked repair is not training data.
+                    if proposal.parent is None:
+                        proposal.parent = state
+                    proposal.parent.attempt_id = state.attempt_id
+                lowered, applied = self.normalizer(proposal.source)
+                proposal.source = lowered
+                result = self.scorer.score(item["name"], proposal)
                 result["normalized"] = applied
+                # The repaired state is the NORMALIZED source that was actually compiled and
+                # actually logged on this attempt's row. The scorer is not trusted to report it
+                # back: a scorer that echoed the pre-normalization text would make the next
+                # repair prompt quote a candidate that compiles differently from the one its
+                # diff was produced against -- a lineage that looks correct and is not.
+                result["source"] = proposal.source
                 scored.append(result)
                 if result.get("compiled"):
                     outcome.admitted += 1
+                    # Every child that beats the BASELINE is an improving child, whether or
+                    # not it wins its round. The old metric counted winning rounds, which is
+                    # a smaller number that is not the dataset's size.
+                    if (result.get("score") or 0.0) > outcome.best_before + self.improvement_epsilon:
+                        outcome.improving_children += 1
+                outcome.parent_ids.append(
+                    proposal.parent.attempt_id if proposal.has_parent else 0)
                 self.log.append({"func": item["name"], "round": _round,
                                  "game": self.game, "compiler": self.compiler,
+                                 "action": proposal.action, "lineage": proposal.lineage,
+                                 "status": proposal.status,
+                                 "parent_attempt_id": (proposal.parent.attempt_id
+                                                       if proposal.has_parent else None),
                                  "compiled": result.get("compiled"),
                                  "score": result.get("score"), "exact": result.get("exact"),
-                                 "faults": result.get("faults"), "normalized": applied})
+                                 "faults": result.get("faults"),
+                                 "normalized": result["normalized"],
+                                 "attempt_id": result.get("attempt_id"),
+                                 "prompt_sha256": result.get("prompt_sha256")})
+                if on_proposal:
+                    on_proposal(self.log[-1])
             if not scored:
+                # Every proposal was a receipt with no C in it: a refusal, an error, a
+                # timeout or prose. They are counted and budgeted above; there is nothing to
+                # compile. One label for one cure -- choose a different target or a different
+                # prompt shape -- with the generator's own reason attached.
+                outcome.stopped = "no extractable C"
+                outcome.stopping_note = self.generator_detail()
                 break
             best = max(scored, key=lambda r: (bool(r.get("exact")), r.get("score") or 0.0))
             if (best.get("score") or 0.0) > outcome.best_after + self.improvement_epsilon:
                 outcome.best_after = best["score"]
                 outcome.improving += 1
-                if best.get("attempt_id") is not None:
-                    parent = best["attempt_id"]
+            if best.get("compiled"):
+                # A COPY, not the scorer's own dict. Aliasing it meant `repair_state` read
+                # `source` from whatever the scorer happened to put there -- and a scorer that
+                # returns no `source` produced a repair prompt that named a parent whose C it
+                # did not contain. Caught by the identity test, not by inspection.
+                current = dict(best)
             if best.get("exact"):
                 outcome.exact = True
                 outcome.stopped = "exact"
@@ -379,39 +714,73 @@ class Factory:
 
 
 def run(factory: Factory, items: Sequence[dict], *, max_attempts: int = 100,
-        max_seconds: int = 3600, checkpoint: Callable[[dict], None] | None = None) -> dict:
-    """Drive the factory over work items under both budgets, checkpointing after each function."""
+        max_seconds: int = 3600, checkpoint: Callable[[dict], None] | None = None,
+        on_proposal: Callable[[dict], None] | None = None) -> dict:
+    """Drive the factory over work items under both budgets.
+
+    The wall-clock budget is enforced INSIDE each function, not only between them. The old
+    loop tested elapsed time once per function, so one slow function could overrun the cap
+    by an unbounded amount -- and the cap is a promise the collection pilot is sized on.
+
+    `checkpoint` fires after each function; `on_proposal` fires after each scored
+    proposal. A caller that wants interruption-resume to lose no receipt passes both.
+    """
     budget = [max_attempts]
-    started = time.time()
+    started = time.monotonic()
+    deadline = started + max_seconds
     outcomes: list[Outcome] = []
     stopped = "items exhausted"
     for item in items:
         if budget[0] <= 0:
             stopped = "attempt budget"
             break
-        if time.time() - started >= max_seconds:
+        if time.monotonic() >= deadline:
             stopped = "time budget"
             break
-        outcome = factory.run_function(item, budget)
+        if factory.should_stop():
+            stopped = "paused"
+            break
+        outcome = factory.run_function(item, budget, deadline=deadline,
+                                       on_proposal=on_proposal)
         outcomes.append(outcome)
         if checkpoint:
             checkpoint({"func": outcome.func, "attempts": outcome.attempts,
                         "admitted": outcome.admitted, "improving": outcome.improving,
+                        "improving_children": outcome.improving_children,
+                        "repair_requests": outcome.repair_requests,
+                        "independent_requests": outcome.independent_requests,
+                        "errors": outcome.errors, "refusals": outcome.refusals,
+                        "no_extract": outcome.no_extract,
                         "best_before": outcome.best_before, "best_after": outcome.best_after,
                         "exact": outcome.exact, "stopped": outcome.stopped, "game": factory.game})
-    improving = sum(o.improving for o in outcomes)
+        if outcome.stopped == "time budget":
+            stopped = "time budget"
+            break
+        if outcome.stopped == "paused":
+            stopped = "paused"
+            break
     return {
         "game": factory.game, "compiler": factory.compiler,
         "functions": len(outcomes), "attempts": sum(o.attempts for o in outcomes),
         "admitted": sum(o.admitted for o in outcomes),
         "refusals": sum(o.refusals for o in outcomes),
-        "improving_rounds": improving,
+        "errors": sum(o.errors for o in outcomes),
+        "no_extract": sum(o.no_extract for o in outcomes),
+        "improving_rounds": sum(o.improving for o in outcomes),
+        "improving_children": sum(o.improving_children for o in outcomes),
+        "repair_requests": sum(o.repair_requests for o in outcomes),
+        "independent_requests": sum(o.independent_requests for o in outcomes),
         "functions_improved": sum(1 for o in outcomes if o.improved),
         "exact": sum(1 for o in outcomes if o.exact),
         "gain": round(sum(o.best_after - o.best_before for o in outcomes), 3),
-        "stopped": stopped, "seconds": round(time.time() - started, 1),
+        "stopped": stopped, "seconds": round(time.monotonic() - started, 1),
         "outcomes": [{"func": o.func, "attempts": o.attempts, "admitted": o.admitted,
-                      "improving": o.improving, "before": o.best_before, "after": o.best_after,
+                      "improving": o.improving, "improving_children": o.improving_children,
+                      "repair_requests": o.repair_requests,
+                      "independent_requests": o.independent_requests,
+                      "errors": o.errors, "refusals": o.refusals,
+                      "before": o.best_before, "after": o.best_after,
+                      "distinct_prompts": o.distinct_prompts,
                       "exact": o.exact, "stopped": o.stopped,
                       "stopping_note": o.stopping_note} for o in outcomes],
     }
@@ -434,8 +803,12 @@ def yield_summary(report: dict) -> dict:
     """
     attempts = report.get("attempts", 0)
     admitted = report.get("admitted", 0)
-    improving = report.get("improving_rounds", 0)
+    # `improving_children` is the dataset's size and `improving_rounds` is the old,
+    # smaller number. Both are reported; the yield rate uses the child count, because
+    # a rate over round-winners understates supply and sizes a campaign wrongly.
+    improving = report.get("improving_children", report.get("improving_rounds", 0))
     refusals = report.get("refusals", 0)
+    errors = report.get("errors", 0)
     enough = admitted >= MIN_ADMITTED_FOR_A_RATE
     if refusals and not attempts and not admitted:
         note = (f"{refusals} refusal(s) and nothing else: the model declined this target, which is "
@@ -452,10 +825,16 @@ def yield_summary(report: dict) -> dict:
         "attempts": attempts,
         "admitted": admitted,
         "refusals": refusals,
+        "errors": errors,
+        "no_extract": report.get("no_extract", 0),
         "P_compiles": round(admitted / attempts, 4) if attempts else None,
-        "improving_rounds": improving,
+        "improving_rounds": report.get("improving_rounds", 0),
+        "improving_children": report.get("improving_children", 0),
+        "repair_requests": report.get("repair_requests", 0),
+        "independent_requests": report.get("independent_requests", 0),
         "P_improves_given_compiles": round(improving / admitted, 4) if admitted else None,
         "improving_edges_per_attempt": round(improving / attempts, 4) if attempts else None,
+        "usable_examples_per_100_calls": round(100.0 * improving / attempts, 2) if attempts else None,
         "powered": enough,
         "note": note,
         "functions_touched": report.get("functions", 0),
@@ -505,50 +884,119 @@ class OllamaGenerator:
         self.refusals = 0
         self.errors: list[str] = []
         self.raw_heads: list[str] = []
+        self.receipts: list = []
+        self._digest = ""
 
-    def sample(self, prompt: str, n: int, temperature: float) -> list[str]:
-        out = []
-        for _ in range(n):
+    def model_digest(self) -> str:
+        """The digest of the artifact actually served, fetched once.
+
+        A model NAME is not an identity: `qwen2.5-coder:14b` can be re-pulled and the tag
+        move. The experiment's M0 and M1 claims rest on which weights produced a token, so
+        the digest is recorded in the run configuration and on every receipt.
+        """
+        if self._digest:
+            return self._digest
+        try:
+            import urllib.request
+            with urllib.request.urlopen(f"{self.endpoint}/api/tags", timeout=20) as resp:
+                tags = json.loads(resp.read())
+            for entry in tags.get("models", []):
+                if entry.get("name") == self.model or entry.get("model") == self.model:
+                    self._digest = str(entry.get("digest") or "")
+                    break
+        except Exception:
+            self._digest = ""
+        return self._digest
+
+    def draw(self, prompt: str, n: int, temperature: float, *,
+             role: str = "independent", deadline: float | None = None) -> list[Proposal]:
+        """N calls, each returned as a `Proposal` WITH its receipt -- including failures.
+
+        Every call is attempted even if an earlier one failed, and a failed call yields a
+        Proposal carrying the error rather than being dropped. The old `sample` caught the
+        exception, appended a string, and `break`-ed -- so one transient HTTP error ended
+        the round and the round's remaining budget was silently spent on nothing.
+        """
+        out: list[Proposal] = []
+        digest = self.model_digest()
+        for index in range(n):
+            if deadline is not None and time.monotonic() >= deadline:
+                out.append(Proposal(prompt=prompt, action=role, error="timeout-deadline"))
+                break
+            t0 = time.time()
+            text, meta, error = "", {}, ""
             try:
-                text, _meta = self.llm.generate(self.endpoint, self.model, prompt,
+                text, meta = self.llm.generate(self.endpoint, self.model, prompt,
                                                 temperature=temperature, timeout=900,
                                                 think=self.think, num_thread=self.num_thread,
                                                 prefill=self.prefill)
             except Exception as exc:
-                # Recorded, never swallowed: a generator that returns [] because every call raised
-                # is indistinguishable from one that returned nothing to say, and the first run of
-                # this size reported "no extractable C" in 2.8 seconds with no reason attached.
-                self.errors.append(f"{type(exc).__name__}: {exc}")
-                break
+                # Recorded, never swallowed: a generator that returns [] because every call
+                # raised is indistinguishable from one that returned nothing to say, and the
+                # first run of this size reported "no extractable C" in 2.8 seconds with no
+                # reason attached.
+                error = f"{type(exc).__name__}: {exc}"
+                self.errors.append(error)
+            wall_ms = int((time.time() - t0) * 1000)
             self.raw_heads.append((text or "")[:200])
-            # A refusal is its own population with its own cure. Admission is fixed by lowering,
-            # yield is fixed by model quality, and a refusal is fixed by choosing another target --
-            # a model asked to reconstruct one function of a commercial ROM will sometimes decline,
-            # and counting that as a bad candidate would send the next hour after the wrong problem.
-            if self.llm.is_refusal(text or ""):
+            # A refusal is its own population with its own cure. Admission is fixed by
+            # lowering, yield is fixed by model quality, and a refusal is fixed by choosing
+            # another target -- a model asked to reconstruct one function of a commercial ROM
+            # will sometimes decline, and counting that as a bad candidate would send the next
+            # hour after the wrong problem.
+            code = ""
+            if not error and not self.llm.is_refusal(text or ""):
+                candidate = self.llm.extract_c(text or "")
+                if candidate and self.llm.FUNC_DEF_RE.search(candidate):
+                    code = candidate
+            receipt = self.llm.generation_receipt(
+                text, meta, prompt=prompt, model=self.model, extracted=code,
+                sampling={"temperature": temperature, "role": role, "think": self.think,
+                          "num_thread": self.num_thread, "prefill": bool(self.prefill),
+                          "draw_index": index},
+                wall_ms=wall_ms, error=error)
+            if not receipt.digest and digest:
+                receipt.digest = digest
+            if receipt.status == "refusal":
                 self.refusals += 1
-                continue
-            code = self.llm.extract_c(text or "")
-            if not code or not self.llm.FUNC_DEF_RE.search(code):
+            elif receipt.status in ("no-extract", "empty"):
                 self.dropped += 1
-                continue
-            out.append(code)
+            self.receipts.append(receipt)
+            out.append(Proposal(source=code, prompt=prompt, action=role,
+                                receipt=receipt, error=error))
         return out
+
+    def sample(self, prompt: str, n: int, temperature: float) -> list[str]:
+        """Backward-compatible view returning only the extracted C.
+
+        Kept because `solver/refine.py` and older callers use the string form; the factory
+        no longer does, because the string form is how the receipts were lost.
+        """
+        return [p.source for p in self.draw(prompt, n, temperature) if p.source]
 
 
 class WorkspaceScorer:
     """The real decider: the project's own per-function workspace and object comparison.
 
-    `workspace.score` is passed `parent_attempt_id`, so every candidate is linked to the attempt it
-    was refining. That link is the trajectory; without it the factory would produce attempts and no
-    edges, which is the state the knowledge base is already in.
+    `workspace.score` is passed `parent_attempt_id`, so every candidate is linked to the
+    attempt it was refining -- and only when a repair was actually requested. An
+    independent draw has no parent and records none.
+
+    Every field of the generation receipt reaches durable storage: the full prompt, the raw
+    response, the model and its digest, the sampling parameters, token cost, wall time,
+    extraction status and stop reason. `record_attempt` already supported all of these; the
+    old scorer simply passed none of them, which is why 29 factory attempts in the KB have
+    no prompt and no model.
     """
 
-    def __init__(self, repo: Path, kb: Path, strategy: str = "factory-refine"):
+    def __init__(self, repo: Path, kb: Path, strategy: str = "factory-refine",
+                 run_id: str = ""):
         self.repo, self.kb, self.strategy = repo, kb, strategy
+        self.run_id = run_id
         self.conn = sqlite3.connect(kb)
         self.workspaces: dict[str, Path] = {}
         self._signals = None
+        self._iteration = 0
 
     def workspace(self, func: str) -> Path:
         if func not in self.workspaces:
@@ -556,15 +1004,48 @@ class WorkspaceScorer:
             self.workspaces[func] = ws_mod.bootstrap(self.repo, func)
         return self.workspaces[func]
 
-    def score(self, func: str, source: str, parent_attempt_id: int | None) -> dict:
+    def score(self, func: str, proposal, parent_attempt_id: int | None = None) -> dict:
+        """Score one proposal. Accepts a `Proposal` or a bare source string.
+
+        The string form is retained for adapters that predate the receipt contract; it
+        records a root-lineage attempt with no prompt, which is now a visible gap rather
+        than the default.
+        """
         from solver import signals, workspace as ws_mod
+        if isinstance(proposal, str):
+            proposal = Proposal(source=proposal)
+        parent = (proposal.parent.attempt_id if proposal.parent is not None
+                  else parent_attempt_id)
+        relation = "refine" if parent is not None else ""
+        prompt = proposal.prompt or ""
+        receipt = proposal.receipt
+        self._iteration += 1
         ws = self.workspace(func)
-        att = ws_mod.score(ws, self.repo, func, source, conn=self.conn, func=func,
-                           strategy=self.strategy, parent_attempt_id=parent_attempt_id,
-                           relation="refine")
+        att = ws_mod.score(
+            ws, self.repo, func, proposal.source, conn=self.conn, func=func,
+            strategy=self.strategy, parent_attempt_id=parent, relation=relation,
+            model=(receipt.model if receipt is not None else ""),
+            prompt=prompt,
+            raw_response=(receipt.raw_response if receipt is not None else ""),
+            extract_status=(receipt.extract_status if receipt is not None else ""),
+            done_reason=(receipt.done_reason if receipt is not None else ""),
+            token_cost=(receipt.token_cost if receipt is not None else 0),
+            wall_ms=(receipt.wall_ms if receipt is not None else 0),
+            iteration=self._iteration,
+            run_id=(self.run_id or ""),
+            generation=receipt,
+            action=proposal.action, feedback=(proposal.parent.feedback()
+                                              if proposal.parent is not None else ""),
+            run_kind=self.strategy,
+            run_config={"strategy": self.strategy, "game": "sbk1"})
         verdict = signals.analyse(att.diff or "", att.score, att.exact, att.compiled)
         return {"compiled": att.compiled, "score": att.score, "exact": att.exact,
-                "diff": att.diff, "source": source, "attempt_id": att.receipt_id,
+                "diff": att.diff, "source": proposal.source, "attempt_id": att.receipt_id,
+                "compiler_stderr": att.compiler_stderr,
+                "prompt": prompt,
+                "prompt_sha256": (hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+                                  if prompt else None),
+                "status": proposal.status,
                 "faults": {axis: int(getattr(verdict, axis)) for axis in AXES}}
 
 
@@ -586,11 +1067,15 @@ def make_context(spec: GameSpec):
             ws = ws_mod.bootstrap(spec.repo, func)
             asm = ws_mod.target_asm(ws, func)
             draft = ws_mod.m2c_draft(ws)
-            prompt = FIRST_PROMPT.format(asm=asm, draft=draft, kb="", hints=hints_for_asm(asm))
+            hints = hints_for_asm(asm)
+            prompt = FIRST_PROMPT.format(asm=asm, draft=draft, kb="", hints=hints)
             # The project's own guard, reused: a prompt carrying the reference source would
             # contaminate every trajectory generated from it, and that is not recoverable later.
             ws_mod.assert_uncontaminated(prompt, spec.repo, func)
-            cache[func] = {"asm": asm, "draft": draft, "prompt": prompt}
+            # `asm` and `hints` are carried out, not just used: a REPAIR prompt needs the
+            # target assembly too, and re-deriving it per repair would re-read the workspace
+            # once per draw. The context is the one place both prompts are assembled.
+            cache[func] = {"asm": asm, "draft": draft, "hints": hints, "prompt": prompt}
         return cache[func]
     return context_for
 
@@ -613,6 +1098,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--max-attempts", type=int, default=100)
     ap.add_argument("--max-seconds", type=int, default=3600)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--run-id", default="",
+                    help="groups attempt receipts; defaults to a timestamped model-tagged id")
+    ap.add_argument("--endpoint", default=None, help="override the inference endpoint")
     ap.add_argument("--plan", action="store_true", help="print the ranked work list and stop")
     args = ap.parse_args(argv)
 
@@ -632,14 +1120,30 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("no work items: every candidate is solved, unsealed-free or unclassifiable")
 
     state = Path(str(args.out) + ".state")
-    seen = {json.loads(line)["func"] for line in state.read_text().splitlines()} if state.exists() else set()
-    todo = [item for item in items if item["name"] not in seen]
+    # Resume is by received PROPOSAL, not by finished function. A run interrupted mid-function
+    # used to be restarted from the whole function, so its model calls were paid for twice --
+    # and the checkpoint fired once per function, so an interruption lost the last one whole.
+    proposals_path = Path(str(args.out) + ".proposals.jsonl")
+    done_functions: set[str] = set()
+    done_prompts: set[str] = set()
+    if state.exists():
+        done_functions = {json.loads(line)["func"]
+                          for line in state.read_text().splitlines() if line.strip()}
+    if proposals_path.exists():
+        for line in proposals_path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                row = json.loads(line)
+                if row.get("prompt_sha256") and row.get("action") == "repair":
+                    done_prompts.add(row["prompt_sha256"])
+    todo = [item for item in items if item["name"] not in done_functions]
     if not todo:
         raise SystemExit(f"all {len(items)} work items already done; delete {state} to redo them")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    factory = Factory(generator=OllamaGenerator(args.model),
-                      scorer=WorkspaceScorer(spec.repo, spec.kb),
+    run_id = args.run_id or f"factory-{time.strftime('%Y%m%d-%H%M%S')}-{args.model.replace(':', '-')}"
+    generator = OllamaGenerator(args.model, endpoint=args.endpoint)
+    factory = Factory(generator=generator,
+                      scorer=WorkspaceScorer(spec.repo, spec.kb, run_id=run_id),
                       context_for=make_context(spec), rounds=args.rounds, samples=args.samples,
                       temperature=args.temperature, game=spec.name, compiler=spec.compiler)
 
@@ -648,12 +1152,28 @@ def main(argv: list[str] | None = None) -> int:
             handle.write(json.dumps(row) + "\n")
         print(json.dumps(row), flush=True)
 
+    def on_proposal(row: dict) -> None:
+        """Durable after EVERY scored proposal, so an interruption costs one candidate."""
+        with proposals_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row) + "\n")
+        print(json.dumps({"proposal": row}), flush=True)
+
+    started = time.time()
     report = run(factory, todo, max_attempts=args.max_attempts,
-                 max_seconds=args.max_seconds, checkpoint=checkpoint)
+                 max_seconds=args.max_seconds, checkpoint=checkpoint,
+                 on_proposal=on_proposal)
     report["yield"] = yield_summary(report)
     report["messages"] = factory.log[-20:]
+    report["run_id"] = run_id
+    # The digest of the artifact that actually served the run. A tag can move; this cannot.
+    report["model"] = generator.model
+    report["model_digest"] = generator.model_digest()
+    report["receipts"] = len(generator.receipts)
+    report["resumed_functions_skipped"] = len(done_functions)
+    report["wall_seconds"] = round(time.time() - started, 1)
     args.out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"yield": report["yield"], "stopped": report["stopped"]}, indent=2))
+    print(json.dumps({"yield": report["yield"], "stopped": report["stopped"],
+                      "model_digest": report["model_digest"]}, indent=2))
     return 0
 
 

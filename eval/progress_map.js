@@ -19,7 +19,8 @@ const scoreRamp=['#cde2fb','#b7d3f6','#9ec5f4','#86b6ef','#6da7ec','#5598e7','#3
 function rampColor(score){const t=Math.min(1,Math.max(0,score/100))*(scoreRamp.length-1),i=Math.min(scoreRamp.length-2,Math.floor(t)),f=t-i;const hex=h=>[1,3,5].map(k=>parseInt(h.slice(k,k+2),16));const a=hex(scoreRamp[i]),b=hex(scoreRamp[i+1]);return'#'+a.map((v,k)=>Math.round(v+(b[k]-v)*f).toString(16).padStart(2,'0')).join('');}
 function fillFor(r){if(r.category==='parked_asm')return'url(#asm-hatch)';return r.category==='partial'&&typeof r.score==='number'?rampColor(r.score):(colors[r.category]||colors.pending);}
 function hatchDefs(){const defs=shape('defs',{},svg),p=shape('pattern',{id:'asm-hatch',width:6,height:6,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'},defs);shape('rect',{width:6,height:6,fill:HATCH_BG},p);shape('rect',{width:2,height:6,fill:HATCH_FG},p);}
-function scoreNote(r){return r.category==='partial'?(typeof r.score==='number'?` · score ${Number(r.score).toFixed(3)}`:' · score unavailable'):'';}
+function distNote(r){return typeof r.instruction_distance==='number'?` · ${r.instruction_distance} instr / ${r.register_distance} reg`:'';}
+function scoreNote(r){return r.category==='partial'?(typeof r.score==='number'?` · score ${Number(r.score).toFixed(3)}${distNote(r)}`:' · score unavailable'):'';}
 let data=null, selected=null, group='', category='', loading=false, detailSequence=0, lastCommit=null;
 const fmt=n=>Number(n||0).toLocaleString(), bytes=n=>n>=1048576?(n/1048576).toFixed(2)+' MiB':n>=1024?(n/1024).toFixed(1)+' KiB':fmt(n)+' B';
 const svg=el('program-map');
@@ -62,7 +63,7 @@ async function select(name){
  selected=name;draw();const sequence=++detailSequence,box=el('map-detail');box.replaceChildren();text('h3',name,box);text('p','Loading function details…',box);
  try{const response=await fetch('/api/function?name='+encodeURIComponent(name),{cache:'no-store',signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error('Function details unavailable');const d=await response.json();if(sequence!==detailSequence)return;
   box.replaceChildren();text('div','Function inspector',box,'eyebrow');text('h3',name,box);text('span',labels[d.category]||d.status,box,'pill');
-  const dl=document.createElement('dl');box.append(dl);const info=[['Target size',d.size?bytes(d.size):'Unknown'],['Instructions',d.instructions??'Unknown'],['Address',d.address==null?'Unknown':'0x'+Number(d.address).toString(16)],['Byte score',d.score==null?'Not available':Number(d.score).toFixed(3)],['Repair work items',fmt(d.work_items)],['Current attempt',d.attempt_id??'None'],['Campaign state',d.status]];for(const[k,v]of info){text('dt',k,dl);text('dd',v,dl);}
+  const dl=document.createElement('dl');box.append(dl);const info=[['Target size',d.size?bytes(d.size):'Unknown'],['Instructions',d.instructions??'Unknown'],['Address',d.address==null?'Unknown':'0x'+Number(d.address).toString(16)],['Byte score',d.score==null?'Not available':Number(d.score).toFixed(3)],['Instruction distance',d.instruction_distance??'Not measured'],['Register distance',d.register_distance??'Not measured'],['Repair work items',fmt(d.work_items)],['Current attempt',d.attempt_id??'None'],['Campaign state',d.status]];for(const[k,v]of info){text('dt',k,dl);text('dd',v,dl);}
   text('h4','Code cluster',box);const zoom=text('button',d.group+' · zoom in',box);zoom.onclick=()=>{group=d.group;el('map-group').value=group;draw();searchResults();};
   if(d.compiler_error){text('h4','Compiler blocker',box);text('pre',d.compiler_error,box);}
   text('h4','Current differences',box);if(d.differences.length)text('pre',d.differences.join('\n'),box);else text('p',d.category==='exact'?'No object differences.':'No instruction diff recorded in this checkpoint.',box);
@@ -76,6 +77,7 @@ async function select(name){
 }
 async function refresh(){if(loading||document.hidden||paused)return;loading=true;try{
  const response=await fetch('/api/map',{cache:'no-store',signal:AbortSignal.timeout(20000)});if(!response.ok)throw Error('Map data unavailable');const next=await response.json();data=next;
+ window.dispatchEvent(new CustomEvent('campaign-map-count',{detail:{commit:next.commit,count:next.functions.filter(r=>r.compiled===false).length}}));
  el('map-byte-percent').textContent=next.total_bytes?(100*next.exact_bytes/next.total_bytes).toFixed(1)+'%':'—';el('map-bytes').textContent=bytes(next.total_bytes);el('map-count').textContent=fmt(next.functions.length)+' / '+fmt(next.group_count);
  const names=[...new Set(next.functions.map(r=>r.group))].sort();const selector=el('map-group');const previous=group;selector.replaceChildren();const all=text('option','All code clusters',selector);all.value='';for(const name of names){const o=text('option',name,selector);o.value=name;}group=names.includes(previous)?previous:'';selector.value=group;
  el('map-freshness').textContent=`Checkpoint ${next.commit} · map refreshes every 10 seconds${next.unknown_sizes?' · '+next.unknown_sizes+' functions with unknown sizes are searchable but excluded from area':''}`;

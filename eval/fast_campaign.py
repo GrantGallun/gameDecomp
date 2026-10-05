@@ -71,9 +71,13 @@ def _execute_worker(job, metrics, original_connect, worker_started_at, setup_sta
         result = campaign.execute(repo=Path(job['repo']), db=Path(job['db']), function=job['function'],
                                   node=job['node'], profile=job['profile'], config=job['config'], out=Path(job['raw']))
     except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
-        result = {'status':'parked', 'source':job['node']['source'],
-                  'source_sha256':job['node']['source_sha256'],
-                  'blocker':{'status':'operational_or_intake_failure','error':f'{type(exc).__name__}: {exc}'}}
+        error = f'{type(exc).__name__}: {exc}'
+        if job['profile'].get('name') == 'capability_repair':
+            result = {'auxiliary': True, 'status': 'operational_failure', 'error': error}
+        else:
+            result = {'status':'parked', 'source':job['node']['source'],
+                      'source_sha256':job['node']['source_sha256'],
+                      'blocker':{'status':'operational_or_intake_failure','error':error}}
     result['wall_seconds'] = time.monotonic()-start
     result['worker_started_at'] = worker_started_at
     result['worker_finished_at'] = time.time()
@@ -109,17 +113,69 @@ def project(state):
     return selected
 
 
+def dispatch_profile(state, item, model_calls=None):
+    """Recover the exact queued profile before resource selection or dispatch."""
+    function = item['function']
+    if item.get('profile') == 'capability_repair':
+        task_key = item['evidence_key']
+        for issue_key, issue in state['repair_queue'].get('shared_issues', {}).items():
+            if function not in issue['affected_functions']:
+                continue
+            task = (state.get('capability_tasks', {}).get(issue_key) or
+                    state['config'].get('capability_tasks', {}).get(issue_key))
+            if (task and task.get('evidence') == issue['identity'] and
+                    campaign.repair_queue.fingerprint(task) == task_key):
+                return {'name': 'capability_repair',
+                        'model': bool(state['config']['model_calls']),
+                        'capability_task': task, 'issue_key': issue_key,
+                        'lane': 'capability', 'evidence_key': task_key}
+        raise ValueError('queued capability task changed; refusing dispatch')
+    node = state['nodes'][function]
+    config = state.get('config', {})
+    if config.get('scheduler') is None:
+        # Legacy synthetic callers had no scheduler configuration.
+        revision = campaign.repair_queue.binary_input_revision(state)
+        profile = campaign.repair_queue.next_profile(
+            node, config.get('model_calls', model_calls), campaign.PROFILES,
+            *([revision] if revision else []))
+    else:
+        profile = campaign.scheduled_profile(state, node)
+    if profile is None or (item.get('profile') and profile['name'] != item['profile']) or (
+            item.get('evidence_key') and profile.get('evidence_key') != item['evidence_key']):
+        raise ValueError('queued profile changed; refusing dispatch')
+    return profile
+
+
 def validate_job(node, job, result):
-    if (node.get('source_sha256') != job['node'].get('source_sha256') or
-        campaign.repair_queue.evidence_key(node) != job['profile']['evidence_key']):
+    profile = job['profile']
+    capability = profile.get('name') == 'capability_repair'
+    if capability:
+        evidence_valid = (campaign.repair_queue.fingerprint(profile['capability_task']) ==
+                          profile['evidence_key'] and
+                          campaign.repair_queue.evidence_key(node) ==
+                          campaign.repair_queue.evidence_key(job['node']) and
+                          all((key in node) == (key in job['node']) and
+                              node.get(key) == job['node'].get(key)
+                              for key in ('source', 'source_sha256')))
+    else:
+        evidence_valid = campaign.repair_queue.evidence_key(node) == profile['evidence_key']
+    if node.get('source_sha256') != job['node'].get('source_sha256') or not evidence_valid:
         raise ValueError('worker result is stale; refusing import')
-    if hashlib.sha256(Path(node['source']).read_bytes()).hexdigest() != node['source_sha256']:
+    if node.get('source') and node.get('source_sha256') and (
+            hashlib.sha256(Path(node['source']).read_bytes()).hexdigest() != node['source_sha256']):
         raise ValueError('dispatch source changed outside controller')
+    if result.get('auxiliary'):
+        if not capability:
+            raise ValueError('unexpected auxiliary worker result')
+        return
+    if capability:
+        raise ValueError('capability worker returned candidate result')
     if hashlib.sha256(Path(result['source']).read_bytes()).hexdigest() != result['source_sha256']:
         raise ValueError('worker candidate hash mismatch')
 
 
-def dispatch_items(state, jobs, capacity, model_workers, model_calls):
+def dispatch_items(state, jobs, capacity, model_workers, model_calls, *,
+                   deterministic_only=False, pipeline=True):
     """Maintain a model lane; preserve evidence-v1 priority within each resource.
 
     Only already-eligible profiles participate. CPU work retains capacity when
@@ -130,8 +186,14 @@ def dispatch_items(state, jobs, capacity, model_workers, model_calls):
     active_model = sum(bool(j['profile'].get('model')) for j in jobs)
     items = sorted((r for r in state['repair_queue']['work_items'].values()
                     if r['function'] not in busy), key=lambda r:r['priority'])
-    profiles = {r['function']:campaign.repair_queue.next_profile(
-        state['nodes'][r['function']], model_calls, campaign.PROFILES) for r in items}
+    if not pipeline and not deterministic_only:
+        return items[:capacity]
+    profiles = {r['function']: dispatch_profile(state, r, model_calls) for r in items}
+    if deterministic_only:
+        items = [r for r in items if profiles[r['function']] is not None
+                 and not profiles[r['function']].get('model')]
+    if not pipeline:
+        return items[:capacity]
     picked = []
     for _ in range(capacity):
         prefer_model = active_model < model_workers
@@ -143,6 +205,11 @@ def dispatch_items(state, jobs, capacity, model_workers, model_calls):
         active_model += bool(profiles[item['function']].get('model'))
         picked.append(item)
     return picked
+
+
+def reject_model_inflight(state):
+    if any(job['profile'].get('model') for job in state.get('fast_inflight', [])):
+        raise ValueError('deterministic-only cannot resume a model job already in flight')
 
 
 def timed(metrics, name, operation, *args, **kwargs):
@@ -203,12 +270,13 @@ def run(args):
     reasoned_effort = getattr(args, 'reasoned_effort', 'profile')
     integrate = getattr(args, 'integrate', False)
     runtime_plan = getattr(args, 'runtime_plan', None)
+    deterministic_only = getattr(args, 'deterministic_only', False)
     if reasoned_effort not in {'profile', 'medium'}:
         raise ValueError('reasoned effort must be profile or medium')
     if not 1 <= tasks_per_worker <= 64:
         raise ValueError('tasks per worker must be bounded between one and 64')
-    if not args.resume or args.scheduler != 'evidence-v1' or not 1 <= args.workers <= 3:
-        raise ValueError('fast runtime requires evidence-v1 resume and one to three workers')
+    if not args.resume or args.scheduler not in {'evidence-v1', 'investigation-v1'} or not 1 <= args.workers <= 3:
+        raise ValueError('fast runtime requires evidence/investigation resume and one to three workers')
     if not 1 <= model_parallel <= min(2, args.workers):
         raise ValueError('model parallelism must be one or two and fit the worker count')
     if not model_parallel <= model_workers <= args.workers:
@@ -231,6 +299,8 @@ def run(args):
         bind_runtime_options(state, runtime_options)
         if state.get('inflight'):
             raise ValueError('finish legacy inflight item before changing runtime')
+        if deterministic_only:
+            reject_model_inflight(state)
         pins = campaign._pins(args.project, args.repo)
         pins.update(campaign.frozen_wavefront.file_hashes([Path(p) for p in state['pins']
                     if Path(p).is_relative_to(args.repo/'nonmatchings')]))
@@ -240,7 +310,16 @@ def run(args):
             inventory = list(conn.execute('SELECT name,addr,size,insn_count FROM functions ORDER BY name'))
         if campaign.digest(inventory) != state['inventory_sha256']:
             raise ValueError('inventory changed')
-        if campaign.frozen_wavefront.model_digest(args.endpoint,args.model) != state['model_digest']:
+        # The model digest is a FREEZE CHECK: it proves the endpoint still serves the model this run
+        # was pinned to, so a resumed campaign cannot silently drift onto a different one. With
+        # `--model-calls 0` there is no model to freeze against, and an unconditional call means the
+        # controller cannot start at all without a live endpoint -- measured 2026-09-17: the
+        # resume-pipeline run died here on every restart (`URLError: timed out` against
+        # http://172.28.32.1:11435) and the dashboard reported `needs_repair` with
+        # `consecutive_failures: 3` for 25 hours. `run_expansion.py:202` already guards the same call
+        # the same way, so this is the existing convention rather than a new exemption.
+        if args.model_calls and not deterministic_only and campaign.frozen_wavefront.model_digest(
+                args.endpoint, args.model) != state['model_digest']:
             raise ValueError('model changed')
         pin_hash = campaign.digest(pins)
         store = campaign_state.Store(state_path)
@@ -273,7 +352,7 @@ def run(args):
         integration_ran = False
         def integrate_drained():
             nonlocal selected, integration_ran
-            if (not integrate or integration_ran or state.get('fast_inflight')
+            if (not integrate or deterministic_only or integration_ran or state.get('fast_inflight')
                     or (run_dir/'service.pause').exists()):
                 return
             changed = timed(metrics, 'integration_seconds', campaign_integration.sweep,
@@ -287,7 +366,7 @@ def run(args):
         runtime_ran = False
         def capture_drained():
             nonlocal selected, runtime_ran
-            if (runtime_plan is None or runtime_ran or state.get('fast_inflight')
+            if (runtime_plan is None or deterministic_only or runtime_ran or state.get('fast_inflight')
                     or (run_dir/'service.pause').exists()):
                 return
             changed = timed(metrics, 'runtime_capture_seconds', campaign_runtime.sweep,
@@ -311,20 +390,19 @@ def run(args):
                 if can_dispatch:
                     controller_start = time.monotonic()
                     timed(metrics,'pin_verify_seconds',campaign.frozen_wavefront.verify_files,pins)
-                    items = sorted(state['repair_queue']['work_items'].values(), key=lambda row:row['priority'])
                     # No two jobs for the same function may be inflight together.
                     capacity = min(args.workers-len(jobs), args.max_work_items-completed-len(jobs))
-                    if pipeline:
-                        items = dispatch_items(state, jobs, capacity, model_workers, args.model_calls)
-                    else:
-                        items = items[:capacity]
+                    items = dispatch_items(state, jobs, capacity, model_workers, args.model_calls,
+                                           deterministic_only=deterministic_only, pipeline=pipeline)
                     occupied = {Path(j['slot']).name for j in jobs}
                     free_slots = [i for i in range(args.workers) if str(i) not in occupied]
                     for slot_index, item in zip(free_slots, items):
                         function = item['function']
                         node = state['nodes'][function]
-                        profile = campaign.repair_queue.next_profile(node,args.model_calls,campaign.PROFILES)
+                        profile = dispatch_profile(state, item, args.model_calls)
                         profile = effort_profile(profile, reasoned_effort)
+                        if deterministic_only and profile.get('model'):
+                            raise ValueError('deterministic-only selected a model profile')
                         if profile['name'] == 'intake':
                             raise ValueError('fast runtime currently requires completed intake')
                         slot = slots/str(slot_index)
@@ -334,8 +412,9 @@ def run(args):
                         cutoffs = timed(metrics,'database_sync_seconds',campaign_workers.synchronize,
                                         args.db,slot/'worker.sqlite',prior)
                         campaign_state.atomic(marker,cutoffs)
-                        repo = timed(metrics,'workspace_isolate_seconds',campaign_workers.isolate,
-                                     args.repo,slot/'repo',function)
+                        repo = (args.repo if profile['name'] == 'capability_repair' else
+                            timed(metrics,'workspace_isolate_seconds',campaign_workers.isolate,
+                                  args.repo,slot/'repo',function))
                         tag = f'{time.time_ns()}-{function}'
                         jobs.append({'id':tag, 'slot':str(slot), 'db':str(slot/'worker.sqlite'),
                             'repo':str(repo), 'function':function,'node':copy.deepcopy(node),'profile':profile,
@@ -380,6 +459,7 @@ def run(args):
                 campaign_state.atomic(job['receipt'],result)
                 before_status = {'status': node['status']}
                 timed(metrics,'accept_seconds',campaign.accept,node,job['profile'],result,Path(job['receipt']))
+                investigation_changed = campaign.ingest_investigation(state, job['function'], result)
                 repair_yield.record(metrics, before_status, node, job['profile'], result)
                 metrics['import_seconds'] = metrics.get('import_seconds',0.)+time.monotonic()-import_started
                 state['fast_inflight'] = [j for j in state['fast_inflight'] if j['id'] != job['id']]
@@ -398,11 +478,24 @@ def run(args):
                         metrics[k] = metrics.get(k,0)+v
                 selected = project(state)
                 summary(state,selected)
-                save_session(changed=(job['function'],))
+                save_session(changed=tuple(set(investigation_changed) | {job['function']}))
                 print(json.dumps({'function':job['function'],'profile':job['profile']['name'],
                     'status':node['status'],'score':node.get('score'),'performance':result['performance']}),flush=True)
         integrate_drained()
         capture_drained()
+        if deterministic_only:
+            deterministic_remaining = bool(dispatch_items(
+                state, [], 1, model_workers, args.model_calls, deterministic_only=True,
+                pipeline=pipeline))
+            metrics['last_session'] = {
+                'mode': 'deterministic_only', 'completed_items': completed,
+                'max_work_items': args.max_work_items,
+                'global_work_remaining': selected is not None,
+                'deterministic_work_remaining': deterministic_remaining,
+                'stopped_reason': ('budget' if completed >= args.max_work_items else
+                                   'paused' if (run_dir/'service.pause').exists() else
+                                   'no_deterministic_work'),
+                'integration_and_runtime_capture_skipped': True}
         save_session(finished=True)
         return state
 
@@ -412,6 +505,8 @@ def main():
     for name in ('repo','db','project','state','worker-root'):
         parser.add_argument('--'+name,required=True,type=Path)
     parser.add_argument('--resume',action='store_true')
+    parser.add_argument('--deterministic-only',action='store_true',
+                        help='bounded dispatch of eligible non-model profiles; skip integration and runtime capture')
     parser.add_argument('--integrate',action='store_true',
                         help='amendment: one bounded pending-function integration sweep at a drained boundary')
     parser.add_argument('--runtime-plan', type=Path,

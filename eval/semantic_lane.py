@@ -237,6 +237,25 @@ class Panel:
                     callee_report = [row for row in callee_report if row['callee'] != name]
                     callee_report.append({'callee': name, 'status': 'opaque',
                         'reason': 'compiler-helper closure requires a recognized ROM-bound word-pair stream'})
+            # Opaque callees whose own ROM-verified instructions show exactly which bytes they read
+            # and write through pointer arguments get a contract, so a local buffer at a different
+            # frame offset is not a behavioral difference while its content still is (2026-09-14).
+            from solver import pointer_contracts
+            nested = {}
+
+            def nested_arity(name):
+                if name not in nested:
+                    try:
+                        nested[name] = dag._call_contracts(repo, [name])[0].get(name)
+                    except (OSError, ValueError, KeyError):
+                        nested[name] = None
+                return nested[name]
+            contract_rows = pointer_contracts.extend_environment(
+                repo, self.callee_environment, [c for c in calls if c not in self.callee_environment.leaves],
+                self.arities, nested_arity)
+            contracted = {row['callee'] for row in contract_rows if row['status'] == 'pointer-contract'}
+            callee_report = [row for row in callee_report if row['callee'] not in contracted] + \
+                [row for row in contract_rows if row['status'] == 'pointer-contract']
         else:
             self.callee_environment, callee_report = callee_environment, []
         environment_manifest = self.callee_environment.manifest()

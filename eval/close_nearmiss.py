@@ -115,7 +115,9 @@ def close_one(conn, repo: Path, name: str, *, budget: int, beam: int, depth: int
         dump = None
         if att.compiled and dump_path.exists():
             dump = dump_path.read_text(errors="replace")
-        return regalloc_search.Compiled(bool(att.compiled), bool(att.exact), dump, att.diff or "")
+        return regalloc_search.Compiled(bool(att.compiled), bool(att.exact), dump, att.diff or "",
+                                        evidence={"source_attribution": att.source_attribution,
+                                                  "frontend": getattr(att, "frontend", None)})
 
     # The baseline is compiled and profiled first, because the census result is conditional on the
     # residual's SHAPE: register-dominant with at most two other faults is the band this pass closes,

@@ -23,12 +23,13 @@ import time
 
 from eval import agentrepair, callgraph, frozen_wavefront, integration_gate, prepare_integration
 from miner import units
-from solver import compile_recovery, evidence_schedule, llm, m2c_context, modelrepair, project_headers, residual, sdk_intake, workspace
+from solver import compile_recovery, evidence_schedule, llm, m2c_context, m2c_placeholders, modelrepair, project_headers, residual, sdk_intake, workspace
 from solver.target_intake import AssemblyBackendRequired
 from solver import repair_queue
 
 
 PROFILES = (
+    {"name": "regalloc_search", "deterministic_budget": 0, "regalloc_budget": 300, "model": False},
     {"name": "local_rewrites", "deterministic_budget": 32, "deterministic_depth": 2, "model": False},
     {"name": "schema_patch", "deterministic_budget": 0, "think": "low", "model": True,
      "brief": "Use the source-bound instruction/byte residual to choose one bounded patch. "
@@ -43,6 +44,10 @@ PROFILES = (
      "brief": "Resolve one connected type graph using atomic source-slot edits. Keep the public ABI, "
               "introduce typed locals, update dependent members and byte-copy uses together. "
               "Use target return dataflow rather than inventing return values to silence diagnostics."},
+    {"name": "localized_patch", "deterministic_budget": 0, "think": "low", "model": True,
+     "compiler_localization": True,
+     "brief": "Use candidate-only compiler localization to propose a repair. Treat tied insertion sites "
+              "and nonlocal differences as ambiguous; attribution is guidance, not an edit restriction."},
 )
 
 
@@ -73,6 +78,11 @@ def campaign_lock(path: Path):
                 msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
             else:
                 fcntl.flock(stream, fcntl.LOCK_UN)
+
+
+def _register_dominant(node: dict) -> bool:
+    from solver import regalloc_search
+    return regalloc_search.register_dominant((node.get('residual') or {}).get('faults') or {})
 
 
 def next_profile(node: dict, model_calls: int) -> dict | None:
@@ -107,6 +117,8 @@ def next_profile(node: dict, model_calls: int) -> dict | None:
     if node.get('residual', {}).get('compiled') is False and diagnostics.count("member reference base type 'void'") >= 2:
         profiles = tuple(sorted(PROFILES, key=lambda p: not p.get('type_transaction', False)))
     for profile in profiles:
+        if profile.get('compiler_localization') and node.get('residual', {}).get('compiled') is not True:
+            continue
         if profile.get('type_transaction') and node.get('residual', {}).get('compiled') is not False:
             continue
         if not profile["model"] and node.get("residual", {}).get("compiled") is False:
@@ -114,6 +126,8 @@ def next_profile(node: dict, model_calls: int) -> dict | None:
         if not profile["model"] and (node.get("residual", {}).get("frontend") or {}).get("passed") is False:
             continue
         if profile["model"] and not model_calls:
+            continue
+        if profile["name"] == "regalloc_search" and not _register_dominant(node):
             continue
         if (node["source_sha256"], profile["name"]) not in used:
             return profile
@@ -124,9 +138,16 @@ def scheduled_profile(state, node):
     scheduler = state['config'].get('scheduler', 'legacy')
     if scheduler == 'investigation-v1':
         from solver.investigation import profile
-        return profile(node, state['config']['model_calls'], PROFILES)
+        selected = profile(node, state['config']['model_calls'], PROFILES,
+                           state['config'].get('investigation_policy'), repair_queue.binary_input_revision(state))
+        if selected and selected.get('investigation_policy'):
+            name = next((n for n, value in state['nodes'].items() if value is node), None)
+            selected['capability_issues'] = {key: issue for key, issue in repair_queue.shared_issues(state['nodes']).items()
+                if name in issue['affected_functions'] and len(issue['affected_functions']) >= 2}
+        return selected
     if scheduler == 'evidence-v1':
-        return repair_queue.next_profile(node, state['config']['model_calls'], PROFILES)
+        return repair_queue.next_profile(node, state['config']['model_calls'], PROFILES,
+                                         repair_queue.binary_input_revision(state))
     return next_profile(node, state['config']['model_calls'])
 
 
@@ -196,6 +217,8 @@ def accept(node: dict, profile: dict, result: dict, receipt: Path):
     if 'evidence_key' in profile:
         node['jobs'][-1].update(evidence_key=profile['evidence_key'], lane=profile['lane'],
                                 model=profile['model'])
+    if profile.get('investigation_revision'):
+        node['jobs'][-1]['investigation_revision'] = profile['investigation_revision']
     if result.get('auxiliary'):
         node.setdefault('capability_experiments', []).append({'receipt': str(receipt),
             'status': result.get('status'), 'issue_key': profile.get('issue_key')})
@@ -204,7 +227,7 @@ def accept(node: dict, profile: dict, result: dict, receipt: Path):
         node.update(status="parked", blocker=result.get("blocker"))
         return
     node.update({key: result[key] for key in (
-        "attempt_id", "source", "source_sha256", "score", "verification", "frontier", "residual")
+        "attempt_id", "source", "source_sha256", "score", "verification", "frontier", "residual", "binary_type_revision")
         if key in result})
     node["status"] = "object_exact" if result.get("exact") else "pending"
     if not result.get("exact") and (result.get("verification") or {}).get("function_boundary", {}).get("function_exact"):
@@ -222,7 +245,8 @@ def accept(node: dict, profile: dict, result: dict, receipt: Path):
     if result.get('champions'): node['champions'] = result['champions']
 
 
-def _intake(*, repo: Path, db: Path, function: str, node: dict, out: Path) -> dict:
+def _intake(*, repo: Path, db: Path, function: str, node: dict, out: Path,
+            binary_type_only: bool = False) -> dict:
     try:
         ws = workspace.bootstrap(repo, function)
     except AssemblyBackendRequired:
@@ -234,13 +258,24 @@ def _intake(*, repo: Path, db: Path, function: str, node: dict, out: Path) -> di
         parent = node.get("seed_attempt_id")
         if parent is not None:
             source = agentrepair._source_for_attempt(conn, parent, function)
+            if binary_type_only and node.get("source_sha256") and hashlib.sha256(source.encode()).hexdigest() != node["source_sha256"]:
+                raise ValueError("binary retry incumbent attempt identity changed")
             variants, context = [("explicit-historical-seed", source)], []
-        else:
+        elif not binary_type_only:
             source = (ws / "base.c").read_text() if (ws / "base.c").exists() else ""
             variants, context = m2c_context.seed_variants(
                 repo, function, ws / "target.s", workspace.target_asm(ws, function), source)
             variants = ([("assembly-only-m2c", source)] if source else []) + variants
-        origins = {candidate: parent for _, candidate in variants}
+        else:
+            variants, context = [], []
+        from solver import binary_type_draft
+        clean_variants, clean_context = binary_type_draft.variants(repo, function, ws)
+        binary_revision = binary_type_draft.input_revision(repo)
+        context.extend(clean_context)
+        variants = clean_variants + variants
+        origins = {}
+        for label, candidate in variants:
+            origins.setdefault(candidate, None if label.startswith("binary-types:") else parent)
         for item in node.get("seed_frontier", [])[:3]:
             retained_id = int(item["attempt_id"])
             retained = agentrepair._source_for_attempt(conn, retained_id, function)
@@ -254,8 +289,36 @@ def _intake(*, repo: Path, db: Path, function: str, node: dict, out: Path) -> di
         # omit headers for globals/callback values. Keep the original branch.
         expanded, seen = [], set()
         for label, candidate in variants:
-            for adapted_label, adapted in [(label, candidate)] + project_headers.preflight_variants(
-                    repo, function, workspace.target_asm(ws, function), candidate):
+            # m2c writes `?` where it cannot infer a type, and cfe STOPS at that line and truncates its
+            # error list there -- so on `_Litob` (132 lines) nothing after line 12 was ever judged, and
+            # every later adaptation reasoned about a file whose real defects were invisible. Measured
+            # 2026-09-17: 122 drafts in the tree carry one and 1,962 logged attempts died with
+            # `Empty declaration specifiers`.
+            #
+            # This is the ONLY place every draft passes through -- m2c seeds, historical seeds and
+            # forked frontiers alike -- so the resolved source is offered here rather than inside any
+            # one profile. It is an ADDITIONAL candidate, never a replacement: when the rewrite
+            # declines (no `?` present) it returns the input unchanged and the existing `seen` dedupe
+            # drops it, so a clean draft costs nothing.
+            resolved, placeholder_names = m2c_placeholders.rewrite(candidate)
+            proposed = [(label, candidate)]
+            if placeholder_names:
+                derived_label = label + ":m2c-type-placeholder" if label.startswith("binary-types:") else "m2c-type-placeholder"
+                proposed.append((derived_label, resolved))
+                if label.startswith("binary-types:"):
+                    original_sha = hashlib.sha256(candidate.encode()).hexdigest()
+                    for report in list(clean_context):
+                        if report.get("source_sha256") == original_sha:
+                            derived = {**report, "label": derived_label, "status": "generated",
+                                "source_sha256": hashlib.sha256(resolved.encode()).hexdigest(),
+                                "derived_from_sha256": original_sha, "transformation": "m2c-type-placeholder"}
+                            clean_context.append(derived)
+                            context.append(derived)
+            # The independent binary branch is never silently enriched with
+            # reconstructed project headers. Assisted branches retain adapters.
+            adapted_variants = [] if label.startswith("binary-types:") or binary_type_only else project_headers.preflight_variants(
+                repo, function, workspace.target_asm(ws, function), candidate)
+            for adapted_label, adapted in proposed + adapted_variants:
                 if adapted not in seen:
                     expanded.append((adapted_label, adapted, origins[candidate]))
                     seen.add(adapted)
@@ -263,12 +326,23 @@ def _intake(*, repo: Path, db: Path, function: str, node: dict, out: Path) -> di
         if not variants:
             return {"status": "parked", "blocker": {"status": "no_initial_candidate", "context": context}}
         scored = []
+        scored_ids = {}
+        failed_variants = []   # admitted after every variant has been scored (below)
         for index, (label, candidate, candidate_parent) in enumerate(variants):
             tag = f"{function}_campaign_intake_{time.time_ns()}_{index}"
+            candidate_sha = hashlib.sha256(candidate.encode()).hexdigest()
+            binary_reports = [r for r in clean_context if r.get("source_sha256") == candidate_sha]
+            derived_parent = next((r['derived_from_sha256'] for r in binary_reports if r.get('derived_from_sha256')), None)
+            if label.startswith("binary-types:") and derived_parent is not None:
+                candidate_parent = scored_ids[derived_parent]
             att = workspace.score(ws, repo, tag, candidate, conn=conn, func=function,
                 strategy="campaign-intake:" + label, parent_attempt_id=candidate_parent,
-                run_id=out.stem, relation="campaign-intake", action=label)
+                run_id=out.stem, relation="campaign-intake", action=label,
+                extra=({"assistance_tier": "source-independent", "binary_type_context": binary_reports}
+                       if label.startswith("binary-types:") else None))
             scored.append((att, candidate, ws / (tag + ".o")))
+            scored_ids[candidate_sha] = att.receipt_id
+            targeted = None   # a targeted repair below that compiled pre-empts admission
             if not att.compiled and "contains a do-while loop" in att.compiler_stderr:
                 # Reuse the existing sanctioned for/break lowering, including
                 # its refusal of unsafe continue semantics. Keep both receipts.
@@ -284,11 +358,62 @@ def _intake(*, repo: Path, db: Path, function: str, node: dict, out: Path) -> di
                             strategy="campaign-intake:do-while-for-break", parent_attempt_id=att.receipt_id,
                             run_id=out.stem, relation="compile-repair", action="existing do-while lowering")
                         scored.append((fixed, lowered, ws / (fixed_tag + ".o")))
+                        targeted = fixed
                         if workspace.repair_complete(fixed) and integration_ready(lowered, function):
                             break
+            if not att.compiled and not (targeted is not None and targeted.compiled):
+                failed_variants.append((att, candidate, label, tag))
             if workspace.repair_complete(att) and integration_ready(candidate, function):
                 break
-        if not any(row[0].compiled for row in scored):
+        # The admission choke point (solver/compile_fallback.admit), run ONLY when no variant
+        # compiled. Measured before narrowing (analysis/admission_replay.out, intake_losses.out):
+        # 72.6% of intake DRAFTS fail, but they are mostly alternative variants of functions that
+        # get a compiling draft anyway -- replaying admission on 146 real failed drafts rescued 15,
+        # none better than the function's best compiling draft, and only 28 of 2,013 functions
+        # never compiled at all. Admitting every failed variant would cost ~3 compiles each for no
+        # measured gain, so it runs where it can matter: before the existing recovery, and now
+        # also for binary-type intakes, which previously got no recovery. It runs after every
+        # variant and targeted repair, skips a variant a compiling one already represents, and
+        # the binary branch is admitted without reconstructed game/ headers.
+        from solver import compile_fallback
+
+        def code_key(text):
+            return "".join("".join(l.split()) for l in text.splitlines()
+                           if not l.lstrip().startswith("#"))
+        represented = {code_key(code) for attempt, code, _ in scored if attempt.compiled}
+        if represented:
+            failed_variants = []      # a variant compiled: nothing is at risk of being lost
+        for att, candidate, label, tag in failed_variants:
+            if any(workspace.repair_complete(row[0]) for row in scored):
+                break
+            if code_key(candidate) in represented:
+                continue
+            assisted = not label.startswith("binary-types:")
+            includes = compile_fallback.intake_includes(
+                repo, function, workspace.target_asm(ws, function), assisted=assisted)
+            added_game = any(h.startswith("game/") and h not in candidate for h in includes)
+            admit_tags = {}
+
+            def admit_compile(rung, code, _tag=tag, _parent=att.receipt_id, _label=label,
+                              _game=added_game, _tags=admit_tags):
+                admit_tag = f"{_tag}_admit_{len(_tags)}"
+                _tags[rung] = admit_tag
+                # A rescue that adds a reconstructed game/ header is header assistance, and
+                # eval.status keys that tier on "project-header" in the strategy string. Every
+                # rung after c89 builds on the context-augmented source, so all carry the label.
+                tier = ":project-header-context" if (rung != "c89" and _game) else ""
+                return workspace.score(ws, repo, admit_tag, code, conn=conn, func=function,
+                    strategy=f"campaign-intake-admission:{rung}{tier}", parent_attempt_id=_parent,
+                    run_id=out.stem, relation="compile-admission", action=f"{_label} -> {rung}")
+            admitted = compile_fallback.admit(candidate, att, function=function, repo=repo,
+                context_includes=includes, compile_fn=admit_compile)
+            context.append({"stage": "compile-admission", "label": label,
+                            "rescued_by": admitted.rescued_by, "steps": admitted.steps})
+            if admitted.attempt is not None:
+                scored.append((admitted.attempt, admitted.source,
+                               ws / (admit_tags.get(admitted.rescued_by, tag) + ".o")))
+                represented.add(code_key(admitted.source))
+        if not binary_type_only and not any(row[0].compiled for row in scored):
             parents = modelrepair._frontier([modelrepair.CandidateState(code, attempt, obj)
                 for attempt, code, obj in scored], 2)
             recovered = set(code for _, code, _ in scored)
@@ -309,9 +434,14 @@ def _intake(*, repo: Path, db: Path, function: str, node: dict, out: Path) -> di
                         run_id=out.stem, relation='compile-recovery', action=label,
                         extra={'compile_recovery': reports})
                     scored.append((attempt, code, ws/(tag+'.o')))
-        att, source, object_path = max(scored, key=lambda row: (row[0].exact,
-            row[0].exact and integration_ready(row[1], function),
+        att, source, object_path = max(scored, key=lambda row: (
+            # Initial assisted intake retains its existing preference for an
+            # integratable exact spelling. A binary retry must first preserve
+            # the incumbent's working C policy gate.
+            *((row[0].exact, row[0].exact and integration_ready(row[1], function)) if not binary_type_only else ()),
             workspace.repair_complete(row[0]),
+            row[0].compiled and (row[0].frontend is None or row[0].frontend.get("passed") is True),
+            row[0].exact, row[0].exact and integration_ready(row[1], function),
             (row[0].verification or {}).get("function_boundary", {}).get("function_exact", False),
             row[0].compiled, row[0].score, tuple(-v for v in modelrepair.compile_error_rank(row[0])),
             tuple(-v for v in modelrepair.context_rank(row[1]))))
@@ -325,6 +455,7 @@ def _intake(*, repo: Path, db: Path, function: str, node: dict, out: Path) -> di
     source_path = out.with_suffix(".best.c")
     source_path.write_text(source)
     return {"status": "evaluated", "exact": workspace.repair_complete(att), "attempt_id": att.receipt_id,
+            "binary_type_revision": binary_revision,
             "source": str(source_path), "source_sha256": hashlib.sha256(source.encode()).hexdigest(),
             "score": att.score, "verification": att.verification, "frontier": [
                 {"attempt_id": state.attempt.receipt_id, "source_sha256": hashlib.sha256(state.source.encode()).hexdigest(),
@@ -424,20 +555,72 @@ def execute(*, repo: Path, db: Path, function: str, node: dict, profile: dict,
     source = Path(node["source"]).read_text()
     if hashlib.sha256(source.encode()).hexdigest() != node["source_sha256"]:
         raise ValueError("campaign candidate changed outside controller")
+    if profile.get('site_edits'):
+        from eval import site_edit_repair
+        if profile.get('site_edit_revision') != repair_queue.site_edit_digest():
+            raise ValueError('site-edit generator changed since dispatch')
+        return site_edit_repair.run(repo=repo, db=db, function=function, node=node, out=out,
+                                    budget=profile.get('site_edit_budget', 72))
+    if profile.get('plateau'):
+        from eval import plateau_repair
+        if profile.get('plateau_revision') != repair_queue.plateau_digest():
+            raise ValueError('plateau search changed since dispatch')
+        return plateau_repair.run(repo=repo, db=db, function=function, node=node, out=out,
+                                  budget=profile.get('plateau_budget', 240))
+    if profile.get('operand_repair'):
+        from eval import operand_repair
+        if profile.get('operand_revision') != repair_queue.operand_repair_digest():
+            raise ValueError('operand repair generator changed since dispatch')
+        return operand_repair.run(repo=repo, db=db, function=function,
+            node={**node, 'operand_revision': profile['operand_revision']},
+            out=out, budget=profile.get('operand_budget', 72))
+    if profile.get("binary_types"):
+        # Retain the existing candidate as a scored alternative. The new draft
+        # is an independent root, not a child of an assisted incumbent.
+        seed = {**node, "seed_attempt_id": node["attempt_id"],
+                "seed_frontier": retained_candidates(node)}
+        result = _intake(repo=repo, db=db, function=function, node=seed, out=out, binary_type_only=True)
+        if profile.get('binary_type_revision') and result.get('binary_type_revision') != profile['binary_type_revision']:
+            raise ValueError("binary draft inputs changed since dispatch")
+        semantic = node.get("semantic_validation") or {}
+        if result.get("source_sha256") == node["source_sha256"] == semantic.get("source_sha256"):
+            result["semantic_validation"] = semantic
+        return result
     from eval import campaign_data
+    investigation_policy = profile.get('investigation_policy')
+    calls = investigation_policy['turns'] if investigation_policy and profile['model'] else config['model_calls']
+    extra = {}
+    if investigation_policy:
+        from solver import capability_requests
+        extra = {'investigation_policy': investigation_policy,
+            'experiment_memory': Path(config.get('experiment_memory_root', out.parent / 'experiment-memory')) / (function + '.jsonl'),
+            'investigation_identity': {'shared_evidence': node.get('shared_evidence_sha256'),
+                                      'binary_data': node.get('data_evidence_sha256'),
+                                      'binary_inputs': profile.get('binary_input_revision')},
+            'capability_issues': profile.get('capability_issues', {}),
+            'project': Path(config['project'])}
+        extra_context = capability_requests.context(extra['capability_issues'], function)
+    else:
+        extra_context = {}
     result = agentrepair.run(repo=repo, db=db, function=function, source=source,
         source_parent_attempt_id=node["attempt_id"], out=out.with_suffix(".repair.json"),
         best_source_out=out.with_suffix(".best.c"), model=config["model"], endpoint=config["endpoint"],
         draws=1, depth=max(4, config['model_calls']) if node.get('residual', {}).get('compiled') is False else 4,
-        beam=3, max_calls=config["model_calls"] if profile["model"] else 0,
+        beam=3, max_calls=calls if profile["model"] else 0,
         timeout=config["timeout"], think=profile.get("think", "low"), num_thread=12,
         temperature=0.35, num_predict=config["num_predict"], seed=20260904,
         cache_dir=None, verbose=False, retained_frontier=tuple(retained_candidates(node)),
         deterministic_budget=profile["deterministic_budget"],
         deterministic_depth=profile.get("deterministic_depth", 2), structured_output=True,
         retry_invalid=True, include_header_context=True,
+        regalloc_budget=profile.get("regalloc_budget", 0),
+        frontend_fixits=profile.get("frontend_fixits", False),
+        address_rounds=profile.get("address_rounds", 0),
+        structural_rounds=profile.get("structural_rounds", 0),
+        stack_rounds=profile.get("stack_rounds", 0),
         compile_only=config.get('compile_sweep', False),
         type_transaction=profile.get('type_transaction', False),
+        compiler_localization=profile.get('compiler_localization', False),
         resilient=True,
         investigate=profile.get('investigate', False),
         runtime_captures=tuple(config.get('runtime_captures', {}).get(function, [])),
@@ -445,14 +628,35 @@ def execute(*, repo: Path, db: Path, function: str, node: dict, profile: dict,
         strategy_brief=profile.get("brief", "") + "\nPrevious measured outcome: "
             + json.dumps(node.get("last_outcome", {}), sort_keys=True)
             + '\nShared hypotheses: ' + json.dumps(node.get('shared_context', {}), sort_keys=True)
-            + campaign_data.prompt(config, function))["result"]
+            + '\nShared engineering issues: ' + json.dumps(extra_context, sort_keys=True)
+            + campaign_data.prompt(config, function), **extra)["result"]
     return {**result, "attempt_id": result["best_attempt_id"], "source": result["best_source_path"],
             "source_sha256": result["best_source_sha256"], "residual": result["best_residual"],
             "score": result["best_residual"]["weighted_progress_score"]}
 
 
+def ingest_investigation(state, function, result):
+    """Commit shared observations and eligible engineering requests after import."""
+    payload = result.get('investigation')
+    if state['config'].get('scheduler') != 'investigation-v1' or not payload:
+        return []
+    from solver import shared_hypotheses, capability_requests
+    with sqlite3.connect(state['config']['db']) as shared_conn:
+        changed = shared_hypotheses.ingest(state, function, payload, shared_conn)
+    for task in payload.get('capability_tasks', []):
+        notes = capability_requests.ingest(state, function, [task], Path(state['config']['project']))
+        state.setdefault('capability_request_log', []).append({'function': function,
+            'issue_key': task.get('issue_key') if isinstance(task, dict) else None, 'notes': notes})
+    return changed
+
+
 def _pins(project: Path, repo: Path) -> dict:
+    from solver import binary_type_draft
     paths = frozen_wavefront.code_paths(project)
+    paths += list(binary_type_draft.input_paths(repo).values())
+    link_map = repo / 'build/snowboardkids.map'
+    if link_map.is_file():
+        paths.append(link_map)
     paths += [repo / p for p in ("Makefile", "symbol_addrs.txt", "snowboardkids.yaml", "snowboardkids.z64",
                                  "tools/m2ctx.py", "tools/textconv.py", "tools/charmap.txt")]
     paths += list((repo / "include").rglob("*.h")) + list((repo / "asm").rglob("*.s"))
@@ -474,7 +678,8 @@ def run(*, repo: Path, db: Path, project: Path, state_path: Path, functions: tup
         num_predict: int = 6000, seeds: dict | None = None, integrate: bool = False,
         fork_from: Path | None = None, compile_sweep: bool = False,
         scheduler: str = 'legacy', capability_tasks: Path | None = None,
-        runtime_captures: Path | None = None, cleanup_exact: bool = False) -> dict:
+        runtime_captures: Path | None = None, cleanup_exact: bool = False,
+        investigation_policy: dict | None = None) -> dict:
     if max_work_items < 0 or model_calls < 0:
         raise ValueError("negative budget")
     if scheduler not in {'legacy', 'evidence-v1', 'investigation-v1'}:
@@ -488,6 +693,16 @@ def run(*, repo: Path, db: Path, project: Path, state_path: Path, functions: tup
     # Preserve byte-for-byte legacy configuration identity on resume.
     if scheduler != 'legacy':
         config['scheduler'] = scheduler
+    if investigation_policy:
+        if scheduler != 'investigation-v1':
+            raise ValueError('investigation policy requires investigation-v1')
+        from solver import investigation
+        checked = investigation.policy(investigation_policy['turns'], investigation_policy['compiles'],
+                                       investigation_policy['seconds'])
+        if checked != investigation_policy:
+            raise ValueError('unknown investigation policy revision')
+        config['investigation_policy'] = checked
+        config['experiment_memory_root'] = str(state_path.parent / 'experiment-memory')
     if cleanup_exact:
         config['cleanup_exact'] = True
     if runtime_captures:
@@ -643,10 +858,7 @@ def run(*, repo: Path, db: Path, project: Path, state_path: Path, functions: tup
                                              evidence=exc.evidence)
                 agentrepair._atomic_json(out, result)
             accept(node, profile, result, out)
-            if scheduler == 'investigation-v1' and result.get('investigation'):
-                from solver import shared_hypotheses
-                with sqlite3.connect(db) as shared_conn:
-                    shared_hypotheses.ingest(state, function, result['investigation'], shared_conn)
+            ingest_investigation(state, function, result)
             state.pop("inflight", None)
             # New target files join the frozen input set only after intake.
             if profile["name"] == "intake" and node.get("source"):
@@ -724,6 +936,10 @@ def main():
                         help='trusted issue-keyed reproductions for isolated engineering experiments')
     parser.add_argument('--runtime-captures', type=Path, help='function -> capture paths JSON manifest')
     parser.add_argument('--cleanup-exact', action='store_true', help='verify readability cleanup before optional integration')
+    parser.add_argument('--investigation-turns', type=int,
+                        help='enable expanded investigation with this many model turns (recommended 12)')
+    parser.add_argument('--investigation-compiles', type=int, default=16)
+    parser.add_argument('--investigation-seconds', type=int, default=900)
     parser.add_argument("--seeds", type=Path, help="explicit JSON function -> historical attempt ID map")
     parser.add_argument("--fork-from", type=Path, help="retain prior bests, reset verification/strategy eligibility explicitly")
     parser.add_argument("--max-work-items", type=int, default=12)
@@ -733,6 +949,11 @@ def main():
     parser.add_argument("--timeout", type=int, default=1200)
     parser.add_argument("--num-predict", type=int, default=6000)
     args = vars(parser.parse_args())
+    turns = args.pop('investigation_turns')
+    compiles, seconds = args.pop('investigation_compiles'), args.pop('investigation_seconds')
+    if turns is not None:
+        from solver import investigation
+        args['investigation_policy'] = investigation.policy(turns, compiles, seconds)
     args["state_path"] = args.pop("state").resolve()
     args["functions"] = tuple(args["functions"])
     args["seeds"] = json.loads(args["seeds"].read_text()) if args["seeds"] else None

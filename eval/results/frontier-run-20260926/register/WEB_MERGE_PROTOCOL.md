@@ -1,0 +1,7 @@
+# Follow-up hypothesis: join the two branch pointer locals
+
+Written after the three `FOLLOWUP_PROTOCOL.md` probes and before this compile. The retained source has `temp_v1` for the outer null arm and `temp_v1_2` for the non-null arm. In the retained trace, their live ranges differ: head-arm LR13 chooses `v0` because it does not interfere with `temp_v0`; non-head-arm LR23 chooses `v1` while `temp_v0` occupies `v0`. The target uses `v1` in both arms.
+
+Hypothesis: replace every use of `temp_v1_2` with `temp_v1` and remove the `temp_v1_2` declaration, leaving every expression, branch and store otherwise identical to the retained candidate. If uopt makes one web for the shared C local across arms, the non-head arm's conflict with `temp_v0` will constrain it to `v1`; head-arm load/branch/store should then become `v1`, and the existing `gActiveSoundHandleListTail = NULL` should still emit `sw zero`. That would close the object diff without a synthetic null expression. If the compiler splits the web at the branch, the head arm should remain `v0`; if it merges other live ranges or changes instruction scheduling, report all collateral instructions.
+
+Score the unchanged retained source as a private ordinary-scored parent and the one local-web merge as its logged child. Require the frontend and byte certificate for an exact claim. No reference C/winning source or campaign state in candidate generation.

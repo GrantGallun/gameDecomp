@@ -7,12 +7,20 @@ service's own `pause` and `resume`, through WSL, on the run it was started
 with: no other command, argument or path comes from the request. Pause is
 durable and stops work at a work-item boundary; neither control edits a
 checkpoint, and acceptance gates are untouched.
+
+One further mode is served beside the campaign view: the narrow-RSI experiment
+panel. It reads that experiment's own state file (read-only, `present: false`
+when there is none) and its Start/Stop controls go through
+`eval.rsi_control.RsiControl`, which launches at most one declared runner in the
+background and, on Stop, writes the run's `STOP` file and signals only that run's
+own process group.
 """
 import argparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import csv
 import math
+import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import sqlite3
@@ -28,6 +36,27 @@ ROOT = Path(__file__).resolve().parents[1]
 def read_json(path):
     with path.open(encoding='utf-8') as stream:
         return json.load(stream)
+
+
+def checkpoint_dir(run):
+    """Directory of the live checkpoint pointer and its store: launch.json's --state, as the service reads it.
+
+    Since the 2026-09-20 relocation the run's control directory (launch.json, service files, logs) is on C:
+    while the checkpoint and its artifacts are WSL-side. Reading `run/campaign.json` showed the
+    pre-relocation pointer for two days, and the map view read that copy's store until it was deleted as
+    a verified duplicate on 2026-09-22. SQLite cannot lock over \\\\wsl.localhost, so the live store is
+    only read from WSL: the dashboard is served there (launch-progress.ps1).
+    """
+    launch = run/'launch.json'
+    command = (read_json(launch).get('command') or []) if launch.exists() else []
+    if '--state' not in command:
+        return run
+    state = PurePosixPath(command[command.index('--state')+1])
+    if not state.is_absolute():
+        return (run/str(state)).parent
+    if os.name == 'nt':
+        raise RuntimeError('the live checkpoint is WSL-side; serve the dashboard from WSL (launch-progress.ps1)')
+    return Path(str(state)).parent
 
 
 def _score(value):
@@ -51,6 +80,7 @@ class ScoreHistory:
     """
     def __init__(self):
         self.lock = threading.Lock()
+        self.path = None
         self._reset()
 
     def _reset(self):
@@ -58,6 +88,9 @@ class ScoreHistory:
 
     def update(self, path):
         with self.lock:
+            if path != self.path:
+                self._reset()
+                self.path = path
             if not path.exists():
                 return
             size = path.stat().st_size
@@ -121,9 +154,24 @@ def recent_results(path, limit=40, history=None):
     return results
 
 
-def snapshot(run, now=None, history=None):
+def frontier_running(frontier):
+    """The batch driver's lifetime lock proves activity; progress.json is not a heartbeat."""
+    import fcntl
+    try:
+        with (frontier/'frontier.lock').open('rb') as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return True
+            fcntl.flock(lock, fcntl.LOCK_UN)
+    except FileNotFoundError:
+        pass
+    return False
+
+
+def snapshot(run, now=None, history=None, frontier=None):
     now = time.time() if now is None else now
-    checkpoint = read_json(run/'campaign.json')
+    checkpoint = read_json(checkpoint_dir(run)/'campaign.json')
     service = read_json(run/'service.json')
     if checkpoint.get('kind') != 'campaign-checkpoint-index-v1':
         raise ValueError('This dashboard expects the compact campaign checkpoint.')
@@ -137,6 +185,25 @@ def snapshot(run, now=None, history=None):
         status = 'pausing' if service.get('worker_pid') else 'paused'
     elif status in {'running','restart','retry'} and (heartbeat_age is None or heartbeat_age > 45):
         status = 'heartbeat_delayed'
+    log = run/'pipeline.log'
+    error = service.get('error') if status == 'needs_repair' else None
+    completed_batches = service.get('completed_batches', 0)
+    if frontier is not None:
+        progress = read_json(frontier/'progress.json')
+        completed_batches = progress.get('completed_batches', 0)
+        heartbeat_age = None  # Batch receipts are not a process heartbeat.
+        error = progress.get('error')
+        if progress.get('status') == 'running':
+            if frontier_running(frontier):
+                status = 'pausing' if (frontier/'STOP').exists() else 'running'
+            else:
+                status, error = 'needs_repair', 'Batch runner stopped without a final receipt.'
+        else:
+            status = 'needs_repair' if progress.get('status') == 'failed' else 'finished'
+        # Batch names are zero-padded by the runner. Never show the old
+        # supervisor's pipeline.log as if it belonged to this continuation.
+        logs = sorted(frontier.glob('batch-*/canary-controller.log'))
+        log = logs[-1] if logs else frontier/'batch-0001/canary-controller.log'
     workers = []
     for index, row in enumerate(health.get('parallel_inflight', [])):
         try:
@@ -157,22 +224,23 @@ def snapshot(run, now=None, history=None):
         for label, count in [('improvements','improved_items'),('exact','exact_items')]:
             metrics[label+'_per_hour'] = 3600*metrics.get(count,0)/max(1.,metrics['session_seconds'])
     return {'app':'gameDecomp-progress', 'run':run.name, 'now':now,
+            'mode':'deterministic_frontier' if frontier is not None else 'service',
             'status':status,'heartbeat_age':heartbeat_age,
             'checkpoint_age':max(0,now-checkpoint.get('updated_at',now)),
             'commit':checkpoint.get('commit'), 'functions':health.get('functions',0),
             'states':health.get('states',{}),'semantics':health.get('semantic_functions',{}),
             'summary':checkpoint.get('summary',{}), 'metrics':metrics,
-            'workers':workers, 'recent':recent_results(run/'pipeline.log', history=history),
-            'completed_batches':service.get('completed_batches',0),
-            'error':service.get('error') if status == 'needs_repair' else None}
+            'workers':workers, 'recent':recent_results(log, history=history),
+            'completed_batches':completed_batches, 'error':error}
 
 
 class Feed:
-    def __init__(self,run):
+    def __init__(self,run,frontier=None):
         self.run, self.lock, self.cached, self.last = run, threading.Lock(), None, 0
+        self.frontier = frontier
         self.history = ScoreHistory()
         self.gpu = {'available':False}
-        self.map = MapFeed(run)
+        self.map = MapFeed(checkpoint_dir(run))
 
     def monitor_gpu(self):
         while True:
@@ -182,7 +250,7 @@ class Feed:
     def get(self):
         with self.lock:
             if self.cached is None or time.monotonic()-self.last >= 1:
-                self.cached = snapshot(self.run, history=self.history)
+                self.cached = snapshot(self.run, history=self.history, frontier=self.frontier)
                 self.cached['gpu'] = self.gpu
                 self.last = time.monotonic()
             return self.cached
@@ -250,7 +318,7 @@ class Control:
         return done.stdout.strip()[-2000:]
 
 
-def handler(feed, control=None):
+def handler(feed, control=None, research=None, training=None, rsi=None):
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             route = urlsplit(self.path).path
@@ -260,16 +328,41 @@ def handler(feed, control=None):
             allowed = {f'http://127.0.0.1:{self.server.server_address[1]}',
                        f'http://localhost:{self.server.server_address[1]}'}
             try:
-                if route != '/api/control' or control is None:
+                if route not in {'/api/control', '/api/research/control',
+                                 '/api/training/control', '/api/rsi/control'}:
                     self.send_error(404); return
+                if route == '/api/control' and control is None:
+                    self.send_error(404); return
+                if route == '/api/research/control' and (research is None or not research.enabled):
+                    self.send_error(403, 'Research controls are disabled'); return
+                if route == '/api/training/control' and (training is None or not training.enabled):
+                    self.send_error(403, 'Training controls are disabled'); return
+                if route == '/api/rsi/control' and (rsi is None or not rsi.enabled):
+                    self.send_error(403, 'Narrow-RSI controls are disabled'); return
                 if self.headers.get('X-Campaign-Control') != 'ui' or (origin and origin not in allowed):
                     self.send_error(403, 'Cross-origin control is refused'); return
                 length = int(self.headers.get('Content-Length') or 0)
                 if not 0 < length <= 1024:
                     self.send_error(400, 'Unexpected control body'); return
-                action = json.loads(self.rfile.read(length)).get('action')
-                body = json.dumps({'action': action, 'output': control(action),
-                                   'status': feed.get().get('status')}).encode()
+                request = json.loads(self.rfile.read(length))
+                if not isinstance(request, dict):
+                    raise ValueError('Control body must be a JSON object')
+                action = request.get('action')
+                if route == '/api/research/control':
+                    if set(request) - {'action', 'options'}:
+                        raise ValueError('Unknown research control field')
+                    body = json.dumps(research(action, request.get('options', {}))).encode()
+                elif route == '/api/training/control':
+                    if set(request) - {'action', 'options'}:
+                        raise ValueError('Unknown training control field')
+                    body = json.dumps(training(action, request.get('options', {}))).encode()
+                elif route == '/api/rsi/control':
+                    if set(request) - {'action', 'options'}:
+                        raise ValueError('Unknown narrow-RSI control field')
+                    body = json.dumps(rsi(action, request.get('options', {}))).encode()
+                else:
+                    body = json.dumps({'action': action, 'output': control(action),
+                                       'status': feed.get().get('status')}).encode()
                 code = 200
             except (ValueError, TypeError) as exc:
                 code, body = 400, json.dumps({'error': str(exc)}).encode()
@@ -286,8 +379,22 @@ def handler(feed, control=None):
         def do_GET(self):
             route = urlsplit(self.path).path
             try:
-                if route == '/api/status':
-                    body = json.dumps(feed.get()).encode()
+                if route == '/api/health':
+                    body = json.dumps({'app': 'gameDecomp-progress', 'research_ui': True,
+                                       'training_ui': True, 'rsi_ui': True}).encode()
+                    content = 'application/json; charset=utf-8'
+                elif route == '/api/research':
+                    body = json.dumps(research.get() if research else {'status': 'off', 'controls_enabled': False}).encode()
+                    content = 'application/json; charset=utf-8'
+                elif route == '/api/training':
+                    body = json.dumps(training.get() if training else {'status': 'off', 'controls_enabled': False}).encode()
+                    content = 'application/json; charset=utf-8'
+                elif route == '/api/rsi':
+                    body = json.dumps(rsi.get() if rsi else {'present': False,
+                                                             'controls_enabled': False}).encode()
+                    content = 'application/json; charset=utf-8'
+                elif route == '/api/status':
+                    body = json.dumps({**feed.get(), 'controls_enabled': control is not None}).encode()
                     content = 'application/json; charset=utf-8'
                 elif route == '/api/integration':
                     body = json.dumps(feed.map.integration()).encode()
@@ -331,6 +438,15 @@ def handler(feed, control=None):
                 elif route == '/progress_data.js':
                     body = (ROOT/'eval/progress_data.js').read_bytes()
                     content = 'text/javascript; charset=utf-8'
+                elif route == '/progress_research.js':
+                    body = (ROOT/'eval/progress_research.js').read_bytes()
+                    content = 'text/javascript; charset=utf-8'
+                elif route == '/progress_training.js':
+                    body = (ROOT/'eval/progress_training.js').read_bytes()
+                    content = 'text/javascript; charset=utf-8'
+                elif route == '/progress_rsi.js':
+                    body = (ROOT/'eval/progress_rsi.js').read_bytes()
+                    content = 'text/javascript; charset=utf-8'
                 elif route == '/':
                     body = (ROOT/'eval/progress_app.html').read_bytes()
                     content = 'text/html; charset=utf-8'
@@ -363,12 +479,28 @@ def main():
     parser.add_argument('--wsl-distro',default='Ubuntu')
     parser.add_argument('--wsl-python',default='/home/grant/decomp/sbk1/.venv/bin/python')
     parser.add_argument('--read-only',action='store_true',help='serve without pause/resume control')
+    parser.add_argument('--frontier',type=Path,
+                        help='view a deterministic batch runner receipt directory (read-only)')
     args=parser.parse_args()
-    feed=Feed(args.run.resolve())
+    if args.frontier is not None:
+        if os.name != 'posix':
+            parser.error('--frontier must be served from WSL alongside the runner')
+        args.read_only = True
+    feed=Feed(args.run.resolve(), args.frontier.resolve() if args.frontier is not None else None)
     control=None if args.read_only else Control(
         args.run.resolve(), args.wsl_distro, args.wsl_python, ROOT/'eval/campaign_service.py')
+    from eval.research_control import ResearchControl
+    research = ResearchControl(ROOT/'eval/results/local-research', args.wsl_distro,
+                               args.wsl_python, enabled=not args.read_only)
+    from eval.training_control import TrainingControl
+    training = TrainingControl(ROOT/'eval/results/local-research', args.wsl_distro,
+                               '/home/grant/decomp/train-venv/bin/python',
+                               enabled=not args.read_only)
+    from eval.rsi_control import RsiControl
+    rsi = RsiControl(ROOT/'eval/results/narrow-rsi-20260921', args.wsl_distro,
+                     args.wsl_python, enabled=not args.read_only)
     threading.Thread(target=feed.monitor_gpu,daemon=True).start()
-    server=ThreadingHTTPServer(('127.0.0.1',args.port),handler(feed,control))
+    server=ThreadingHTTPServer(('127.0.0.1',args.port),handler(feed,control,research,training,rsi))
     print(f'gameDecomp progress: http://127.0.0.1:{args.port}'
           f"{' (read-only)' if control is None else ''}",flush=True)
     server.serve_forever()

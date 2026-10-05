@@ -39,8 +39,8 @@ import time
 from pathlib import Path
 
 from eval import matched
-from solver import (buildtypes, compilefix, globaldecl, llm, memberaccess,
-                    typedecl, typepool, unknowns, workspace)
+from solver import (buildtypes, compilefix, globaldecl, llm, m2c_placeholders,
+                    memberaccess, typedecl, typepool, unknowns, workspace)
 from tools import score_repo_function
 
 # The exact shape tools/claude mistook for a decomp.me scratch ID.
@@ -199,6 +199,21 @@ def repair_chain(conn, func: str, draft: str, known_types: set[str],
     # 166 never-attempted drafts it was firing on every one whose draft uses `do` while the terminal
     # `Syntax Error` / `Empty declaration specifiers` stayed exactly where it was. `do` now reaches IDO
     # as written. `solver.rewrites.restore_do_while` is the inverse if a candidate must be put back.
+    # FIRST, because a draft cfe refuses to parse is judged no further. Measured 2026-09-17 on
+    # `_Litob`: 132 lines, cfe stops at line 12 (`? lldiv(s32 *, s32, s32);`) with `Syntax Error` +
+    # `Empty declaration specifiers`, and TRUNCATES the error list there -- so every stage below was
+    # reasoning about a file whose real defects were invisible, and the taxonomy read as a wall of
+    # syntax errors with no further structure. 122 drafts in the tree carry a `?` declaration and
+    # 1,962 logged attempts died with that message. The rewrite declines unless a `?` is present, so
+    # a clean draft is returned untouched.
+    #
+    # It is a PRECONDITION, not a solution: measured alone it admits none of the 8 drafts sampled, and
+    # composed with the header route it admits 1 of 122 -- the errors advance to the next class rather
+    # than clearing. It is here so that the stages after it get a parseable file at all.
+    resolved, placeholder_names = m2c_placeholders.rewrite(code)
+    if placeholder_names:
+        code = resolved
+        applied.append("m2c-placeholder")
     # Before declaring anything: a byte pointer with member accesses needs
     # INDEXING, not a struct. Synthesising a type there would rescale the
     # pointer arithmetic these functions depend on.

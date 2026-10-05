@@ -1,0 +1,258 @@
+"""Install the reviewed staged delivery under both campaign locks.
+
+Never run before stage.py and verify_stage.py succeed. `--apply` is required.
+The script archives the pointer, launch and old code, preserves node/results,
+updates only reviewed code/input pins, and restores those files on failure.
+It does not unpause or start the controller.
+"""
+from __future__ import annotations
+
+import argparse
+import fcntl
+import hashlib
+import importlib
+import json
+import os
+from pathlib import Path
+import shutil
+import sqlite3
+import subprocess
+import sys
+import time
+
+HERE = Path(__file__).resolve().parent
+CONTROL = HERE.parents[1]
+FROZEN = CONTROL / 'code'
+NATIVE = Path('/home/grant/decomp/runs/resume-pipeline-20260908')
+STATE = NATIVE / 'campaign.json'
+LAUNCH = CONTROL / 'launch.json'
+MAIN = HERE.parents[4]
+
+
+def sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def atomic_bytes(path: Path, payload: bytes) -> None:
+    temporary = path.with_name('.' + path.name + '.rollback')
+    temporary.write_bytes(payload)
+    os.replace(temporary, path)
+
+
+def validate_payload(manifest: dict, staged_root: Path) -> dict[str, str]:
+    if manifest.get('kind') != 'unapplied-campaign-delivery-stage':
+        raise ValueError('unexpected stage manifest kind')
+    changed = manifest.get('changed')
+    if not isinstance(changed, dict) or not changed:
+        raise ValueError('missing changed-file map')
+    for rel, row in changed.items():
+        if Path(rel).is_absolute() or '..' in Path(rel).parts:
+            raise ValueError(f'unsafe staged path: {rel}')
+        if not isinstance(row, dict) or not isinstance(row.get('new_sha256'), str):
+            raise ValueError(f'invalid changed-file row: {rel}')
+        file = staged_root / rel
+        if not file.is_file() or sha(file) != row['new_sha256']:
+            raise ValueError(f'staged file hash mismatch: {rel}')
+    additions = manifest.get('additional_input_pins', {})
+    if not isinstance(additions, dict):
+        raise ValueError('invalid additional input map')
+    normalized = {}
+    for path, row in additions.items():
+        if (not isinstance(row, dict) or not isinstance(row.get('label'), str)
+                or not isinstance(row.get('sha256'), str)):
+            raise ValueError(f'invalid additional input row: {path}')
+        file = Path(path)
+        if not file.is_absolute() or str(file.resolve()) != path or not file.is_file():
+            raise ValueError(f'additional input path is not a resolved file: {path}')
+        if sha(file) != row['sha256']:
+            raise ValueError(f'additional input hash mismatch: {path}')
+        normalized[path] = row['sha256']
+    return normalized
+
+
+def lock(path: Path):
+    handle = path.open('a+b')
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError as exc:
+        handle.close()
+        raise RuntimeError(f'lock held: {path}') from exc
+    return handle
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument('--apply', action='store_true')
+    actions.add_argument('--validate', action='store_true')
+    args = parser.parse_args()
+    manifest_bytes = (HERE / 'stage.json').read_bytes()
+    manifest = json.loads(manifest_bytes)
+    validated_additions = validate_payload(manifest, HERE / 'staged')
+    if args.validate:
+        print(json.dumps({'changed':len(manifest['changed']),
+                          'additional_input_pins':len(validated_additions)}, indent=2))
+        return
+    if not args.apply:
+        raise SystemExit('unapplied by default; review stage.json and stage-test.json, then pass --apply')
+    tests = json.loads((HERE / 'stage-test.json').read_bytes())
+    if not tests.get('passed') or tests.get('manifest_sha256') != hashlib.sha256(manifest_bytes).hexdigest():
+        raise RuntimeError('staged tests did not pass for this exact manifest')
+    if not (CONTROL / 'service.pause').exists() or not (NATIVE / 'service.pause').exists():
+        raise RuntimeError('both durable pause markers required')
+    if manifest['state_path'] != str(STATE) or manifest['frozen_project'] != str(FROZEN):
+        raise RuntimeError('manifest targets another campaign')
+    handles = [lock(CONTROL / 'resume-supervisor.lock'), lock(STATE.with_suffix('.lock'))]
+    try:
+        sys.path.insert(0, str(FROZEN))
+        from eval import campaign_state, completion_campaign  # noqa: E402
+        pointer_before = STATE.read_bytes()
+        launch_before = LAUNCH.read_bytes()
+        pointer = json.loads(pointer_before)
+        state = campaign_state.read(STATE)
+        if (pointer['commit'] != manifest['source_commit'] or
+                hashlib.sha256(pointer_before).hexdigest() != manifest['source_pointer_sha256'] or
+                hashlib.sha256(launch_before).hexdigest() != manifest['source_launch_sha256']):
+            raise RuntimeError('checkpoint/launch moved since staging')
+        if state.get('fast_inflight') or state.get('inflight'):
+            raise RuntimeError('campaign has in-flight work')
+        changed = manifest['changed']
+        added_rows = manifest.get('additional_input_pins', {})
+        added = validated_additions
+        if any(path in state['pins'] for path in added):
+            raise RuntimeError('additional input pin already exists')
+        for path, expected in added.items():
+            p = Path(path)
+            if not p.is_file() or sha(p) != expected:
+                raise RuntimeError(f'new input changed: {path}')
+        # Only the reviewed, staged input_paths API may authorize a new pin.
+        if sha(MAIN / 'solver/binary_type_draft.py') != changed['solver/binary_type_draft.py']['new_sha256']:
+            raise RuntimeError('main binary input API changed since staging')
+        code = ('import json,sys; from pathlib import Path; '
+                'from solver import binary_type_draft; '
+                'print(json.dumps({str(v):k for k,v in '
+                'binary_type_draft.input_paths(Path(sys.argv[1])).items()}))')
+        result = subprocess.run([sys.executable, '-c', code, state['config']['repo']], cwd=MAIN,
+                                env=dict(os.environ, PYTHONPATH=str(MAIN)),
+                                capture_output=True, text=True, check=True)
+        allowed_inputs = json.loads(result.stdout)
+        for path, row in added_rows.items():
+            if row['label'] != allowed_inputs.get(path):
+                raise RuntimeError(f'new input label/path mismatch: {path}')
+        new_code_pins = {}
+        for rel, row in changed.items():
+            target = FROZEN / rel
+            staged = HERE / 'staged' / rel
+            if (sha(target) if target.is_file() else None) != row['old_sha256']:
+                raise RuntimeError(f'old frozen file drift: {rel}')
+            if sha(staged) != row['new_sha256']:
+                raise RuntimeError(f'staged file drift: {rel}')
+            new_code_pins[str(target)] = row['new_sha256']
+        unchanged = [p for p in state['pins'] if p not in new_code_pins]
+        other = [p for p, digest in state['pins'].items()
+                 if p not in new_code_pins and (sha(Path(p)) if Path(p).is_file() else None) != digest]
+        if other:
+            raise RuntimeError(f'{len(other)} unchanged pin mismatches, e.g. {other[:3]}')
+        with sqlite3.connect(f'file:{NATIVE / "campaign.sqlite"}?mode=ro', uri=True) as conn:
+            if conn.execute('PRAGMA quick_check').fetchone() != ('ok',):
+                raise RuntimeError('campaign DB integrity check failed')
+            inventory = list(conn.execute('SELECT name,addr,size,insn_count FROM functions ORDER BY name'))
+        if completion_campaign.digest(inventory) != manifest['inventory_sha256']:
+            raise RuntimeError('inventory pin differs')
+        if state['model_digest'] != manifest['model_digest']:
+            raise RuntimeError('model pin differs')
+        before_nodes = {name: {key: node.get(key) for key in (
+            'status', 'source_sha256', 'attempt_id', 'score', 'verification')}
+            for name, node in state['nodes'].items()}
+        before_exact = pointer['summary']['object_exact_or_integrated']
+
+        # Archive all old bytes before changing any deployed file.
+        (HERE / 'campaign.before.json').write_bytes(pointer_before)
+        (HERE / 'launch.before.json').write_bytes(launch_before)
+        for rel, row in changed.items():
+            target = FROZEN / rel
+            if row['old_sha256'] is not None:
+                archived = HERE / 'previous-code' / rel
+                archived.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(target, archived)
+        (HERE / 'before-hashes.json').write_text(json.dumps({
+            'pointer_sha256': manifest['source_pointer_sha256'],
+            'launch_sha256': manifest['source_launch_sha256'],
+            'old_code': {rel: row['old_sha256'] for rel, row in changed.items()},
+            'unchanged_pins_verified': len(unchanged),
+        }, indent=2) + '\n')
+
+        def restore() -> None:
+            for rel, row in changed.items():
+                target = FROZEN / rel
+                if row['old_sha256'] is None:
+                    target.unlink(missing_ok=True)
+                else:
+                    shutil.copy2(HERE / 'previous-code' / rel, target)
+            atomic_bytes(STATE, pointer_before)
+            atomic_bytes(LAUNCH, launch_before)
+
+        try:
+            for rel in changed:
+                target = FROZEN / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(HERE / 'staged' / rel, target)
+            if any(sha(FROZEN / rel) != row['new_sha256'] for rel, row in changed.items()):
+                raise RuntimeError('installed code differs from staged code')
+            state['pins'].update(new_code_pins)
+            state['pins'].update(added)
+            amendment = {
+                'kind': '20260926-scoped-delivery', 'applied_at': time.time(),
+                'revision': str(HERE), 'source_checkpoint': pointer['commit'],
+                'changed': changed, 'additional_input_pins': added_rows,
+                'unchanged_pins_verified': len(unchanged),
+                'inventory_sha256': manifest['inventory_sha256'],
+                'model_digest': manifest['model_digest'],
+                'stage_test_sha256': sha(HERE / 'stage-test.json'),
+                'limits': ('Machinery and binary-derived input pins only. No candidate, receipt, '
+                           'model setting, budget, held-out set, node result or ledger row imported.')}
+            state.setdefault('runtime_amendments', []).append(amendment)
+            campaign_state.Store(STATE).save(state)
+            launch = json.loads(launch_before)
+            launch.setdefault('code_hashes', {}).update(new_code_pins)
+            campaign_state.atomic(LAUNCH, launch)
+            importlib.reload(completion_campaign)
+            actual_pins = completion_campaign._pins(FROZEN, Path(state['config']['repo']))
+            actual_pins.update(completion_campaign.frozen_wavefront.file_hashes([
+                Path(p) for p in state['pins']
+                if Path(p).is_relative_to(Path(state['config']['repo']) / 'nonmatchings')]))
+            if actual_pins != state['pins']:
+                raise RuntimeError('installed code/input pin set differs from checkpoint')
+            restored = campaign_state.read(STATE)
+            after_nodes = {name: {key: node.get(key) for key in (
+                'status', 'source_sha256', 'attempt_id', 'score', 'verification')}
+                for name, node in restored['nodes'].items()}
+            if restored['pins'] != state['pins'] or before_nodes != after_nodes:
+                raise RuntimeError('checkpoint round-trip or retained node changed')
+            after = json.loads(STATE.read_bytes())
+            if after['summary']['object_exact_or_integrated'] != before_exact:
+                raise RuntimeError('match count changed during machinery-only amendment')
+        except BaseException as exc:
+            restore()
+            with sqlite3.connect(f'file:{NATIVE / "campaign.state.sqlite"}?mode=ro', uri=True) as conn:
+                highest_commit = conn.execute('SELECT max(id) FROM commits').fetchone()[0]
+            (HERE / 'rollback.json').write_text(json.dumps({
+                'restored_pointer_sha256': sha(STATE), 'restored_launch_sha256': sha(LAUNCH),
+                'active_commit': json.loads(STATE.read_bytes())['commit'],
+                'highest_database_commit': highest_commit,
+                'orphan_commit_possible': highest_commit > pointer['commit'],
+                'error': f'{type(exc).__name__}: {exc}',
+            }, indent=2) + '\n')
+            raise
+        amendment['result'] = {'commit': after['commit'], 'pointer_sha256': sha(STATE),
+                               'launch_sha256': sha(LAUNCH),
+                               'object_exact_or_integrated': after['summary']['object_exact_or_integrated']}
+        (HERE / 'amendment.json').write_text(json.dumps(amendment, indent=2) + '\n')
+        print(json.dumps(amendment['result'], indent=2))
+    finally:
+        for handle in reversed(handles):
+            handle.close()
+
+
+if __name__ == '__main__':
+    main()

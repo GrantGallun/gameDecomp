@@ -64,6 +64,35 @@ def command_for(run, batch):
     return command
 
 
+def state_path_for(run, command=None):
+    """Return the checkpoint path the frozen worker command actually uses."""
+    command = list(command or read(run / 'launch.json')['command'])
+    if '--state' not in command:
+        return run / 'campaign.json'
+    path = Path(command[command.index('--state') + 1])
+    return path if path.is_absolute() else (run / path).resolve()
+
+
+def pause_paths(run, state_path=None):
+    state_path = state_path or state_path_for(run)
+    paths = (run / 'service.pause', state_path.parent / 'service.pause')
+    return tuple(dict.fromkeys(paths))
+
+
+def pause_requested(run, state_path=None):
+    control = read(run / 'service-control.json') if (run / 'service-control.json').exists() else {}
+    return bool(control.get('paused') or any(path.exists() for path in pause_paths(run, state_path)))
+
+
+def set_paused(run, paused):
+    save(run / 'service-control.json', {'paused': paused, 'time': time.time()})
+    for path in pause_paths(run):
+        if paused:
+            path.touch()
+        else:
+            path.unlink(missing_ok=True)
+
+
 def checkpoint_health(state):
     if '_checkpoint_health' in state:
         return state['_checkpoint_health']
@@ -96,13 +125,13 @@ def tail(path, size=8000):
 def health(run):
     result = {'checked_at': time.time(), 'run': str(run)}
     try:
-        state = read(run / 'campaign.json', summary_only=True)
+        state_path = state_path_for(run)
+        state = read(state_path, summary_only=True)
         result.update(checkpoint_health(state))
-        result['checkpoint_age_seconds'] = round(time.time() - (run / 'campaign.json').stat().st_mtime)
-        control = read(run / 'service-control.json') if (run / 'service-control.json').exists() else {}
+        result['checkpoint_age_seconds'] = round(time.time() - state_path.stat().st_mtime)
         record = read(run / 'service.json') if (run / 'service.json').exists() else {}
-        active = locked(run / 'resume-supervisor.lock') or locked(run / 'campaign.lock')
-        if control.get('paused') or (run / 'service.pause').exists():
+        active = locked(run / 'resume-supervisor.lock') or locked(state_path.with_suffix('.lock'))
+        if pause_requested(run, state_path):
             result['status'] = 'pausing' if active else 'paused'
         elif active:
             result['status'] = 'running'
@@ -134,25 +163,26 @@ def supervise(run, batch):
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return
-        if locked(run / 'campaign.lock'):
+        command = command_for(run, batch)
+        state_path = state_path_for(run, command)
+        if locked(state_path.with_suffix('.lock')):
             return
         record = read(run / 'service.json') if (run / 'service.json').exists() else {}
         failures = record.get('consecutive_failures', 0)
         record.update(pid=os.getpid(), started_at=time.time(), batch_work_items=batch)
-        command = command_for(run, batch)
         while True:
-            control = read(run / 'service-control.json') if (run / 'service-control.json').exists() else {}
-            if control.get('paused') or (run / 'service.pause').exists():
+            if pause_requested(run, state_path):
                 record.update(status='paused', worker_pid=None)
                 save(run / 'service.json', record)
                 return
-            state = read(run / 'campaign.json', summary_only=True)  # Corruption is never silently rolled back.
+            state = read(state_path, summary_only=True)  # Corruption is never silently rolled back.
             # Validated rolling backup plus append-only result receipts already
             # produced by completion_campaign form the restart boundary.
-            pointer = json.loads((run / 'campaign.json').read_bytes())
+            pointer = json.loads(state_path.read_bytes())
             # A small previous commit pointer retains the complete immutable
             # snapshot; do not re-expand the large legacy backup every batch.
-            save(run / 'checkpoint.previous.json', pointer if pointer.get('kind') == 'campaign-checkpoint-index-v1' else state)
+            save(state_path.parent / 'checkpoint.previous.json',
+                 pointer if pointer.get('kind') == 'campaign-checkpoint-index-v1' else state)
             del state
             with (run / 'pipeline.log').open('a') as log:
                 worker = subprocess.Popen(command, cwd=run / 'code', stdout=log,
@@ -170,10 +200,10 @@ def supervise(run, batch):
                     except subprocess.TimeoutExpired:
                         pass
                 code = worker.returncode
-            state = read(run / 'campaign.json', summary_only=True)
+            state = read(state_path, summary_only=True)
             failures = failures + 1 if code else 0
             decision = retry_decision(code, state.get('status'), failures,
-                                      (run / 'service.pause').exists())
+                                      pause_requested(run, state_path))
             record.update(status=decision, returncode=code, worker_pid=None,
                           consecutive_failures=failures, last_exit_at=time.time(),
                           completed_batches=record.get('completed_batches', 0) + int(code == 0))
@@ -202,15 +232,15 @@ def main():
         supervise(run, args.batch)
         return
     if args.action == 'pause':
-        save(run / 'service-control.json', {'paused': True, 'time': time.time()})
-        (run / 'service.pause').touch()
+        set_paused(run, True)
     if args.action == 'resume':
-        save(run / 'service-control.json', {'paused': False, 'time': time.time()})
-        (run / 'service.pause').unlink(missing_ok=True)
+        set_paused(run, False)
         if (run / 'service.json').exists():
             record = read(run / 'service.json')
+            state_path = state_path_for(run)
             if (record.get('status') in {'needs_repair', 'paused'}
-                    and not locked(run / 'resume-supervisor.lock') and not locked(run / 'campaign.lock')):
+                    and not locked(run / 'resume-supervisor.lock')
+                    and not locked(state_path.with_suffix('.lock'))):
                 record.update(status='stopped', consecutive_failures=0)
                 record.pop('error', None)
                 save(run / 'service.json', record)

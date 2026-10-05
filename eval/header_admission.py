@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import functools
 import json
 import re
 import sqlite3
@@ -41,16 +42,37 @@ PRIMITIVE = {"s8", "u8", "s16", "u16", "s32", "u32", "s64", "u64", "f32", "f64",
              "char", "long", "float", "double", "void", "unsigned", "signed"}
 
 
+@functools.lru_cache(maxsize=None)
 def declaring_header(repo: Path, type_name: str) -> str | None:
     """The include-relative path of a header that declares `type_name`, or None.
 
-    Two spellings count as a declaration: `typedef struct Name {` (a tagged struct) and `} Name;`
-    (the closing typedef), because the project writes both and a header may introduce the type by
-    either. Searching the tree is the whole evidence base here -- no inference about what the type
-    "should" be.
+    Three spellings count as a declaration, because the project writes all three:
+    `typedef struct Name {` (a tagged struct), `} Name;` (the closing typedef of a struct, union or
+    enum), and a plain `typedef <base> Name[...];` with no braces.
+
+    THE THIRD FORM WAS MISSING and it is why the route under-reported. Measured 2026-09-17:
+    `Mat3x3` IS declared, at `include/game/math/geometry.h:23` as `typedef s16 Mat3x3[9];`, and this
+    function returned None for it -- so `drawRacePlayerModel-2` was counted as carrying an
+    unattributable type when a header declared it all along. A detector that returns None looks
+    exactly like a name nothing declares, which is the silent-decline failure mode applied to
+    provenance: the wrong answer here does not just miss a fix, it MISCLASSIFIES a resolvable name as
+    evidence-free and routes it to the `unk`-only path.
+
+    The no-brace form demands the name be the last identifier before the `;` (an array suffix is
+    allowed), so `typedef s32 (*Fn)(SomeType *);` is not read as declaring `SomeType`.
+
+    Searching the tree is the whole evidence base here -- no inference about what the type "should"
+    be. Note what it CANNOT see: a type declared file-locally in a project `.c`
+    (`src/race/flow/race_flow.c:54` declares `} CourseGridEntry;`, and no header does). Returning None
+    for those is correct and load-bearing: it is the signal that the name is unattributable from a
+    header, and that a draft only compiles because m2c's `ctx.c` had already been handed the
+    project's own source.
     """
-    patterns = (re.compile(rf"\btypedef\s+struct\s+{re.escape(type_name)}\b"),
-                re.compile(rf"\}}\s*{re.escape(type_name)}\s*;"))
+    name = re.escape(type_name)
+    patterns = (re.compile(rf"\btypedef\s+struct\s+{name}\b"),
+                re.compile(rf"\}}\s*{name}\s*;"),
+                re.compile(rf"\btypedef\b[^;{{}}]*?\b{name}\b\s*(?:\[[^\];{{}}]*\])?\s*;"),
+                re.compile(rf"\b(?:struct|union|enum)\s+{name}\b"))
     names = set()
     for header in sorted((repo / "include").rglob("*.h")):
         try:
@@ -87,10 +109,11 @@ def add_includes(repo: Path, draft: str, headers: list[str]) -> str:
     return block + draft
 
 
-def run_one(conn, repo: Path, name: str, *, rounds: int, context: dict | None = None) -> dict:
+def run_one(conn, repo: Path, name: str, *, rounds: int, context: dict | None = None,
+            draft_name: str = "base.c") -> dict:
     row: dict = {"function": name}
     ws = workspace.bootstrap(repo, name)
-    draft_path = ws / "base.c"
+    draft_path = ws / draft_name
     if not draft_path.is_file():
         return dict(row, status="no-draft")
     draft = draft_path.read_text(errors="replace")
@@ -172,6 +195,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--rounds", type=int, default=3)
     ap.add_argument("--seconds", type=float, default=0.0)
+    ap.add_argument("--only-resolvable", action="store_true",
+                    help="keep only drafts whose missing types ALL have a declaring header; the "
+                         "rest are routed to the unk-only path and this route cannot help them")
     args = ap.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -192,6 +218,25 @@ def main(argv: list[str] | None = None) -> int:
                      (re.sub(r"-\d+$", "", n.name),)).fetchone()]
     if args.limit:
         names = names[:args.limit]
+    if args.only_resolvable:
+        # A draft whose missing types include one no header declares cannot be admitted by this route:
+        # `missing_types` will keep returning it and the include rounds will exhaust. Measured
+        # 2026-09-17, 21 of the 22 such names are declared ONLY in the project's own `.c` files, which
+        # is the signature of `m2ctx.py` having handed m2c the reference source. Routing those here
+        # spends compiles to learn nothing; they belong to the unk-only path.
+        kept = []
+        for name in names:
+            base = args.repo / "nonmatchings" / name / "base.c"
+            wanted = [t for t in missing_types(base.read_text(errors="replace")) if t]
+            # `wanted` must be NON-EMPTY: `all([])` is True, so a draft with no missing types was
+            # vacuously "resolvable" and the first version of this filter kept 1,484 of 1,557 --
+            # i.e. almost the whole population, including the ~1,300 rows that fail for reasons this
+            # route does not own. The flag exists to skip exactly those, so the emptiness check is the
+            # flag's entire content.
+            if wanted and all(declaring_header(args.repo, t) for t in wanted):
+                kept.append(name)
+        print(f"--only-resolvable kept {len(kept)} of {len(names)}", flush=True)
+        names = kept
     print(f"never-compiling functions with an m2c draft: {len(names)}", flush=True)
 
     state_path = args.out / "state.json"

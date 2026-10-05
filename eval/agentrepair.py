@@ -96,6 +96,127 @@ def _diagnosis(repo: Path, ws: Path, object_path: Path,
         if result else ""
 
 
+def _regalloc_search(repo, conn, ws, function, source, root_packet, budget, *,
+                     run_id, config, root_attempt_id):
+    """Zero-model register search with durable, parented compiler observations."""
+    from solver import regalloc_search
+    if not regalloc_search.register_dominant(getattr(root_packet, 'faults', None) or {}):
+        return None
+    target = ws / 'target_object_dump_normalized.s'
+    if not target.is_file():
+        return None
+    attempt_by_source = {hashlib.sha256(source.encode()).hexdigest(): root_attempt_id}
+
+    def compile_with_parent(candidate, label, parent_source):
+        parent_hash = hashlib.sha256((parent_source if parent_source is not None else source).encode()).hexdigest()
+        if parent_hash not in attempt_by_source:
+            raise RuntimeError(f'regalloc parent was not compiled: {label}')
+        tag = f'{function}_regalloc_{time.time_ns()}'
+        attempt = workspace.score(ws, repo, tag, candidate, conn=conn, func=function,
+                                  strategy='regalloc-search-probe', model='zero-model',
+                                  run_id=run_id, parent_attempt_id=attempt_by_source[parent_hash],
+                                  relation='regalloc-search', action=label,
+                                  run_kind='agent-repair', run_config=config,
+                                  extra={'parent_source_sha256': parent_hash})
+        if attempt.receipt_id is None:
+            raise RuntimeError(f'regalloc attempt was not recorded: {label}')
+        attempt_by_source[hashlib.sha256(candidate.encode()).hexdigest()] = attempt.receipt_id
+        dump = ws / f'{tag}_object_dump_normalized.s'
+        text = dump.read_text() if attempt.compiled and dump.is_file() else None
+        obj = ws / f'{tag}.o'
+        # kept before cleanup: a reused result is checked against this object by certificate
+        obj_bytes = obj.read_bytes() if attempt.compiled and obj.is_file() else None
+        for path in ws.glob(tag + '*'):
+            if path.is_file():
+                path.unlink(missing_ok=True)
+        evidence = {'compiled': bool(attempt.compiled), 'score': attempt.score,
+                    'source_attribution': attempt.source_attribution,
+                    'frontend': attempt.frontend, 'compiler_recipe': attempt.compiler_recipe}
+        return regalloc_search.Compiled(bool(attempt.compiled), workspace.repair_complete(attempt),
+                                        text, attempt.diff or '', evidence, obj=obj_bytes)
+
+    from kb.attempts import record_model_proposal
+    from solver import ido_stages
+
+    def optimizer_key(candidate):
+        return ido_stages.optimizer_key(repo, ws, function, candidate)
+
+    def resolved(candidate, label, parent_source, same_as):
+        # Never compiled, so no attempts row: the candidate is still logged, with the compile it reused.
+        parent_hash = hashlib.sha256((parent_source if parent_source is not None else source).encode()).hexdigest()
+        record_model_proposal(conn, run_id=run_id, parent_attempt_id=attempt_by_source.get(parent_hash),
+                              prompt='', raw_response=candidate, status='duplicate', model='zero-model',
+                              kind='optimizer-key:regalloc', hypothesis=label,
+                              edits=[{'same_object_as_attempt': attempt_by_source.get(
+                                  hashlib.sha256(same_as.encode()).hexdigest())}])
+
+    def same_object(prior, actual):
+        """Object certificate between two candidates' objects (allocated sections and relocation
+        expressions); None when either object is missing or the certificate is unverified."""
+        from solver import byte_certificate
+        if prior.obj is None or actual.obj is None:
+            return None
+        stem = ws / f'{function}_keycheck_{time.time_ns()}'
+        left, right = stem.with_suffix('.a.o'), stem.with_suffix('.b.o')
+        try:
+            left.write_bytes(prior.obj)
+            right.write_bytes(actual.obj)
+            receipt = byte_certificate.certify(left, right, source=source)
+        finally:
+            left.unlink(missing_ok=True)
+            right.unlink(missing_ok=True)
+        return None if receipt.get('status') == 'unverified' else bool(receipt.get('exact'))
+
+    # Keyed resolution (eval/results/regalloc-keyed-20260927/RESULTS.md): 61% of evaluations resolved, 0 key
+    # violations, 73% more candidates per budget, better gradient in 11/40 and worse in 0. Reuse is checked
+    # by object certificate on expansion and on a seeded 2% audit (docs/claude-review-followup-20260928.md §2).
+    audit_seed = int(hashlib.sha256(f'{run_id}:{function}'.encode()).hexdigest()[:8], 16)
+    outcome = regalloc_search.search(function, source, compile_with_parent, target.read_text(),
+                                     budget=budget, enable=True,
+                                     compile_with_parent=compile_with_parent,
+                                     key=optimizer_key, resolved=resolved,
+                                     same_object=same_object, audit_rate=0.02, audit_seed=audit_seed,
+                                     # scalar coalescing: 2 exact on a one-step sweep of 831 pending functions
+                                     # (eval/results/coalescing-sweep-20260928); scoped_field is on by default
+                                     # in regalloc_mutations (2/6 transfer, eval/results/scoped-field-20260928)
+                                     coalesce=True)
+    outcome.best_attempt_id = attempt_by_source[hashlib.sha256(outcome.best_source.encode()).hexdigest()]
+    return outcome
+
+
+def _compile_chain(repo, ws, function, source, recovery_seed, initial_states, compiled_names, conn,
+                   run_id, config, context_reports):
+    """Chain placeholder/undeclared-identifier fixes from the most advanced non-compiling state."""
+    from solver import compile_chain, placeholder_declarations
+    pool = [recovery_seed, *(s for s in initial_states if not s.attempt.compiled)]
+    base_lines = source.count('\n')
+    parent = max(pool, key=lambda s: compile_chain.progress(s.attempt, s.source, base_lines))
+    objects = {}
+
+    def score(label, code):
+        tag = f'{function}_chain_{time.time_ns()}'
+        tag, att = compiled_names.score(tag, code, conn=conn, func=function,
+            strategy='agentrepair-compile-chain:' + label, model='zero-model', run_id=run_id,
+            parent_attempt_id=parent.attempt.receipt_id, relation='compile-chain', action=label,
+            run_kind='agent-repair', run_config=config)
+        objects[code] = ws / (tag + '.o') if att.compiled else None
+        return att
+
+    try:
+        headers = placeholder_declarations.header_names(repo, parent.source)
+        chained, log = compile_chain.chain(function, 'chain', parent.source, parent.attempt, score, headers=headers)
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        chained, log = [], [{'stage': 'compile-chain', 'status': 'error', 'reason': str(exc)}]
+    context_reports.append({'kind': 'compile-chain', 'parent_attempt_id': parent.attempt.receipt_id,
+                            'compiled': any(a.compiled for _l, _c, a in chained), 'log': log})
+    seen = {s.source for s in initial_states} | {source}
+    for label, code, att in chained:
+        if code not in seen:
+            seen.add(code)
+            initial_states.append(modelrepair.CandidateState(code, att, objects.get(code),
+                parent.labels + (label,), parent.kinds + ('compile-chain',)))
+
+
 def run(*, repo: Path, db: Path, function: str, source: str,
         source_parent_attempt_id: int | None, out: Path, best_source_out: Path,
         model: str, endpoint: str, draws: int, depth: int, beam: int,
@@ -111,7 +232,12 @@ def run(*, repo: Path, db: Path, function: str, source: str,
         semantic_cases: int = 64, semantic_steps: int = 10000,
         investigate: bool = False, runtime_captures: tuple[dict, ...] = (),
         recordings: tuple[dict, ...] = (), exhaust_budget: bool = False,
-        call_seeds: tuple[int, ...] | None = None, memory_context: dict | None = None) -> dict:
+        call_seeds: tuple[int, ...] | None = None, memory_context: dict | None = None,
+        regalloc_budget: int = 0, frontend_fixits: bool = False, address_rounds: int = 0,
+        structural_rounds: int = 0, stack_rounds: int = 0,
+        investigation_policy: dict | None = None, experiment_memory: Path | None = None,
+        investigation_identity: dict | None = None, capability_issues: dict | None = None,
+        project: Path | None = None, compiler_localization: bool = False) -> dict:
     provider = provider or modelrepair.OllamaProvider()
     conn = sqlite3.connect(db, timeout=120)
     conn.execute("PRAGMA busy_timeout = 120000")
@@ -130,6 +256,7 @@ def run(*, repo: Path, db: Path, function: str, source: str,
         "function": function,
         "model": model,
         "provider": provider.provider_id,
+        "compiler_localization": compiler_localization,
         "draws_per_parent": draws,
         "max_depth": depth,
         "beam_width": beam,
@@ -150,12 +277,20 @@ def run(*, repo: Path, db: Path, function: str, source: str,
         "type_transaction": type_transaction,
         "resilient":resilient, "semantic_cases":semantic_cases,"semantic_steps":semantic_steps,
         "constraint_plan_budget":8 if resilient else 0,
+        "regalloc_budget": regalloc_budget,
+        "frontend_fixits": frontend_fixits,
+        "address_rounds": address_rounds,
+        "structural_rounds": structural_rounds,
+        "stack_rounds": stack_rounds,
     }
     if memory_context:
         config['binary_data_memory_sha256'] = memory_context['sha256']
     if investigate:
         config['investigation'] = {'enabled': True, 'calls_share_model_budget': True,
                                    'compiler_probes_share_tool_compile_budget': True}
+        if investigation_policy:
+            config['investigation'].update(policy=investigation_policy,
+                experiment_memory=str(experiment_memory) if experiment_memory else None)
     if runtime_captures:
         config['runtime_captures'] = [record['sha256'] for record in runtime_captures]
     if recordings:
@@ -225,6 +360,9 @@ def run(*, repo: Path, db: Path, function: str, source: str,
                 initial_states.append(modelrepair.CandidateState(candidate,att,
                     ws/(tag+'.o') if att.compiled else None,
                     recovery_seed.labels+(label,),recovery_seed.kinds+('compile-recovery',)))
+            if not any(s.attempt.compiled for s in [seed_state,*initial_states]):
+                _compile_chain(repo,ws,function,source,recovery_seed,initial_states,compiled_names,conn,
+                               run_id,config,context_reports)
             seed_state=modelrepair._frontier([seed_state,*initial_states],1)[0]
         if not seed_state.attempt.compiled and type_plan.inventory(seed_state.source):
             try:
@@ -265,6 +403,119 @@ def run(*, repo: Path, db: Path, function: str, source: str,
             initial_states.append(modelrepair.CandidateState(
                 candidate, verified, ws / f"{tag}.o" if verified.compiled else None,
                 ("deterministic compiler search",), ("deterministic",)))
+    if regalloc_budget > 0 and root.compiled and not root.exact:
+        searched = _regalloc_search(repo, conn, ws, function, source, root_packet, regalloc_budget,
+                                    run_id=run_id, config=config, root_attempt_id=root.receipt_id)
+        if searched is not None:
+            context_reports.append({'kind': 'regalloc-search', **searched.summary(),
+                                    'log_tail': searched.log[-20:]})
+            if searched.improved and searched.best_source != source:
+                tag = f"{function}_agentrepair_regalloc_{time.time_ns()}"
+                tag, verified = compiled_names.score(tag, searched.best_source, conn=conn, func=function,
+                    strategy="agentrepair-regalloc-search", model="zero-model", run_id=run_id,
+                    parent_attempt_id=searched.best_attempt_id, relation="regalloc-search",
+                    action=searched.best_label, extra={"regalloc_search": searched.summary()},
+                    run_kind="agent-repair", run_config=config)
+                initial_states.append(modelrepair.CandidateState(
+                    searched.best_source, verified, ws / f"{tag}.o" if verified.compiled else None,
+                    ("register search: " + searched.best_label,), ("regalloc",)))
+    if frontend_fixits and root.compiled and (root.frontend or {}).get('passed') is False:
+        from solver import frontend_fixits as fixits
+        command = ((root.frontend or {}).get('recipe') or {}).get('command')
+        try:
+            fixed, fixit_log = fixits.propose(repo, source, command, ws) if command else (None, [])
+            fixit_report = {'kind': 'frontend-fixits', 'status': 'passed' if fixed else
+                            'declined' if command else 'no_frontend_recipe', 'rounds': fixit_log}
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            fixed, fixit_report = None, {'kind': 'frontend-fixits', 'status': 'error', 'reason': str(exc)}
+        context_reports.append(fixit_report)
+        if fixed is not None:
+            tag = f"{function}_agentrepair_frontend_fixits_{time.time_ns()}"
+            tag, verified = compiled_names.score(tag, fixed, conn=conn, func=function,
+                strategy="agentrepair-frontend-fixits", model="zero-model", run_id=run_id,
+                parent_attempt_id=root.receipt_id, relation="frontend-fixits",
+                action="casts at clang-diagnosed expressions", extra={"frontend_fixits": fixit_report},
+                run_kind="agent-repair", run_config=config)
+            initial_states.append(modelrepair.CandidateState(
+                fixed, verified, ws / f"{tag}.o" if verified.compiled else None,
+                ("frontend fix-its",), ("frontend-fixits",)))
+    if address_rounds > 0 and root.compiled and not root.exact:
+        from solver import address_symbols
+        import yaml
+        segments = address_symbols.segments_from(yaml.safe_load((repo / 'snowboardkids.yaml').read_text()))
+        current_source, current = source, root
+        for address_round in range(address_rounds):
+            chosen = None
+            for label, _kind, candidate in address_symbols.variants(current_source, function, current.diff or '',
+                                                                    segments=segments):
+                tag = f"{function}_agentrepair_address_{time.time_ns()}"
+                tag, verified = compiled_names.score(tag, candidate, conn=conn, func=function,
+                    strategy="agentrepair-address-symbols", model="zero-model", run_id=run_id,
+                    parent_attempt_id=current.receipt_id, relation="address-symbols",
+                    action=f"{label} round {address_round}", run_kind="agent-repair", run_config=config)
+                if verified.compiled and (chosen is None or
+                        modelrepair._quality(verified) > modelrepair._quality(chosen[1])):
+                    chosen = (candidate, verified, tag, label)
+            if chosen is None or modelrepair._quality(chosen[1]) <= modelrepair._quality(current):
+                break
+            current_source, current = chosen[0], chosen[1]
+            initial_states.append(modelrepair.CandidateState(
+                chosen[0], chosen[1], ws / f"{chosen[2]}.o" if chosen[1].compiled else None,
+                ("address symbols: " + chosen[3],), ("address-symbols",)))
+            context_reports.append({'kind': 'address-symbols', 'round': address_round, 'label': chosen[3],
+                                    'score': chosen[1].score, 'exact': chosen[1].exact})
+            if chosen[1].exact:
+                break
+    if structural_rounds > 0 and root.compiled and not root.exact:
+        from solver import structural_mutations
+        current_source, current = source, root
+        for structural_round in range(structural_rounds):
+            chosen = None
+            for label, _kind, candidate in structural_mutations.variants(current_source, function):
+                tag = f"{function}_agentrepair_structural_{time.time_ns()}"
+                tag, verified = compiled_names.score(tag, candidate, conn=conn, func=function,
+                    strategy="agentrepair-structural-rewrites", model="zero-model", run_id=run_id,
+                    parent_attempt_id=current.receipt_id, relation="structural-rewrites",
+                    action=f"{label} round {structural_round}", run_kind="agent-repair", run_config=config)
+                if verified.compiled and (chosen is None or
+                        modelrepair._quality(verified) > modelrepair._quality(chosen[1])):
+                    chosen = (candidate, verified, tag, label)
+            if chosen is None or modelrepair._quality(chosen[1]) <= modelrepair._quality(current):
+                break
+            current_source, current = chosen[0], chosen[1]
+            initial_states.append(modelrepair.CandidateState(
+                chosen[0], chosen[1], ws / f"{chosen[2]}.o" if chosen[1].compiled else None,
+                ("structural rewrite: " + chosen[3],), ("structural-rewrites",)))
+            context_reports.append({'kind': 'structural-rewrites', 'round': structural_round, 'label': chosen[3],
+                                    'score': chosen[1].score, 'exact': chosen[1].exact})
+            if chosen[1].exact:
+                break
+    if stack_rounds > 0 and root.compiled and not root.exact:
+        from solver import stack_layout
+        current_source, current = source, root
+        for stack_round in range(stack_rounds):
+            chosen = None
+            for label, _kind, candidate in stack_layout.variants(current_source, function, current.diff or ''):
+                tag = f"{function}_agentrepair_stack_{time.time_ns()}"
+                tag, verified = compiled_names.score(tag, candidate, conn=conn, func=function,
+                    strategy="agentrepair-stack-layout", model="zero-model", run_id=run_id,
+                    parent_attempt_id=current.receipt_id, relation="stack-layout",
+                    action=f"{label} round {stack_round}", run_kind="agent-repair", run_config=config)
+                if verified.compiled and (chosen is None or
+                        modelrepair._quality(verified) > modelrepair._quality(chosen[1])):
+                    chosen = (candidate, verified, tag, label)
+                if verified.exact:
+                    break
+            if chosen is None or modelrepair._quality(chosen[1]) <= modelrepair._quality(current):
+                break
+            current_source, current = chosen[0], chosen[1]
+            initial_states.append(modelrepair.CandidateState(
+                chosen[0], chosen[1], ws / f"{chosen[2]}.o" if chosen[1].compiled else None,
+                ("stack layout: " + chosen[3],), ("stack-layout",)))
+            context_reports.append({'kind': 'stack-layout', 'round': stack_round, 'label': chosen[3],
+                                    'score': chosen[1].score, 'exact': chosen[1].exact})
+            if chosen[1].exact:
+                break
     # Resilient handoff reserves room for semantic/byte champions plus intact
     # recovery state, even with a narrow search beam. Reverify, never trust old
     # scores or semantic reports across jobs.
@@ -304,9 +555,21 @@ def run(*, repo: Path, db: Path, function: str, source: str,
     investigation_result = None
     investigation_receipts = []
     investigation_hypotheses = []
+    capability_tasks = []
+    evaluator = panel
     if investigate and max_calls:
         from solver import investigation, toolagent
-        tools = investigation.Tools(repo, ws, conn, function, out.parent / (out.stem + '-investigation'))
+        advanced = bool(investigation_policy)
+        tools = investigation.Tools(repo, ws, conn, function, out.parent / (out.stem + '-investigation'),
+            panel=panel, advanced=advanced, project=project, issues=capability_issues)
+        notebook = None
+        if advanced:
+            from solver.experiment_memory import Notebook
+            notebook = Notebook(experiment_memory or out.parent / 'experiment-memory' / (function + '.jsonl'),
+                function, {'target_asm': hashlib.sha256(target_asm.encode()).hexdigest(),
+                           'compiler': investigation.compiler_identity(repo, root.compiler_recipe),
+                           'evidence': investigation_identity or {}})
+            evaluator = lambda candidate: tools.evaluate(candidate, panel)
         start = modelrepair._frontier([modelrepair.CandidateState(source, root, root_object), *initial_states], 1)[0]
         behavior = panel(start) if panel else None
         investigation_question = investigation.question({'status': 'pending',
@@ -325,16 +588,20 @@ def run(*, repo: Path, db: Path, function: str, source: str,
                 + '\nBinary evidence is available for the function symbol ' + function
                 + '. If header lookup fails, inspect target evidence or the instruction diff.'
                 + '\nBehavioral evidence: ' + json.dumps(behavior),
-            provider=provider, max_calls=max_calls, max_compiles=max_calls,
+            provider=provider, max_calls=max_calls,
+            max_compiles=investigation_policy['compiles'] if advanced else max_calls,
             timeout=timeout, think=think, num_thread=num_thread, temperature=temperature,
             num_predict=num_predict, seed=seed, run_id=run_id + '-investigation',
             call_seeds=call_seeds,
-            investigation_tools=tools.handlers(), semantic_evaluator=panel)
+            investigation_tools=tools.handlers(), semantic_evaluator=evaluator,
+            allow_reconstruction=advanced, notebook=notebook,
+            max_seconds=investigation_policy['seconds'] if advanced else None)
         for child in investigation_result.candidates or [investigation_result.best]:
             initial_states.append(modelrepair.CandidateState(child.source, child.attempt, child.object_path,
                 ('investigation candidate',), ('investigation',), child.semantic))
         investigation_receipts = tools.receipts
         investigation_hypotheses = tools.hypotheses
+        capability_tasks = tools.capability_tasks
     search = modelrepair.search(
         repo, function, source, ws, model=model, endpoint=endpoint, conn=conn,
         base_attempt=root, base_object_path=root_object,
@@ -349,7 +616,8 @@ def run(*, repo: Path, db: Path, function: str, source: str,
         strategy_brief=strategy_brief, structured_output=structured_output,
         retry_invalid=retry_invalid, include_header_context=include_header_context,
         compile_only=compile_only, type_transaction=type_transaction,
-        resilient=resilient,semantic_evaluator=panel, exhaust_budget=exhaust_budget)
+        resilient=resilient,semantic_evaluator=evaluator, exhaust_budget=exhaust_budget,
+        compiler_localization=compiler_localization)
 
     if investigation_result:
         search.calls_attempted += investigation_result.calls_attempted
@@ -379,6 +647,7 @@ def run(*, repo: Path, db: Path, function: str, source: str,
         "context_reports":context_reports,
         "investigation": {"enabled": investigate, "observations": investigation_receipts,
                           "hypotheses": investigation_hypotheses,
+                          "capability_tasks": capability_tasks,
                           "compile_attempts": investigation_result.compiles if investigation_result else 0,
                           "events": investigation_result.events if investigation_result else []},
         "semantic_panel":panel.report if panel else None,
@@ -389,7 +658,8 @@ def run(*, repo: Path, db: Path, function: str, source: str,
             "residual": root_packet.to_dict(),
         },
         "result": {
-            "investigation": {"observations": investigation_receipts, "hypotheses": investigation_hypotheses},
+            "investigation": {"observations": investigation_receipts, "hypotheses": investigation_hypotheses,
+                              "capability_tasks": capability_tasks},
             "exact": search.exact,
             "best_attempt_id": search.best_attempt.receipt_id,
             "verification": search.best_attempt.verification,

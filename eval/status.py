@@ -70,7 +70,43 @@ from eval import matched as matched_mod
 from kb import attempts as attempt_receipts
 
 
-def counts(db: Path) -> dict:
+# THREE ways a header makes a type name public, and all three must be subtracted. The first version
+# recognised only the first two, so a header's `typedef struct X X;` or `typedef s32 X;` did not count
+# and header-KNOWN types were reported as reference-only: 77 instead of 32 on the same matched set. A
+# contamination number that is too high is as wrong as one that is too low.
+_TYPE_DEFS = tuple(__import__("re").compile(p) for p in (
+    r"}\s*([A-Z]\w*)\s*;",                    # } Name;          -- a typedef'd body
+    r"\bstruct\s+([A-Z]\w*)\s*{",              # struct Name {    -- a tagged body
+    r"\btypedef\s+[^;{]*?\b([A-Z]\w*)\s*;",     # typedef ... Name; -- forward or alias
+))
+
+
+def reference_only_types(build_tree: Path | None) -> set[str]:
+    """Type names the target's src/*.c DEFINES and no header does.
+
+    A match whose source uses one reached a layout that only the reference decomp's own .c files
+    contain -- not the public SDK (`include/PR/**`) and not a reconstructed header
+    (`include/game/**`). Measured 2026-09-21: 226 such types, and 32 of ~300 SOLVED winning sources
+    used one (`eval/results/intake-20260921/CONTAMINATION.md`). Returns an empty set when the build
+    tree is unavailable, so the tier reads 0 rather than failing.
+    """
+    import re
+    if not build_tree or not (build_tree / "src").is_dir():
+        return set()
+
+    def defined(paths) -> set[str]:
+        found: set[str] = set()
+        for path in paths:
+            text = path.read_text(errors="replace")
+            for pattern in _TYPE_DEFS:
+                found.update(pattern.findall(text))
+        return found
+
+    return (defined((build_tree / "src").rglob("*.c"))
+            - defined((build_tree / "include").rglob("*.h")))
+
+
+def counts(db: Path, build_tree: Path | None = None) -> dict:
     conn = sqlite3.connect(str(db))
     q = conn.execute
     exact_db = matched_mod.matched_in_db(conn)
@@ -133,11 +169,40 @@ def counts(db: Path) -> dict:
             " join functions f on f.addr = a.func_addr"
             " where a.exact = 1 and a.strategy like '%project-header%'")
     } - recovered
+    # REFERENCE-TYPE-ASSISTED is a fourth thing, added 2026-09-21. `solver/workspace.m2c_draft`
+    # prefers an existing `nonmatchings/<fn>/base.c`, and that directory belongs to the TARGET repo:
+    # only 3 of its 2,125 drafts carry this project's own assembly-only receipt, and 98 of the 200
+    # frozen intake drafts use a type or field name found only in the target's src/*.c. A match whose
+    # winning source uses a type that ONLY src/ defines was not reachable from binary evidence and a
+    # header, so it is not SOLVED. Counted apart and printed, exactly as header-assisted was.
+    #
+    # CONSERVATIVE BY CONSTRUCTION: a function lands here only if EVERY non-recovered exact source for
+    # it uses such a type. One clean exact source means it was reachable without the reference, and it
+    # stays SOLVED. This moves no match: the byte-exact total is unchanged, only the tier it is
+    # credited to, which is what the ratchet does not cover and CLAUDE.md says SOLVED must not include.
+    import re as _re
+    ref_types = reference_only_types(build_tree)
+    reference_type_assisted: set[str] = set()
+    if ref_types:
+        ident = _re.compile(r"\b[A-Z]\w*\b")
+        sources: dict[str, list[bool]] = {}
+        for name, strategy, source in q(
+                "select f.name, a.strategy, a.source_code from attempts a"
+                " join functions f on f.addr = a.func_addr"
+                " where a.exact = 1 and a.source_code is not null"):
+            if name in recovered or any(k in (strategy or "") for k in (
+                    "history-recovery", "historical-provenance", "symbol-restoration")):
+                continue
+            text = _re.sub(r"//[^\n]*|/\*.*?\*/", " ", source, flags=_re.S)
+            sources.setdefault(name, []).append(bool(set(ident.findall(text)) & ref_types))
+        reference_type_assisted = {n for n, flags in sources.items() if flags and all(flags)}
+    reference_type_assisted -= recovered | header_assisted
     every = exact_db | on_disk
     return {
         "exact": len(every),
-        "solved": len(every - recovered - header_assisted),
+        "solved": len(every - recovered - header_assisted - reference_type_assisted),
         "header_assisted": len(every & header_assisted),
+        "reference_type_assisted": len(every & reference_type_assisted),
         "recovered": len(every & recovered),
         "exact_db_only": len(exact_db),
         "exact_disk_only": len(on_disk - exact_db),
@@ -274,7 +339,7 @@ def main() -> int:
                     help="exit non-zero if CLAUDE.md's match count is stale")
     args = ap.parse_args()
 
-    c = counts(args.db)
+    c = counts(args.db, args.build_tree)
     n_tests = tests()
     extra = uncounted(args.build_tree, args.results)
 
@@ -282,6 +347,8 @@ def main() -> int:
     print(f"| — of which SOLVED | **{c['solved']}** |")
     print(f"| — of which header-assisted (reconstructed include/game) "
           f"| {c['header_assisted']} |")
+    print(f"| — of which reference-type-assisted (a type only the target's src/ defines) "
+          f"| {c['reference_type_assisted']} |")
     print(f"| — of which recovered from target source | {c['recovered']} |")
     print(f"| attempts logged | {c['attempts']:,} |")
     print(f"| evidence rows | {c['evidence']:,} |")

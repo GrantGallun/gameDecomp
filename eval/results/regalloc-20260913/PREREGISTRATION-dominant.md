@@ -22,3 +22,29 @@ while closing the 78.
   also reach structural faults. Running all 565 is then worth it.
 - If fewer than 5 go exact and non-register differences do not fall by 25%, the generators only move register faults
   here. The structural classes need their own tools, and that goes in the hypothesis graveyard.
+
+## Result (2026-09-14, all 50 complete)
+
+| measure | baseline | best |
+|---|---|---|
+| object-exact | 0 | **2** (initSpiralCourseObject, updateFallingMenuSnowflakeSway) |
+| median non-register differences | 27.5 | **18.5 (−33%)** |
+| summed non-register differences | 2017 | 1677 (−17%) |
+| median register-differing instructions | 30.5 | 27.0 |
+
+Exact functions count at their baseline gradient in the "best" column, so the falls are understated.
+
+Outcomes: 35 improved, 13 no gradient progress, 2 exact.
+
+**Reading, as decided in advance.** Fewer than 5 went exact, but the median non-register difference fell by more
+than 25%. So the generators also reach structural faults in this population.
+
+Running all 565 is already happening: the campaign gates `regalloc_search` on register-dominant nodes, which is this
+pool (453 were queued at checkpoint 16986).
+
+**Caveats.**
+- The run was interrupted by a WSL restart and resumed.
+- Two functions (guPerspectiveF, initMainMenuSceneModelParts) spun for about 4.5 hours in a backtracking regex in
+  `load_modify_stores`. They were rerun after the linear-gap fix (`eval/results/regalloc-hotfix-20260914/`).
+- That fix gives identical generator output wherever the old form terminates: checked on 437 campaign sources,
+  `hang-exposure.json`.

@@ -1,0 +1,841 @@
+{
+  "schema_version": 1,
+  "kind": "never-touched-metadata-only-eval-set",
+  "created_at": 1789579198,
+  "seed": 20260916,
+  "per_stratum": 8,
+  "policy": {
+    "selection_inputs": "function/TU metadata only",
+    "target_source_inspected_during_assignment": false,
+    "excluded": [
+      "any attempt receipt",
+      "any earlier eval-set membership",
+      "any historical result-artifact membership",
+      "recovered-source artifact",
+      "published/runtime/library translation units"
+    ],
+    "heldout_rule": "never bootstrap, generate, repair, or inspect per-function residuals before the single preregistered evaluation",
+    "split": "tu-disjoint"
+  },
+  "exclusion_counts": {
+    "attempted": 0,
+    "prior_set_members": 436,
+    "prior_result_members": 3599,
+    "recovered_sources": 24,
+    "combined": 3599
+  },
+  "dev": [
+    {
+      "function": "dispatchStunnedBehaviorPhase",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "dispatchCrazyJungleBossChasePhase",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "getMenuOptionEntry",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "startRumbleEffect",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "getAnimationDataByIndex",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "getTrackSegmentFinishZoneFlag",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "normalizeSurfaceType",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "requestControllerRumble",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "playBgmTrack",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "renderTransparentDisplayList",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "destroySceneModel",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "onStoryMapLocationComplete",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "exitTitleToNextMode",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "enqueueModelDisplayList",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "awaitStoryModeUnlockCutscene",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "cleanupSaveSlotItemIcons",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "buildUnlockedLevelList",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "applyPitchAngleDamping",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "shouldInitiateSharpTurn",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "createRootTaskScheduler",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "setupSlotRotateWithSpeed",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "cross2d",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "getNextCategorySkipping",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "interpolateSlotScaleY",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "updateTiltingModelTask",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "beginGalleryMenuExit",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "startSunnyMountainChairLift",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "initModelTransitionEffect",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "renderOverlayDisplayListWithFrustumCull",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "updateRepeatingFanSound3D",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "waitAtStoredPositionStep",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "updatePressStartPrompt",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "convertPackedBoneTransformToN64Matrix",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "decayPlayerAirborneAngles",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "setupSlotMoveToNoRotation",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "allocateMemoryNode",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "getMaxLinePixelWidth",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "transform3DToMtx",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "setupSlotMoveToWithBounce",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "computeAIWaypointLateralPosition",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "setupSlotTransform",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "cutsceneChrAlpha_exec",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateSpinTrickState",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateSwingingModelTask",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateSlotData",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateSaveSlotPromptText",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateKnockbackLaunchWithHomingProjectilesPhase",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateStunnedRecoveryFallingPhase",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "transformVector2",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "composeTransform3D",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "transformVector",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "transformVector3",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "transformVectorRelative",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "updateModelGeometry",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateFallingRockHazard",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "approachLiftEntranceStep",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "initBoardShopDisplay",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "setModelRotation",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateStoryMapRareEventSledding",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateParallaxSpriteBounce",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "advanceIndexedBoneAnimationAuto",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "computeAIWaypointPosition",
+      "tier": "huge",
+      "leaf": true
+    },
+    {
+      "function": "renderTextColored",
+      "tier": "huge",
+      "leaf": true
+    },
+    {
+      "function": "renderTextPalette",
+      "tier": "huge",
+      "leaf": true
+    },
+    {
+      "function": "initLevelSelectState",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "updatePlayerNormalDriving",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "renderTiledTextureMap",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "renderGalleryViewerContent",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "updateStoryMapNpcBehavior",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "renderAlphaSprite",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "updateDriftingParticle",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "loadScrollingTexture",
+      "tier": "huge",
+      "leaf": false
+    }
+  ],
+  "heldout": [
+    {
+      "function": "initDefaultFontPalette",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "loadAssetByIndex_95380",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "getCurrentStateEntryItem",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "isSaveSlotUnlocked",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "setViewportEnvColor",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "setPlayerParachuteState",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "arenaAlloc16",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "initViewportCallbackPool",
+      "tier": "tiny",
+      "leaf": true
+    },
+    {
+      "function": "cleanupShotCrossScoreDisplayTask",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "schedulePlayerHaloTask",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "initHomingPanelProjectileTask",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "cleanupPushZone",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "initBoardShopBackgroundRenderState",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "cleanupStarlightFireworkTask",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "cleanupStoryMapShopItemIcon",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "awaitPreRaceCutscene",
+      "tier": "tiny",
+      "leaf": false
+    },
+    {
+      "function": "animateCameraRotationY",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "setNodeScaleTarget",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "getTrickType",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "getActiveChannelCount",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "animateCameraRotationYContinuous",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "initCutsceneCameraRotationAndPos",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "initAnimationLoopState",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "animateCameraPositionZ",
+      "tier": "small",
+      "leaf": true
+    },
+    {
+      "function": "enqueuePlayerDisplayList",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "spawnSparkleEffect",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "recreateCharSelectBoardModel",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "spawnFallingStarProjectile",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "initScreenTransition",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "awaitBossResultAndFadeOut",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "initConfettiEffect",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "updateCrashEffect",
+      "tier": "small",
+      "leaf": false
+    },
+    {
+      "function": "stopChannelsByFlags",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "handleAnimationLoopDebugInput",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "allocateSongChannel",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "initWipeZoomDisplay",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "updateViewportBounds",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "updateSpriteAnimation",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "setNodePositionTarget",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "resetGameSession",
+      "tier": "medium",
+      "leaf": true
+    },
+    {
+      "function": "initBoardShopGoldDisplay",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "launchStarProjectile",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "queueDirectDmaTransfer",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateShotCrossItemCountDisplay",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateStoryMapNpcIdle",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "updateCharSelectIconTargets",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "initPiManager",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "orbitStarEffect",
+      "tier": "medium",
+      "leaf": false
+    },
+    {
+      "function": "advanceCameraAnimation",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "drawColorRectFill",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "sanitizeSaveSlotData",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "applyPaletteShift",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "updateStorySlotUnlockStatus",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "buildViewportAuxFramebufferFillDisplayList",
+      "tier": "large",
+      "leaf": true
+    },
+    {
+      "function": "updateSwingingPendulumTrap",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateScriptedCamera",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "piDmaHandlerThread",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "scheduleLevelEnvironmentTasks",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateSlapstickProjectile",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateLevelPreviewCharacterAndCamera",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "updateTiledTextureAssetDisplay",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "renderItemBoxBurstEffect",
+      "tier": "large",
+      "leaf": false
+    },
+    {
+      "function": "loadSpriteTexture",
+      "tier": "huge",
+      "leaf": true
+    },
+    {
+      "function": "renderShadedTextSprite",
+      "tier": "huge",
+      "leaf": true
+    },
+    {
+      "function": "renderScaledShadedSpriteFrame",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "processPlayerItemUsage",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "loadScrollingSceneryTexture",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "renderTextSpriteWithTransparency",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "initRace",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "renderCharSelectIconSprite",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "renderOpaqueSpriteCallback",
+      "tier": "huge",
+      "leaf": false
+    },
+    {
+      "function": "renderTintedSprite",
+      "tier": "huge",
+      "leaf": false
+    }
+  ],
+  "shortfalls": [
+    {
+      "tier": "large",
+      "leaf": true,
+      "wanted": 16,
+      "available": 11
+    },
+    {
+      "tier": "huge",
+      "leaf": true,
+      "wanted": 16,
+      "available": 5
+    }
+  ],
+  "heldout_tus": [
+    "src/animation/animation_loop.c",
+    "src/animation/model_scale.c",
+    "src/animation/oscillating_sprite_model.c",
+    "src/animation/pulsing_indicator.c",
+    "src/audio/audio.c",
+    "src/core/boot.c",
+    "src/core/mode_init.c",
+    "src/core/session_manager.c",
+    "src/core/stubs.c",
+    "src/credits/credits_controller.c",
+    "src/credits/credits_subtitles.c",
+    "src/cutscene/cutscene_bgm.c",
+    "src/cutscene/cutscene_camera.c",
+    "src/cutscene/cutscene_manager.c",
+    "src/cutscene/cutscene_sound.c",
+    "src/cutscene/cutscene_sys.c",
+    "src/data/asset_metadata.c",
+    "src/data/data_table.c",
+    "src/effects/animated_sprite_effect.c",
+    "src/effects/fan_effect.c",
+    "src/effects/orbital_sprite.c",
+    "src/effects/scrolling_texture.c",
+    "src/effects/transparent_render.c",
+    "src/effects/trick_burst.c",
+    "src/effects/zoom_effect.c",
+    "src/graphics/camera_transform.c",
+    "src/graphics/clip_text_render.c",
+    "src/graphics/graphics.c",
+    "src/graphics/model_loader.c",
+    "src/graphics/palette.c",
+    "src/graphics/preview_render.c",
+    "src/graphics/sprite_rdp.c",
+    "src/graphics/sprite_table.c",
+    "src/levels/haunted_house.c",
+    "src/levels/ice_land.c",
+    "src/levels/ice_land_boss.c",
+    "src/levels/lindas_castle.c",
+    "src/levels/snowboard_street_shoot_cross.c",
+    "src/levels/starlight_highway.c",
+    "src/race/hit_reactions.c",
+    "src/race/obstacle_sprites.c",
+    "src/race/particle_items.c",
+    "src/race/player.c",
+    "src/race/position_markers.c",
+    "src/race/race_effects.c",
+    "src/race/race_hud.c",
+    "src/race/race_session.c",
+    "src/race/track_collision.c",
+    "src/race/track_height.c",
+    "src/story/location_discovery.c",
+    "src/story/map_camera.c",
+    "src/story/map_events.c",
+    "src/story/map_extra_intro.c",
+    "src/story/npc_dialogue.c",
+    "src/story/shop_ui.c",
+    "src/system/rom_loader.c",
+    "src/system/thread_manager.c",
+    "src/text/text_elements.c",
+    "src/text/text_layout.c",
+    "src/triggers/clocktower_trigger.c",
+    "src/triggers/phone_trigger.c",
+    "src/triggers/town_collision.c",
+    "src/triggers/trick_trigger.c",
+    "src/triggers/wall_newspaper_trigger.c",
+    "src/ui/character_select_gfx.c",
+    "src/ui/character_select_sprites.c",
+    "src/ui/level_preview.c",
+    "src/ui/level_select_state.c",
+    "src/ui/logo_splash.c",
+    "src/ui/save_slot_select.c",
+    "src/ui/unlock_screen.c",
+    "src/ui/unlock_system.c",
+    "src/ui/versus_mode_init.c"
+  ],
+  "manifest_digest": "dfc176c0aa6753487cf7fb0cc5d82952440872d505ad5e6da37608a28a8e60dc"
+}
