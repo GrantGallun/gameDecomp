@@ -739,6 +739,10 @@ def run(*, repo: Path, db: Path, project: Path, state_path: Path, functions: tup
         functions = tuple(prior["nodes"])
         seeds = {name: n["attempt_id"] for name, n in prior["nodes"].items() if n.get("attempt_id")}
     with campaign_lock(state_path.with_suffix(".lock")):
+        # The first bootstrap strips the helper's `do` refusal (workspace.ensure_helper_allows_do).
+        # Done after pinning, that edit trips the frozen-input check on a fresh target's first work
+        # item, so it is applied before the pins are taken. An already-stripped helper is unchanged.
+        workspace.ensure_helper_allows_do(repo)
         pins = _pins(project, repo)
         if resume:
             state = json.loads(state_path.read_text())

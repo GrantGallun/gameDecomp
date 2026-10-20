@@ -2051,6 +2051,35 @@ markers. The control directory, logs, frozen code, and Windows hourly-task path
 may remain at the recorded run path; this avoids repinning code merely to move
 SQLite writes off DrvFS.
 
+## Operator commands (`./gd`, October 19)
+
+`./gd` (`eval/control.py`; `gd.cmd` forwards from Windows) is the documented way to set up and
+run a campaign; `docs/RUNNING.md` walks through it. `doctor` checks every prerequisite and prints
+the fix. `kb` runs `miner.evidence` into a new clean KB, never over an existing one. `new`
+freezes the code into `<run>/code`, copies the KB, creates the state with
+`completion_campaign --max-work-items 0` and writes `launch.json`. It refuses a KB that already
+has attempts or inferences unless `--allow-history` is given, and `--limit N` skips frozen
+held-out functions. The frozen command is the sequential `completion_campaign`, because
+`fast_campaign` refuses intake. `start`/`pause`/`resume`/`status` call `eval/campaign_service.py`
+from the main tree exactly as `campaign_hourly.ps1` does, so retries, locks and pause markers are
+unchanged. `use RUN` points the commands at a hand-built run such as `resume-pipeline-20260908`.
+`doctor` and `new` require the tested target revision, upstream `7824002d`, checked by tree hash
+`69e33c2f` because upstream rewrote its history. Later upstream builds into `build/src.us/`, which
+`compiler_recipe` rejects, so every intake parks. Tests: `tests/test_control.py`, including the
+`command_for`/`state_path_for` contract with the supervisor. `new` generalizes the two existing
+bootstraps. `eval/resume_pipeline_run.py` hardcodes the live run's paths and pins a model.
+`eval/scratch_run.py` hardcodes `/home/grant/decomp/sbk1` and a baseline KB under `eval/results`,
+runs rounds in the foreground, and compacts the checkpoint after each round. That compaction is
+unsafe: `completion_campaign` resumes with `json.loads` and so cannot read a compact pointer, which
+would break its second round. `./gd` therefore leaves sequential checkpoints whole. Instead, the
+dashboard (`progress_app.plain_pointer`, `progress_map.MapFeed._refresh_plain`) now reads
+whole-state checkpoints, which it used to answer with 503.
+
+Found by the same end-to-end run: `completion_campaign.run` pinned the target's inputs and only then
+did the first bootstrap's `workspace.ensure_helper_allows_do` rewrite the helper. A fresh target's
+first work item therefore stopped with `paused_inputs_changed`. The helper is now healed before
+pinning (`tests/test_completion_campaign.py::test_a_fresh_targets_helper_is_healed_before_it_is_pinned`).
+
 ## Single-precision overflow during differential execution
 
 `mips_differential._float32_bits` translates host float packing overflow into

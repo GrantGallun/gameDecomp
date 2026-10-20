@@ -76,13 +76,22 @@ class MapFeed:
         self.integration_sweep = None
         self.runtime_capture = None
         self.binary_data_catalog = None
+        self.plain_stamp = None
 
     def refresh(self):
         if self.payload is not None and time.monotonic() - self.last < 5:
             return
-        pointer = json.loads((self.run / 'campaign.json').read_bytes())
+        path = self.run / 'campaign.json'
+        stamp = path.stat().st_mtime_ns
+        if stamp == self.plain_stamp:          # a whole-state checkpoint that has not been rewritten
+            self.last = time.monotonic()
+            return
+        pointer = json.loads(path.read_bytes())
         if pointer.get('kind') != 'campaign-checkpoint-index-v1':
-            raise ValueError('map requires a compact campaign checkpoint')
+            if not isinstance(pointer.get('nodes'), dict):
+                raise ValueError('map requires a campaign checkpoint')
+            return self._refresh_plain(pointer, stamp)
+        self.plain_stamp = None
         if pointer['commit'] == self.commit:
             self.last = time.monotonic()
             return
@@ -122,16 +131,35 @@ class MapFeed:
                 rows[name]['group'] = details[name]['group'] = group
             else:
                 rows[name], details[name] = project(name, objects[key], group)
-        functions = sorted(rows.values(), key=lambda r: (r['address'] or 0, r['name']))
         active = [j.get('function') for j in (pointer.get('health') or {}).get('parallel_inflight', [])]
-        payload = dict(commit=pointer['commit'], updated_at=pointer.get('updated_at'),
+        self._publish(rows, details, manifest['nodes'], pointer['commit'], pointer.get('updated_at'), active)
+
+    def _refresh_plain(self, state, stamp):
+        """A sequential run's checkpoint: completion_campaign writes the whole state as one JSON file.
+
+        There is no commit id or object store, so the file's modification time stands in for the
+        commit and every node is projected again when it changes."""
+        groups = state.get('tu_index') or {}
+        rows, details = {}, {}
+        for name, node in state['nodes'].items():
+            rows[name], details[name] = project(name, node, groups.get(name, 'Ungrouped'))
+        self.integration_sweep = state.get('integration_sweep')
+        self.runtime_capture = state.get('runtime_capture')
+        self.binary_data_catalog = state.get('binary_data_catalog')
+        active = [state['inflight']['function']] if (state.get('inflight') or {}).get('function') else []
+        self._publish(rows, details, {}, stamp, stamp / 1e9, active)
+        self.plain_stamp = stamp
+
+    def _publish(self, rows, details, refs, commit, updated_at, active):
+        functions = sorted(rows.values(), key=lambda r: (r['address'] or 0, r['name']))
+        payload = dict(commit=commit, updated_at=updated_at,
             functions=functions, active=active,
             total_bytes=sum(r['size'] or 0 for r in functions),
             exact_bytes=sum(r['size'] or 0 for r in functions if r['category']=='exact'),
             unknown_sizes=sum(r['size'] is None for r in functions),
             group_count=len({r['group'] for r in functions}))
-        self.rows, self.details, self.refs = rows, details, manifest['nodes']
-        self.payload, self.commit, self.last = payload, pointer['commit'], time.monotonic()
+        self.rows, self.details, self.refs = rows, details, refs
+        self.payload, self.commit, self.last = payload, commit, time.monotonic()
 
     def get(self, name=None):
         with self.lock:

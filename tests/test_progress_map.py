@@ -23,6 +23,27 @@ def test_projection_does_not_treat_similarity_or_finite_semantics_as_exact():
     assert project('f', node, 'cluster')[0]['category'] == 'rom_verified'
 
 
+def test_a_sequential_runs_whole_state_checkpoint_is_mapped(tmp_path):
+    """`./gd new` runs completion_campaign, which writes the whole state as one file. The map answered
+    503 'map requires a compact campaign checkpoint' for every such run (2026-10-19)."""
+    path = tmp_path/'campaign.json'
+    state = {'nodes': {'a': {'status': 'object_exact', 'size': 20}, 'b': {'status': 'pending', 'size': 8}},
+             'tu_index': {'a': 'cluster'}, 'inflight': {'function': 'b', 'profile': 'intake'}}
+    path.write_text(json.dumps(state))
+    feed = MapFeed(tmp_path)
+    first = feed.get()
+    assert first['total_bytes'] == 28 and first['exact_bytes'] == 20 and first['active'] == ['b']
+    assert feed.get('a')['group'] == 'cluster' and first['commit'] == path.stat().st_mtime_ns
+    state['nodes']['b']['status'] = 'object_exact'
+    path.write_text(json.dumps(state))
+    feed.last = 0
+    assert feed.get()['exact_bytes'] == 28
+    with pytest.raises(ValueError, match='requires a campaign checkpoint'):
+        path.write_text(json.dumps({'status': 'x'}))
+        feed.last = 0
+        feed.get()
+
+
 def test_incremental_snapshot_updates_details_removes_nodes_and_keeps_unknown_size(tmp_path):
     state={'nodes':{'a':{'status':'pending','size':100,'residual':{'compiled':False}},
                     'b':{'status':'object_exact','size':20},'c':{'status':'pending'}},

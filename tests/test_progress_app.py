@@ -84,6 +84,23 @@ def test_service_running_overrides_budget_checkpoint_and_reports_stale_heartbeat
     assert snapshot(tmp_path,now=150)['status']=='pausing'
 
 
+def test_a_sequential_runs_whole_state_checkpoint_is_reported(tmp_path):
+    """`./gd new` runs completion_campaign, whose checkpoint is the whole state rather than the compact
+    pointer. /api/status answered 503 for every such run (2026-10-19)."""
+    state = {'status': 'paused_budget', 'summary': {'cohort_functions': 3},
+             'nodes': {'a': {'status': 'object_exact'}, 'b': {'status': 'parked'}, 'c': {'status': 'pending'}},
+             'inflight': {'function': 'c', 'profile': 'intake',
+                          'receipt': '/run/campaign-artifacts/90000000000-c.json'}}
+    (tmp_path/'campaign.json').write_text(json.dumps(state))
+    (tmp_path/'service.json').write_text(json.dumps({'status': 'running', 'worker_pid': 1, 'heartbeat_at': 99}))
+    value = snapshot(tmp_path, now=100)
+    assert value['status'] == 'running' and value['functions'] == 3
+    assert value['states'] == {'object_exact': 1, 'parked': 1, 'pending': 1}
+    assert value['summary'] == {'cohort_functions': 3}
+    assert value['workers'] == [{'function': 'c', 'profile': 'intake', 'model': False, 'lane': None,
+                                 'elapsed_seconds': 10.0}]
+
+
 def test_checkpoint_follows_launch_state_not_the_control_directory_copy(tmp_path, monkeypatch):
     # Motivating residual: after the 2026-09-20 relocation the dashboard kept reading the control
     # directory's pre-relocation pointer (commit 23522) while the live one moved on (28382).

@@ -16,6 +16,7 @@ background and, on Stop, writes the run's `STOP` file and signals only that run'
 own process group.
 """
 import argparse
+from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import csv
@@ -169,12 +170,33 @@ def frontier_running(frontier):
     return False
 
 
+def plain_pointer(path, state):
+    """The pointer fields snapshot() reads, for a sequential run's whole-state checkpoint.
+
+    `completion_campaign` writes the whole state as one JSON file; `campaign_state.Store._save` writes
+    these same fields into the compact pointer the parallel runtime uses."""
+    if not isinstance(state.get('nodes'), dict):
+        raise ValueError('This dashboard expects a campaign checkpoint.')
+    nodes = list(state['nodes'].values())
+    inflight = state.get('inflight') or {}
+    workers = ([{'id': Path(inflight.get('receipt', '')).stem, 'function': inflight['function'],
+                 'profile': {'name': inflight.get('profile')}}] if inflight.get('function') else [])
+    return {'kind': 'whole-state', 'commit': None, 'updated_at': path.stat().st_mtime,
+            'status': state.get('status'), 'summary': state.get('summary') or {},
+            'fast_metrics': state.get('fast_metrics') or {},
+            'health': {'functions': len(nodes),
+                       'states': dict(Counter(n.get('status') for n in nodes)),
+                       'semantic_functions': dict(Counter(n['semantic_validation'].get('status')
+                                                          for n in nodes if n.get('semantic_validation'))),
+                       'inflight': state.get('inflight'), 'parallel_inflight': workers}}
+
+
 def snapshot(run, now=None, history=None, frontier=None):
     now = time.time() if now is None else now
     checkpoint = read_json(checkpoint_dir(run)/'campaign.json')
     service = read_json(run/'service.json')
     if checkpoint.get('kind') != 'campaign-checkpoint-index-v1':
-        raise ValueError('This dashboard expects the compact campaign checkpoint.')
+        checkpoint = plain_pointer(checkpoint_dir(run)/'campaign.json', checkpoint)
     health = checkpoint.get('health', {})
     status = service.get('status', 'unknown')
     control_path = run/'service-control.json'

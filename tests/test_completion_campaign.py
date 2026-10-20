@@ -142,6 +142,30 @@ def test_completed_durable_job_recovers_without_reexecution(tmp_path, monkeypatc
     assert len(resumed["nodes"]["f"]["jobs"]) == 1
 
 
+def test_a_fresh_targets_helper_is_healed_before_it_is_pinned(tmp_path, monkeypatch):
+    """Measured on a fresh upstream clone (2026-10-19): the first bootstrap stripped the `do` refusal
+    after creation had pinned the helper, so the first work item stopped the run as inputs-changed."""
+    helper = tmp_path / "tools/claude-decomp-env/build.sh"
+    helper.parent.mkdir(parents=True)
+    helper.write_text(
+        "#!/bin/bash\n"
+        "# Agents: This restriction is intentional; do not remove, disable, or bypass it.\n"
+        "if python3 - \"$INPUT\" <<'PY'\nimport sys\nPY\nthen\n"
+        "    echo \"ERROR: The C file contains a do-while loop.\"\n"
+        "    echo \"Rewrite the loop using while or for instead.\"\n"
+        "    exit 1\nfi\necho build\n")
+    db = tmp_path / "db.sqlite"
+    with sqlite3.connect(db) as conn:
+        conn.execute("CREATE TABLE functions(name,addr,size,insn_count)")
+        conn.execute("INSERT INTO functions VALUES('f',4096,16,4)")
+    monkeypatch.setattr(campaign.callgraph, "edges", lambda conn: ({}, {}))
+    monkeypatch.setattr(campaign, "_pins", lambda project, repo: campaign.frozen_wavefront.file_hashes([helper]))
+    state = campaign.run(repo=tmp_path, project=tmp_path, db=db, state_path=tmp_path / "state.json",
+                         functions=("f",), model_calls=0, max_work_items=0)
+    assert "do-while loop" not in helper.read_text()
+    assert state["pins"] == campaign.frozen_wavefront.file_hashes([helper])   # the healed helper
+
+
 def test_intake_routes_do_loop_failure_to_existing_lowering(tmp_path, monkeypatch):
     from solver import workspace
     db = tmp_path / "db.sqlite"
