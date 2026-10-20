@@ -41,3 +41,5 @@ must be updated when wiring changes. [DESIGN.md](DESIGN.md) has the architecture
   set, and where the receipt is.
 - Record failed ideas in [memory/hypothesis-graveyard.md](memory/hypothesis-graveyard.md) so they are
   not retried.
+
+Contributions are accepted under the project's [MIT license](LICENSE).

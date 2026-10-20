@@ -1,5 +1,8 @@
 # gameDecomp
 
+[![tests](https://github.com/GrantGallun/gameDecomp/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/GrantGallun/gameDecomp/actions/workflows/tests.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Automated matching decompilation for N64 games.** gameDecomp turns a function's machine code back into C
 that, compiled with the original compiler, produces **byte-identical** object code. It runs unattended
 across a whole game.
@@ -228,3 +231,9 @@ decompilation.
 Most remaining functions compile but differ in *structure*: branch shape, extra or missing loads, and
 frame layout. These are larger functions where register search alone cannot finish. The current focus is
 finding the recurring causes in the pending residuals and turning each into a tested, deterministic repair.
+
+## License
+
+The code in this repository is MIT-licensed; see [LICENSE](LICENSE). That covers this project's own
+code only. ROMs, game assets and the target decompilation are not part of it, and the dependencies keep
+their own licenses (m2c, for one, is GPL-3.0).

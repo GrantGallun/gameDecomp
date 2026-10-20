@@ -5,7 +5,7 @@
 # Test configuration stays in pytest.ini, which every frozen campaign run copies.
 
 [build-system]
-requires = ["setuptools>=69"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -13,6 +13,8 @@ name = "gamedecomp"
 version = "0.1.0"
 description = "Automated matching decompilation for N64 games: machine code back to byte-identical C"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dynamic = ["dependencies"]
 
