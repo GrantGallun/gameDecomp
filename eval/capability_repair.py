@@ -68,8 +68,10 @@ def copy_project(project, output):
         if (project / name).is_dir():
             shutil.copytree(project / name, output / name,
                 ignore=shutil.ignore_patterns('__pycache__', 'results', '.pytest_cache', '*.sqlite', '*.db'))
-    if (project / 'pytest.ini').exists():
-        shutil.copy2(project / 'pytest.ini', output / 'pytest.ini')
+    # Test configuration: pyproject.toml since 2026-10-20, pytest.ini in older trees.
+    for config in ('pyproject.toml', 'requirements.txt', 'pytest.ini'):
+        if (project / config).exists():
+            shutil.copy2(project / config, output / config)
 
 
 def check(root, selectors, timeout, tag):

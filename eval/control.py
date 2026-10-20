@@ -285,7 +285,8 @@ def new(args) -> int:
     for name in FROZEN:
         if (ROOT / name).is_dir():
             shutil.copytree(ROOT / name, code / name, ignore=SKIP)
-    shutil.copy2(ROOT / "pytest.ini", code / "pytest.ini")
+    for config in ("pyproject.toml", "requirements.txt"):   # test configuration, and the pins it reads
+        shutil.copy2(ROOT / config, code / config)
     with sqlite3.connect(f"file:{db_source}?mode=ro", uri=True) as source, sqlite3.connect(db) as copy:
         source.backup(copy)
     command = campaign_command(repo=repo, db=db, state=state, code=code, model_calls=args.model_calls,

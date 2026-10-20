@@ -16,6 +16,8 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
       - run: python -m pip install -r requirements.txt
+      # Lint rules live in pyproject.toml: errors that break code, not style.
+      - run: python -m pip install ruff==0.17.1 && ruff check
       # eval/tool_sandbox.py runs model-written tools under Bubblewrap and refuses without it. Ubuntu 24.04
       # restricts unprivileged user namespaces through AppArmor, and bwrap needs them.
       - run: |

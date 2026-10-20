@@ -32,7 +32,8 @@ def _apply(state, ins):
     elif op == 'move' and len(args) == 2:
         value = get(args[1])
     elif op in {'addiu', 'addi'} and len(args) == 3:
-        base = get(args[1]); match = dataflow.LO_RELOC.fullmatch(args[2])
+        base = get(args[1])
+        match = dataflow.LO_RELOC.fullmatch(args[2])
         if match and base[:2] == ('hi', match[1]):
             value = ('address', match[1], base[2] | {ins.index})
         elif dataflow.number(args[2]) is not None and base[0] == 'address':

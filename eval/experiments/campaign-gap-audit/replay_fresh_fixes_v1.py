@@ -165,7 +165,7 @@ def main():
     snapshot.mkdir()
     for package in ('solver','eval','kb','patterns','tools','miner','tests'):
         shutil.copytree(ROOT/package,snapshot/package,ignore=shutil.ignore_patterns('results','__pycache__','.cache'))
-    shutil.copy2(ROOT/'pytest.ini',snapshot/'pytest.ini')
+    shutil.copy2(ROOT/'pyproject.toml',snapshot/'pyproject.toml')
     shutil.copy2(baseline,db)
     with sqlite3.connect(f'file:{db.as_posix()}?mode=ro',uri=True) as conn:
         integrity=conn.execute('PRAGMA integrity_check').fetchone()[0]

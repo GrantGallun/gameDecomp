@@ -1,8 +1,7 @@
-# The dependency manifest. The pins themselves live in requirements.txt, which CI, docs/RUNNING.md and
-# the campaign's virtualenv all install from; this file reads them, so there is one list to keep.
-# `pip install .` installs those dependencies and nothing else: the pipeline is run from the
-# repository (`python -m eval...`, `./gd`), not installed as a package.
-# Test configuration stays in pytest.ini, which every frozen campaign run copies.
+# The dependency manifest, plus test and lint configuration. The pins themselves live in requirements.txt,
+# which CI, docs/RUNNING.md and the campaign's virtualenv all install from; this file reads them, so there
+# is one list to keep. `pip install .` installs those dependencies and nothing else: the pipeline is run
+# from the repository (`python -m eval...`, `./gd`), not installed as a package.
 
 [build-system]
 requires = ["setuptools>=77"]
@@ -26,3 +25,20 @@ packages = []
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
+
+# `python -m pytest` from the repository root. Frozen campaign runs copy this file with the code.
+[tool.pytest.ini_options]
+# Generated receipts may contain frozen copies of the source tree: experiment inputs, not another copy
+# of the repository's test collection. external/ holds the target decomp as a submodule; its tests belong
+# to that project and import its own `tools` package, which this repository's `tools` shadows.
+addopts = "--ignore=eval/results --ignore=external"
+
+[tool.ruff]
+target-version = "py312"
+extend-exclude = ["eval/results", "external"]
+
+[tool.ruff.lint]
+# Errors that break code: syntax errors, invalid comparisons, undefined names (flake8's E9,F63,F7,F82).
+# Style rules are not enforced; the tree predates them, and a mass rewrite would collide with work in
+# progress. CI runs `ruff check`.
+select = ["E9", "F63", "F7", "F82"]

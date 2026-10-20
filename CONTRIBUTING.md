@@ -36,7 +36,8 @@ must be updated when wiring changes. [DESIGN.md](DESIGN.md) has the architecture
 
 ## Pull requests
 
-- Keep them small and include tests. CI runs the suite on every push.
+- Keep them small and include tests. CI runs `ruff check` and the suite on every push. The lint rules
+  in `pyproject.toml` catch errors that break code, not style.
 - Label every number as measured or predicted. A claimed improvement says what was measured, on which
   set, and where the receipt is.
 - Record failed ideas in [memory/hypothesis-graveyard.md](memory/hypothesis-graveyard.md) so they are

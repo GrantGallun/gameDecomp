@@ -228,7 +228,8 @@ are not all-input equivalence or concrete execution of opaque callees.
 
 Preserved code snapshots `campaign-gap-audit-code-v1`, `-v2`, `-v3` are hashed by
 the checkpoints. v2 adds the bitcast changes to v1; v3 adds the dataflow fix.
-`pytest.ini` excludes generated result trees from duplicate test collection.
+`pytest.ini` (since 2026-10-20, `[tool.pytest.ini_options]` in `pyproject.toml`) excludes generated
+result trees from duplicate test collection.
 
 ```sh
 cd /mnt/c/Code/gameDecomp/eval/results/campaign-gap-audit-code-v3

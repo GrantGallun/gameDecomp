@@ -35,7 +35,7 @@ def setup(tmp_path, monkeypatch):
     for path, text in (("solver/a.py", "x = 1\n"), ("eval/b.py", "y = 2\n"),
                        ("eval/results/run/huge.json", "{}"), ("eval/__pycache__/b.pyc", ""),
                        ("eval/sets/held.json", json.dumps({"heldout": [{"function": "tiny"}]})),
-                       ("pytest.ini", "[pytest]\n")):
+                       ("pyproject.toml", "[tool.pytest.ini_options]\n"), ("requirements.txt", "pytest\n")):
         (project / path).parent.mkdir(parents=True, exist_ok=True)
         (project / path).write_text(text)
     monkeypatch.setattr(control, "ROOT", project)
@@ -80,7 +80,8 @@ def test_new_creates_a_run_the_supervisor_accepts(setup):
     assert launch["counts"] == {"functions": 4, "evidence": 0, "attempts": 0, "inference": 0}
 
     # Frozen code: sources copied, run data and caches left behind.
-    assert (run / "code/solver/a.py").is_file() and (run / "code/pytest.ini").is_file()
+    assert (run / "code/solver/a.py").is_file() and (run / "code/pyproject.toml").is_file()
+    assert (run / "code/requirements.txt").is_file()
     assert not (run / "code/eval/results").exists() and not (run / "code/eval/__pycache__").exists()
     assert control.counts(run / "campaign.sqlite")["functions"] == 4
     assert control.current_run() == run

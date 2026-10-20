@@ -41,7 +41,7 @@ def main():
     for name in ('solver', 'eval', 'kb', 'patterns', 'tools', 'miner', 'tests'):
         shutil.copytree(root / name, snapshot / name,
                         ignore=shutil.ignore_patterns('results', '__pycache__', '.cache'))
-    shutil.copy2(root / 'pytest.ini', snapshot / 'pytest.ini')
+    shutil.copy2(root / 'pyproject.toml', snapshot / 'pyproject.toml')   # test configuration
     database = run / 'campaign.sqlite'
     shutil.copy2(baseline, database)
     state = run / 'campaign.json'

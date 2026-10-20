@@ -289,8 +289,10 @@ def run_benchmark(run, output, cpu_limit, memory_gib, seconds, repeats):
                 sample = {}
                 for label, action in (
                     ('verify_files', lambda: frozen_wavefront.verify_files(manifest['pins'])),
-                    ('queue_projection', lambda: repair_queue.project(state, campaign.PROFILES)),
-                    ('checkpoint_write', lambda: campaign.agentrepair._atomic_json(output/'checkpoint-probe.json', state))):
+                    # `state` is bound now: it is deleted after these timings.
+                    ('queue_projection', lambda state=state: repair_queue.project(state, campaign.PROFILES)),
+                    ('checkpoint_write', lambda state=state: campaign.agentrepair._atomic_json(
+                        output/'checkpoint-probe.json', state))):
                     start = time.monotonic()
                     action()
                     sample[label] = time.monotonic()-start

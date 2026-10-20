@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     for name in SNAPSHOT_DIRS:
         shutil.copytree(ROOT / name, snapshot / name,
                         ignore=shutil.ignore_patterns("results", "__pycache__", ".cache"))
-    shutil.copy2(ROOT / "pytest.ini", snapshot / "pytest.ini")
+    shutil.copy2(ROOT / "pyproject.toml", snapshot / "pyproject.toml")   # test configuration
     database = run / "campaign.sqlite"
     shutil.copy2(BASELINE, database)
 
