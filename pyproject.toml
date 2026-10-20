@@ -1,0 +1,26 @@
+# The dependency manifest. The pins themselves live in requirements.txt, which CI, docs/RUNNING.md and
+# the campaign's virtualenv all install from; this file reads them, so there is one list to keep.
+# `pip install .` installs those dependencies and nothing else: the pipeline is run from the
+# repository (`python -m eval...`, `./gd`), not installed as a package.
+# Test configuration stays in pytest.ini, which every frozen campaign run copies.
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gamedecomp"
+version = "0.1.0"
+description = "Automated matching decompilation for N64 games: machine code back to byte-identical C"
+readme = "README.md"
+requires-python = ">=3.12"
+dynamic = ["dependencies"]
+
+[project.urls]
+Repository = "https://github.com/GrantGallun/gameDecomp"
+
+[tool.setuptools]
+packages = []
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
