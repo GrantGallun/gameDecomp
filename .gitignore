@@ -103,6 +103,9 @@ docs/*-review-*.md
 docs/posttraining-review-*.md
 docs/superpowers/
 
+# A vendored copy of numpy that an old experiment used as its PYTHONPATH; requirements.txt has numpy now.
+eval/results/campaign-speed-20260911/test-deps/
+
 # Frozen code snapshots inside result directories (copies of solver/, tests/, etc.)
 eval/results/*-deploy-*/
 eval/results/**/solver/
