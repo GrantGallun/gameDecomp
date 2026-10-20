@@ -162,16 +162,39 @@ compiler behaviour encoded as a rule without testing it.
 
 ## Running it
 
-There is no one-command setup yet. The current environment:
+### Quick start: the test suite
 
-- **Windows with WSL2 Ubuntu.** The build tree lives on the WSL filesystem, and the N64 toolchain runs
-  inside WSL.
-- **The IDO 5.3 toolchain** through `ido-static-recomp`, plus m2c.
-- **A local Ollama server** for the model-assisted stages. A GPU helps.
-- **Your own legally obtained ROM.** No ROMs or game assets are included in this repository.
+The suite needs no ROM, toolchain or GPU. Tests that need one of those, or a game-derived input that is
+kept out of the repository, skip and say why.
 
-Start with `DESIGN.md` and `PIPELINE_MAP.md`. With a campaign running, `launch-progress.ps1` starts the
-dashboard at `http://127.0.0.1:8765`.
+```sh
+git clone https://github.com/GrantGallun/gameDecomp.git
+cd gameDecomp
+python3 -m venv .venv && . .venv/bin/activate    # Python 3.12
+python -m pip install -r requirements.txt
+python -m pytest -q -rs
+```
+
+CI runs the suite this way on every push (`.github/workflows/tests.yml`).
+
+### The full pipeline
+
+It runs in WSL2 Ubuntu on Windows, against a built copy of the Snowboard Kids decompilation, which
+supplies the IDO 5.3 toolchain. You need your own legally obtained ROM; no ROMs or game assets are
+included here. A local Ollama server for the model-assisted stage is optional.
+[docs/RUNNING.md](docs/RUNNING.md) walks through the one-time setup. After that, from this
+repository inside WSL:
+
+```sh
+./gd doctor                  # checks every prerequisite and prints the fix for anything missing
+./gd kb                      # mines the evidence knowledge base from the built target
+./gd new first --limit 20    # freezes the code and creates a campaign over 20 functions
+./gd start                   # starts the supervised campaign
+./gd status                  # progress (also: logs, pause, resume)
+./gd dashboard               # serves the dashboard at http://127.0.0.1:8765
+```
+
+From a Windows prompt in the repository, `gd.cmd <command>` runs the same commands through WSL.
 
 ## Status and next steps
 
