@@ -26,8 +26,11 @@ inside Ubuntu:
 
 ```sh
 sudo apt update
-sudo apt install make git python3 python3-venv python3-pip binutils-mips-linux-gnu wget unzip
+sudo apt install make git python3 python3-venv python3-pip binutils-mips-linux-gnu wget unzip bubblewrap
 ```
+
+`bubblewrap` is the sandbox `eval/tool_sandbox.py` runs model-written tools in; without it they are
+refused, never run unsandboxed.
 
 Keep the target and knowledge bases on the WSL filesystem (`~/...`), not under `/mnt/c`. Builds and
 SQLite writes across that boundary are slow enough to matter.

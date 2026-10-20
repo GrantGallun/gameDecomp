@@ -16,6 +16,11 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
       - run: python -m pip install -r requirements.txt
+      # eval/tool_sandbox.py runs model-written tools under Bubblewrap and refuses without it. Ubuntu 24.04
+      # restricts unprivileged user namespaces through AppArmor, and bwrap needs them.
+      - run: |
+          sudo apt-get update -q && sudo apt-get install -yq bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       # No IDO toolchain, ROM, knowledge base or game-derived fixtures on a runner.
       # Tests that need them skip and print why (-rs); everything else must pass.
       - run: python -m pytest -q -rfEs

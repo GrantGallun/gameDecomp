@@ -1,6 +1,7 @@
 """Real isolation tests plus deterministic coordinator failure/coverage tests."""
 import importlib.util
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -14,9 +15,12 @@ def sandbox():
 
 
 linux = pytest.mark.skipif(sys.platform != 'linux', reason='real Linux namespaces required')
+# Running a tool needs the sandbox itself: eval.tool_sandbox refuses to run anything without bwrap.
+sandboxed = pytest.mark.skipif(sys.platform != 'linux' or shutil.which('bwrap') is None,
+                               reason='Bubblewrap (bwrap) is not installed; the tool sandbox requires it')
 
 
-@linux
+@sandboxed
 def test_tool_generates_candidate_without_host_access(tmp_path):
     secret = tmp_path / 'secret'
     secret.write_text('evaluation answer')
@@ -40,7 +44,7 @@ print(json.dumps({'candidates': [x['source'].replace('>>', '<<')]}))
     assert secret.read_text() == 'evaluation answer'
 
 
-@linux
+@sandboxed
 @pytest.mark.parametrize('code', [
     'import json; print(json.dumps({"candidates": [], "exact": True}))',
     'print("not json")',
@@ -63,7 +67,7 @@ def test_absent_sandbox_fails_closed(monkeypatch):
     assert run('raise AssertionError("must never run")', {})['status'] == 'unavailable'
 
 
-@linux
+@sandboxed
 def test_tool_cannot_multiply_resources_by_fork_exec_or_large_tmpfs():
     code = '''import os, json, errno
 for path in ('/escape', '/dev/escape'):
@@ -165,7 +169,7 @@ def cases(tmp_path):
     return result
 
 
-@linux
+@sandboxed
 def test_loop_freezes_tool_and_exports_only_development(tmp_path):
     assert importlib.util.find_spec('eval.tool_learning'), 'coordinator is missing'
     from eval.tool_learning import Limits, run_experiment
@@ -193,7 +197,7 @@ print(json.dumps({'candidates': [x['source'].replace('return 1', 'return 2')]}))
     assert all(r['source_sha256'] == r['receipt']['source_sha256'] for r in ledger if r['kind'] == 'compile')
 
 
-@linux
+@sandboxed
 def test_author_can_repair_tool_using_only_development_feedback(tmp_path):
     from eval.tool_learning import Limits, run_experiment
     prompts = []
@@ -287,7 +291,7 @@ def test_one_absolute_deadline_reaches_every_case_compiler_call(tmp_path):
     assert start + 2 <= seen[0] <= start + 2.1
 
 
-@linux
+@sandboxed
 def test_malformed_author_output_still_charges_all_tokens(tmp_path):
     from eval.tool_learning import Limits, run_experiment
     count = 0
@@ -338,7 +342,7 @@ def test_actual_ido_loop_can_retain_a_working_control_and_export_receipts():
                 assert row['receipt']['certificate']['status'] == 'object_sections_exact'
 
 
-@linux
+@sandboxed
 def test_one_failed_case_does_not_hide_or_stop_other_evaluation_cases(tmp_path):
     from eval.tool_learning import Limits, run_experiment
     class BrokenCaseOracle(FakeOracle):
