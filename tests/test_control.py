@@ -169,19 +169,28 @@ def test_doctor_names_each_missing_prerequisite_and_its_fix(setup, monkeypatch):
     assert not rows["model"]["ok"] and not rows["model"]["required"]    # optional: deterministic runs
 
 
-def test_dashboard_stop_ends_the_process_it_recorded(tmp_path, monkeypatch):
-    pytest.importorskip("fcntl")                 # POSIX signals; the dashboard is served from WSL
+@pytest.mark.parametrize("arguments", [["--port", "8791"],                         # launch-progress.ps1
+                                       ["--run", "/r", "--port", "8791", "--wsl-python", "p"]])  # ./gd dashboard
+def test_dashboard_stop_ends_a_dashboard_however_it_was_started(capsys, monkeypatch, arguments):
+    """Measured 2026-10-20: a dashboard from launch-progress.cmd had no way to be stopped, and
+    `--stop` only knew the pid file of one `./gd dashboard` had written. Neither needs a current run."""
+    pytest.importorskip("fcntl")                 # pkill and POSIX signals; the dashboard is served from WSL
     import subprocess
     import sys
-    run = tmp_path / "run"
-    run.mkdir()
-    monkeypatch.setenv("GAMEDECOMP_RUN", str(run))
-    process = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
-    (run / "dashboard.pid").write_text(f"{process.pid}\n")
-    assert control.main(["dashboard", "--stop"]) == 0
-    assert process.wait(timeout=10) != 0 and not (run / "dashboard.pid").exists()
-    with pytest.raises(SystemExit, match="no dashboard recorded"):
-        control.main(["dashboard", "--stop"])
+    monkeypatch.delenv("GAMEDECOMP_RUN", raising=False)
+    monkeypatch.setenv("GAMEDECOMP_HOME", "/nonexistent")
+    # Same command-line shape as the real server: `... eval.progress_app <arguments>`.
+    process = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)", "eval.progress_app", *arguments])
+    other = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)", "eval.progress_app", "--port", "87910"])
+    try:
+        assert control.main(["dashboard", "--stop", "--port", "8791"]) == 0
+        assert process.wait(timeout=10) != 0
+        assert other.poll() is None                  # another port's dashboard is left alone
+        assert "stopped" in capsys.readouterr().out
+        control.main(["dashboard", "--stop", "--port", "8791"])
+        assert "no dashboard was running" in capsys.readouterr().out
+    finally:
+        other.kill()
 
 
 def test_start_drives_the_supervisor_the_way_the_hourly_task_does(setup, monkeypatch):

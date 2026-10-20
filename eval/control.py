@@ -29,7 +29,6 @@ import json
 import os
 from pathlib import Path
 import shutil
-import signal
 import sqlite3
 import subprocess
 import sys
@@ -400,19 +399,20 @@ def logs(args) -> int:
     return 0
 
 
+def stop_dashboard(port: int) -> bool:
+    """Stop the dashboard serving `port`, whether `./gd dashboard` or launch-progress.ps1 started it.
+
+    Both start `python -m eval.progress_app ... --port N`, so the process is found by that command line."""
+    done = subprocess.run(["pkill", "-f", rf"eval\.progress_app( .*)? --port {port}( |$)"])
+    return done.returncode == 0
+
+
 def dashboard(args) -> int:
-    run, url = current_run(), f"http://127.0.0.1:{args.port}"
     if args.stop:
-        pid_file = run / "dashboard.pid"
-        if not pid_file.is_file():
-            raise SystemExit(f"no dashboard recorded for {run}")
-        try:
-            os.kill(int(pid_file.read_text()), signal.SIGTERM)
-            print("dashboard stopped")
-        except ProcessLookupError:
-            print("dashboard was not running")
-        pid_file.unlink()
+        print(f"dashboard on port {args.port} stopped" if stop_dashboard(args.port)
+              else f"no dashboard was running on port {args.port}")
         return 0
+    run, url = current_run(), f"http://127.0.0.1:{args.port}"
 
     def up():
         try:

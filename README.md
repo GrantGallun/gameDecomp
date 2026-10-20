@@ -8,6 +8,9 @@ across a whole game.
 > daily, the numbers below come from a live campaign, and setup assumes a specific local environment.
 > Expect rough edges.
 
+**To run it:** [Running it](#running-it) has the commands to set up, start and stop everything.
+[docs/RUNNING.md](docs/RUNNING.md) is the full setup guide.
+
 ![Progress dashboard](docs/dashboard.png)
 
 *The progress dashboard at checkpoint 38,599 (2026-10-04). Each block in the map is one function, sized by
@@ -195,6 +198,24 @@ repository inside WSL:
 ```
 
 From a Windows prompt in the repository, `gd.cmd <command>` runs the same commands through WSL.
+
+### Turning it on and off
+
+From PowerShell in the repository:
+
+| To | Run |
+|---|---|
+| open the dashboard (the long-running campaign) | `.\launch-progress.cmd` |
+| open the dashboard (the current `./gd` run) | `.\gd.cmd dashboard`, then browse to http://127.0.0.1:8765 |
+| close the dashboard, however it was opened | `.\gd.cmd dashboard --stop` |
+| see the campaign's progress | `.\gd.cmd status` |
+| pause or continue the campaign | `.\gd.cmd pause` / `.\gd.cmd resume` |
+| stop everything and give WSL's memory back to Windows | `wsl --shutdown` |
+
+The `gd.cmd` commands act on the current run. `./gd new` selects the run it creates; select any other
+run once with `.\gd.cmd use <run directory>`. After `wsl --shutdown`, `.\gd.cmd start` continues a
+campaign from its last saved work item. If WSL will not start (`ERROR_NO_SYSTEM_RESOURCES`), Windows is
+short of memory; see Troubleshooting in [docs/RUNNING.md](docs/RUNNING.md).
 
 ## Status and next steps
 

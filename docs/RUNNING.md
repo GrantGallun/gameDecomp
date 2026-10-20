@@ -124,7 +124,7 @@ file modified. The refusal is a policy, not a compiler limit (see `eval/remove_d
 | `./gd pause` | stops at the next work-item boundary. The pause survives restarts |
 | `./gd resume` | clears a pause, or resets the retry budget after `needs_repair`, and starts |
 | `./gd start` | starts the supervisor if it is stopped. It never clears a pause |
-| `./gd dashboard --stop` | stops the dashboard server |
+| `./gd dashboard --stop` | stops the dashboard on its port (8765 unless `--port`), whether `./gd dashboard` or `launch-progress.cmd` started it |
 | `./gd use RUN` | makes another run directory current |
 
 The supervisor (`eval/campaign_service.py`) runs the campaign in batches of ten work items, each in a
@@ -133,8 +133,9 @@ fresh process, and saves after every item. A worker that fails three times in a 
 repository or the frozen code changes underneath a run, it stops as `needs_repair` with
 `paused_inputs_changed`. That run is pinned to its inputs, so create a new one.
 
-The supervisor keeps running after the terminal that started it closes. A Windows restart or
-`wsl --shutdown` stops it, and `./gd start` continues from the last saved work item. The project's
+The supervisor keeps running after the terminal that started it closes. To turn everything off and
+give WSL's memory back to Windows, run `wsl --shutdown` from Windows. That, or a Windows restart, stops
+the campaign, and `./gd start` continues it from the last saved work item. The project's
 long-running campaign is restarted by an hourly Windows task (`eval/campaign_hourly.ps1`, written for
 that one run).
 
