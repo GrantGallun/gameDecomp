@@ -21,7 +21,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import re
 import subprocess
 import time
@@ -49,7 +49,8 @@ def _validate(job):
     if type(duration) not in {int, float} or not 10 <= duration <= 1800:
         raise ValueError("trace duration must be between 10 and 1800 seconds")
     for key in ("portable_dir", "rom_path", "output_dir"):
-        if not isinstance(job.get(key), str) or not Path(job[key]).is_absolute():
+        # The emulator runs on Windows; PureWindowsPath judges the path the same way from WSL.
+        if not isinstance(job.get(key), str) or not PureWindowsPath(job[key]).is_absolute():
             raise ValueError(key + " must be an absolute Windows path")
     if job["kind"] == "record":
         entry, end = job.get("entry"), job.get("end")

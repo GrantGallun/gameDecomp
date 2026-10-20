@@ -114,6 +114,8 @@ def test_a_published_adapter_is_loadable_from_its_published_path():
 
 def test_a_published_adapter_blocks_a_rerun_rather_than_being_overwritten(tmp_path):
     """No automatic retries and no budget reset: a second run must refuse, loudly."""
+    for stack in ("torch", "peft", "transformers"):     # train() imports these before the check
+        pytest.importorskip(stack)
     cfg = tsr.TrainConfig(base=tmp_path, tasks=_write_tasks(tmp_path), out=tmp_path / "out")
     (cfg.out).mkdir(parents=True)
     (cfg.out / tsr.PUBLISHED_MARKER).write_text(json.dumps({"published_at": 1}))
@@ -154,6 +156,8 @@ def test_the_signal_handler_sets_a_flag_and_does_not_raise(tmp_path, monkeypatch
     A raising handler surfaces as an arbitrary traceback from wherever the process happened to
     be; a flag is checked at the step boundary, which is where stopping is safe.
     """
+    for stack in ("torch", "peft", "transformers"):     # train() imports these before registering
+        pytest.importorskip(stack)
     ran = {"n": 0}
 
     def fake_signal(signum, handler):

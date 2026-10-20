@@ -282,6 +282,9 @@ def test_the_real_frozen_stage_emits_a_manifest_the_real_verifier_can_read(tmp_p
     """
     from eval import generation_manifest as gm
 
+    splits = ROOT / "eval/results/tool-action-20260921/splits.json"   # the panel stage_frozen declares
+    if not splits.exists():
+        pytest.skip(f"local-only input absent: {splits.relative_to(ROOT).as_posix()}")
     base, adapter = tmp_path / "model", tmp_path / "adapter"
     base.mkdir(), adapter.mkdir()
     (base / "config.json").write_text("{}", encoding="utf-8")

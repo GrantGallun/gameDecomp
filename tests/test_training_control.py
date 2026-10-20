@@ -206,6 +206,8 @@ def _no_orphan_workers():
     happens to contain the name of this test file.
     """
     yield
+    if os.name != 'nt':
+        return      # the access error is Windows-only, and so are powershell and taskkill
     listing = subprocess.run(
         ['powershell', '-NoProfile', '-Command',
          "$me = $PID; Get-CimInstance Win32_Process -Filter \"Name like '%python%'\" | "
@@ -237,6 +239,8 @@ def test_stop_terminates_the_wsl_process_group_including_a_grandchild(tmp_path):
     the worker registers that group, and Stop must empty it -- the same delivery the
     real trainer's compiler children would receive.
     """
+    if not _wsl_available():
+        pytest.skip('no WSL available to host a process group')
     script = write_trainer(tmp_path)
     grandchild = tmp_path/'grandchild.pid'
     projection_dir = tmp_path/'projection'
@@ -325,7 +329,7 @@ def test_group_kill_signal_runs_inside_wsl_and_is_idempotent(tmp_path):
     pid file is a WSL group id -- the same thing the worker registers in production.
     Stop must then empty that group from the Windows side.
     """
-    if os.name == 'nt' and not _wsl_available():
+    if not _wsl_available():
         pytest.skip('no WSL available to host a process group')
     argv = _wsl_signal_holder(tmp_path)
     holder = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,

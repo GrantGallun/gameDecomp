@@ -1,0 +1,8 @@
+# eval/project64_runner.py pins these files by SHA-256, each over the line endings it was
+# hashed with. Fix them so every checkout, on any OS and autocrlf setting, has those bytes.
+eval/project64_assets.json eol=crlf
+eval/project64_capture_entry.js eol=lf
+
+# Run by bash inside WSL; a CRLF checkout on Windows would break them.
+gd text eol=lf
+*.sh text eol=lf

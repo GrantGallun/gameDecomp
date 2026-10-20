@@ -90,6 +90,8 @@ def test_cache_requires_explicit_seed(tmp_path):
 
 
 def test_fixed_context_is_cache_bound_and_preserves_headroom(tmp_path,monkeypatch):
+    # An exported pin (as in a WSL login profile) would make the adaptive request identical to the fixed one.
+    monkeypatch.delenv('SOLVER_FIXED_CONTEXT', raising=False)
     requests=[]
     def send(request,timeout):
         requests.append(json.loads(request.data))

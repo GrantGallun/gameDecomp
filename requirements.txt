@@ -1,0 +1,16 @@
+# Pipeline and test-suite dependencies, pinned to the versions the campaign's test
+# environment runs (Python 3.12). Install with:
+#   python3 -m pip install -r requirements.txt
+#
+# Not included: the IDO 5.3 toolchain (ido-static-recomp), a ROM, or the model
+# stack. Model training and serving (torch, transformers, peft, vllm) use separate
+# virtualenvs; see TRAINING.md and tools/lora_serve/.
+m2c @ git+https://github.com/matt-kempster/m2c.git@ef8aff103d1eb6fcc4fb73be2d1f887439bcb0cb
+numpy==2.5.3
+pycparser==2.23
+pygfxd==1.0.5
+pytest==9.1.1
+PyYAML==6.0.3
+rabbitizer==1.16.2
+spimdisasm==1.42.4
+splat64==0.39.1

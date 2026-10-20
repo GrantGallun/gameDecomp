@@ -6,14 +6,15 @@ roms/
 *.zip
 
 # Generated / large
+.venv/
 __pycache__/
 *.pyc
 *.sqlite
 *.sqlite-journal
 cases/
 
-# Scratch
-rec*.py
+# Scratch (root only: unanchored, this also hid solver/recorded_layout.py and other modules)
+/rec*.py
 
 # Runtime / tooling artifacts, not project source
 .aioptimizer/

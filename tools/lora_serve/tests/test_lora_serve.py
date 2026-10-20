@@ -20,7 +20,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from tools.lora_serve import receipts as receipts_mod
+# Most of this module exercises the server, its backends and the sampler, which import torch at
+# module level, so it runs only where the serving stack is installed.
+pytest.importorskip("torch")
+
+from tools.lora_serve import receipts as receipts_mod  # noqa: E402
 from tools.lora_serve.chatfmt import ChatRenderError, render_chat, render_completion
 from tools.lora_serve.client import (AdapterNotFound, InferenceClient, InferenceError,
                                      ServerNotRunning)
