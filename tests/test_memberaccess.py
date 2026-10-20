@@ -1,5 +1,7 @@
 """memberaccess must FIRE on Fcutoff, the residual it was written for."""
 
+import re
+
 from solver import memberaccess, typedecl
 
 FCUTOFF = '''#include "common.h"
@@ -62,7 +64,20 @@ def test_apply_is_identity_without_plans():
 
 def test_void_is_never_treated_as_an_undeclared_struct():
     """`void` is a keyword, so buildtypes never lists it; typedecl emitted
-    `typedef struct { ... } void;` for 8 of 35 plans before this."""
+    `typedef struct { ... } void;` for 8 of 35 plans before this.
+
+    Since 00a1c5f `typedecl.plan` keeps the `void *` plan on purpose: m2c spells every untyped
+    parameter `void *`, so skipping it threw away that parameter's layout evidence. The guarantee
+    moved to the caller, which declares the struct under a tag made from the parameter position."""
+    from solver import compile_obligations
     code = 'void guMtxF2L(void *arg0) {\n    arg0->unk0 = 1;\n}\n'
-    assert typedecl.plan(code, "guMtxF2L",
-                         {"param0": [(0, 4, "s32")]}, set()) == []
+    layout = {"param0": [(0, 4, "s32")]}
+    plans = typedecl.plan(code, "guMtxF2L", layout, set())
+    assert [(p["type"], p["params"], p["offsets"]) for p in plans] == [("void", [0], [0])]
+    accepted, derived, declined = compile_obligations.plan_declarations(
+        code, "guMtxF2L", plans, layout, "", {}, set())
+    assert accepted == [] and declined == []
+    [(tag, var, text)] = derived
+    assert (tag, var) == ("guMtxF2L_arg0", "arg0")
+    assert text.startswith("struct guMtxF2L_arg0 {") and text.rstrip().endswith("};")
+    assert not re.search(r"\bvoid\s*;", text)

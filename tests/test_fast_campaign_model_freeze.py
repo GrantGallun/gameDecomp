@@ -19,8 +19,12 @@ SOURCE = (Path(__file__).resolve().parents[1] / "eval" / "fast_campaign.py").rea
 
 
 def test_the_digest_check_is_guarded_by_model_calls():
-    """The guard is present, and it guards the digest call rather than sitting near it."""
-    assert "if args.model_calls and campaign.frozen_wavefront.model_digest(" in SOURCE
+    """The guard is present, and it guards the digest call rather than sitting near it.
+
+    `not deterministic_only` joined the condition later: a deterministic-only resume is the other
+    zero-model mode, so it skips the check for the same reason."""
+    assert ("if args.model_calls and not deterministic_only and "
+            "campaign.frozen_wavefront.model_digest(") in SOURCE
     # The unguarded form must be gone: a second, bare call would still crash a zero-model run.
     assert "\n        if campaign.frozen_wavefront.model_digest(" not in SOURCE
 

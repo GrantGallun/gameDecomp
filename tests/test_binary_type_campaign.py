@@ -116,8 +116,12 @@ def test_clean_placeholder_child_keeps_binary_evidence(tmp_path, monkeypatch):
         return workspace.Attempt(False, 0, False, "", "syntax error", "", len(calls))
     monkeypatch.setattr(workspace, "score", score)
     campaign._intake(repo=tmp_path, db=db, function="f", node={}, out=tmp_path / "r.json", binary_type_only=True)
-    assert len(calls) == 2
-    source, kw = calls[1]
+    intake = [(s, kw) for s, kw in calls if kw["strategy"].startswith("campaign-intake:")]
+    assert len(intake) == 2      # the raw draft and its placeholder-resolved child
+    # Every compile fails here, so compile admission then retries each failed variant. Those rows
+    # are admission's, and they come after intake.
+    assert all(kw["strategy"].startswith("campaign-intake-admission:") for _s, kw in calls[2:])
+    source, kw = intake[1]
     receipt = kw["extra"]["binary_type_context"][0]
     assert kw["parent_attempt_id"] == 1
     assert receipt["source_sha256"] == hashlib.sha256(source.encode()).hexdigest()

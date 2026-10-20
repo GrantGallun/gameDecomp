@@ -387,6 +387,22 @@ def variants(conn, repo, function, ws, source, attempt):
     if not target:
         return [], [{'stage': 'compile-recovery', 'status': 'declined', 'reason': 'no configured TU identity'}]
     asm = (ws/'target.s').read_text()
+    # FIRST STAGE, because a file cfe refuses to parse is judged no further and every strategy below
+    # reasons about diagnostics that the parse error truncated. Measured 2026-09-17: 122 drafts carry
+    # m2c's `?` type placeholder and 1,962 logged attempts died with `Empty declaration specifiers`;
+    # `_Litob` is 132 lines and cfe stops at line 12, so nothing after it was ever judged.
+    #
+    # This is the recovery path, and the campaign's own state says it is where the work goes: 1,587
+    # `compile_recovery` visits on pending nodes, of which 61 are `compiled=False` with NO diagnostic
+    # at all -- `_Ldtob`, `_Printf`, `__osCheckPackId`, `__osRepairPackId`, `__osLeoInterrupt` -- every
+    # one of them a function this class already covers. The stage is offered, never substituted: the
+    # object decides, and a clean source returns unchanged so nothing is added.
+    from solver import m2c_placeholders
+    resolved, placeholder_names = m2c_placeholders.rewrite(source)
+    if placeholder_names:
+        rows.append(('m2c-type-placeholder', resolved))
+        reports.append({'stage': 'm2c-type-placeholder', 'changes': True,
+                        'count': len(placeholder_names), 'names': placeholder_names[:10]})
     from solver import wide_parameter_repair, frontend_repair
     from solver import address_units
     pointer_report = address_units.parameter_call_views(source, function, asm,

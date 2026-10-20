@@ -98,16 +98,16 @@ def declared_in(code: str, name: str) -> bool:
 # anyway on 3 of the 17 development states and cfe answered `redeclaration of 'RacePlayer'; previous
 # declaration at line 243 in race_player_input.h`, turning three compiling candidates into uncompilable
 # ones.
-_MASK = None
+#
+# The pattern is project_headers._mask_noncode's, copied rather than imported: this module is part of
+# the evidence ledger, which must not import project_headers, the module that adds the decomp team's
+# reconstructed headers (tests/test_grounded.py checks the imports).
+_NONCODE = re.compile(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'', re.S)
 
 
 def _masked(code: str) -> str:
     """Comments and string literals blanked, length preserved, so indices stay meaningful."""
-    global _MASK
-    if _MASK is None:
-        from solver import project_headers
-        _MASK = project_headers._mask_noncode
-    return _MASK(code)
+    return _NONCODE.sub(lambda m: re.sub(r"[^\n]", " ", m.group()), code)
 
 
 def _statement_end(code: str, start: int) -> int:

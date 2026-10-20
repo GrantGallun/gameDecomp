@@ -101,7 +101,8 @@ def _dependencies(source, masked, definition, end, base, offset, start):
     declarations=[]
     for callee in dict.fromkeys(callees):
         if callee in {'if','while','for','sizeof'}:continue
-        pattern=r'(?m)^[ \t]*(?:extern\s+)?[\w *]+\b'+re.escape(callee)+r'\s*\([^;{}]*\)\s*;'
+        # A declaration may share a line with an earlier statement (`typedef int s32; void sink(s32 *);`).
+        pattern=r'(?m)(?:^|(?<=;))[ \t]*(?:extern\s+)?[\w *]+\b'+re.escape(callee)+r'\s*\([^;{}]*\)\s*;'
         declarations.extend(m[0].strip()[:500] for m in re.finditer(pattern,masked[:definition.start()]))
     return {'identifiers':names,'occurrences':occurrences,'omitted_occurrences':omitted,
             'callee_declarations':list(dict.fromkeys(declarations))[:6],

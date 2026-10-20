@@ -178,6 +178,9 @@ def test_fast_controller_holds_campaign_lock_before_recovery_read(tmp_path, monk
 def test_explicit_resume_resets_failure_budget_only_for_inactive_paused_service(tmp_path, monkeypatch, active):
     from eval import campaign_service as service
     checkpoint.atomic(tmp_path / 'service.json', {'status': 'paused', 'consecutive_failures': 3, 'error': 'old crash'})
+    # Every launched run has launch.json; resume reads it to find which checkpoint's pause file to clear.
+    checkpoint.atomic(tmp_path / 'launch.json', {'command': ['python3', '-m', 'eval.fast_campaign',
+                                                             '--max-work-items', '10']})
     monkeypatch.setattr(service, 'locked', lambda _: active)
     monkeypatch.setattr(service, 'health', lambda _: {'status': 'running' if active else 'paused'})
     monkeypatch.setattr(sys, 'argv', ['campaign_service', '--run', str(tmp_path), 'resume'])

@@ -29,11 +29,22 @@ def near_node(tmp_path):
             'semantic_validation': {'status': 'unavailable', 'reason': 'hardware'}}
 
 
+def cheaper_searches_done(node):
+    """Site edits, then the plateau search, run before the operand route on a small residual
+    (since 2026-09-29/30; tests/test_plateau_repair.py pins site edits first). These tests are about
+    the operand visit, so they start after both have visited the current source."""
+    return [{'profile': 'site_edits@' + repair_queue.site_edit_digest(),
+             'source_sha256': node['source_sha256']},
+            {'profile': 'plateau@' + repair_queue.plateau_digest(),
+             'source_sha256': node['source_sha256']}]
+
+
 def test_nonregister_nearmiss_gets_one_operand_visit_before_redrafting(tmp_path, monkeypatch):
     node = near_node(tmp_path)
     key = repair_queue.evidence_key(node)
     node['jobs'] = [{'profile': p, 'evidence_key': key, 'source_sha256': node['source_sha256']}
                     for p in ('local_rewrites', 'deeper_composition')]
+    node['jobs'] += cheaper_searches_done(node)
     monkeypatch.setattr(repair_queue, 'operand_repair_digest', lambda: 'v1', raising=False)
     profile = repair_queue.next_profile(node, 3, campaign.PROFILES, 'binary-v1')
     assert profile['name'] == 'operand_repair@v1'
@@ -100,8 +111,9 @@ def test_new_operand_visit_runs_ahead_of_old_exhaustion_band(tmp_path, monkeypat
     node['jobs'] = [{'profile': p, 'source_sha256': node['source_sha256'],
                      'evidence_key': repair_queue.evidence_key(node)}
                     for p in ('local_rewrites', 'deeper_composition')]
-    node['jobs'] += [{'profile': 'old'}] * 12
-    fresh = {**node, 'jobs': [], 'residual': {**node['residual'], 'faults': {'structural': 8}}}
+    node['jobs'] += [{'profile': 'old'}] * 12 + cheaper_searches_done(node)
+    fresh = {**node, 'jobs': cheaper_searches_done(node),
+             'residual': {**node['residual'], 'faults': {'structural': 8}}}
     monkeypatch.setattr(repair_queue, 'operand_repair_digest', lambda: 'v1')
     state = {'config': {'model_calls': 3}, 'nodes': {'near': node, 'fresh': fresh}}
     queue, selected = repair_queue.project(state, campaign.PROFILES)
